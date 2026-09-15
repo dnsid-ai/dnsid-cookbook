@@ -242,7 +242,7 @@ wheels = [
 [[package]]
 name = "dnsid"
 version = "0.19.1"
-source = { git = "https://github.com/dnsid-ai/dnsid-py?rev=v0.19.1#1257fd0b44fd3b0e214ba5bc7db427b5c266c91e" }
+source = { git = "https://github.com/dnsid-ai/dnsid-py?rev=v0.19.1#c9ae777cb4b473eace67d2b745b1760032e32738" }
 dependencies = [
     { name = "cryptography" },
     { name = "dnspython" },
