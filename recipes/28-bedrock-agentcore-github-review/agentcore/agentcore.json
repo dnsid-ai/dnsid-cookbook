@@ -1,0 +1,80 @@
+{
+  "$schema": "https://schema.agentcore.aws.dev/v1/agentcore.json",
+  "name": "GitHubReviewBot",
+  "version": 1,
+  "managedBy": "CDK",
+  "tags": {
+    "agentcore:created-by": "agentcore-cli",
+    "agentcore:project-name": "GitHubReviewBot"
+  },
+  "runtimes": [
+    {
+      "name": "GitHubReviewBot",
+      "build": "CodeZip",
+      "entrypoint": "main.py",
+      "codeLocation": "app/GitHubReviewBot/",
+      "runtimeVersion": "PYTHON_3_14",
+      "networkMode": "PUBLIC",
+      "protocol": "HTTP",
+      "envVars": []
+    }
+  ],
+  "memories": [],
+  "credentials": [],
+  "evaluators": [],
+  "onlineEvalConfigs": [],
+  "agentCoreGateways": [
+    {
+      "name": "ReviewGateway",
+      "description": "Audit tool gateway — validates inbound DNSid OIDC tokens (CUSTOM_JWT) before routing to the Lambda backend",
+      "authorizerType": "CUSTOM_JWT",
+      "authorizerConfiguration": {
+        "customJwtAuthorizer": {
+          "discoveryUrl": "https://api.dnsid.ai/.well-known/openid-configuration",
+          "allowedScopes": ["dnsid:review"]
+        }
+      },
+      "targets": [
+        {
+          "name": "AuditBackend",
+          "targetType": "lambda",
+          "toolDefinitions": [
+            {
+              "name": "record_audit",
+              "description": "Record a completed code review to the audit log. Call this after posting a review comment.",
+              "inputSchema": {
+                "type": "object",
+                "properties": {
+                  "pr_url": {
+                    "type": "string",
+                    "description": "Full GitHub URL of the pull request (e.g. https://github.com/org/repo/pull/42)"
+                  },
+                  "summary": {
+                    "type": "string",
+                    "description": "One-paragraph summary of the review findings"
+                  }
+                },
+                "required": ["pr_url", "summary"]
+              }
+            }
+          ],
+          "compute": {
+            "host": "Lambda",
+            "implementation": {
+              "language": "Python",
+              "path": "app/audit_lambda/",
+              "handler": "handler.lambda_handler"
+            },
+            "pythonVersion": "PYTHON_3_13",
+            "timeout": 30,
+            "memorySize": 256
+          }
+        }
+      ]
+    }
+  ],
+  "policyEngines": [],
+  "configBundles": [],
+  "abTests": [],
+  "httpGateways": []
+}

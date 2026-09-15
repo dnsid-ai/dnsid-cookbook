@@ -1,0 +1,143 @@
+{
+  "openapi": "3.0.1",
+  "info": {
+    "title": "DNSid AgentCore Image PoC Target",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/generate-image": {
+      "post": {
+        "operationId": "generate_image",
+        "summary": "Generate an image with trusted DNSid context",
+        "security": [
+          {
+            "sigv4": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GenerateImageRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Generated image metadata"
+          }
+        },
+        "x-amazon-apigateway-integration": {
+          "type": "aws_proxy",
+          "httpMethod": "POST",
+          "uri": "{{integration_uri}}",
+          "passthroughBehavior": "when_no_match"
+        }
+      }
+    },
+    "/whoami-dnsid": {
+      "post": {
+        "operationId": "whoami_dnsid",
+        "summary": "Return trusted DNSid context",
+        "security": [
+          {
+            "sigv4": []
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Trusted DNSid context"
+          }
+        },
+        "x-amazon-apigateway-integration": {
+          "type": "aws_proxy",
+          "httpMethod": "POST",
+          "uri": "{{integration_uri}}",
+          "passthroughBehavior": "when_no_match"
+        }
+      }
+    },
+    "/debug-denied": {
+      "post": {
+        "operationId": "debug_denied",
+        "summary": "Diagnostic operation excluded from AgentCore tool filters",
+        "security": [
+          {
+            "sigv4": []
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "403": {
+            "description": "Always denied"
+          }
+        },
+        "x-amazon-apigateway-integration": {
+          "type": "aws_proxy",
+          "httpMethod": "POST",
+          "uri": "{{integration_uri}}",
+          "passthroughBehavior": "when_no_match"
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "sigv4": {
+        "type": "apiKey",
+        "name": "Authorization",
+        "in": "header",
+        "x-amazon-apigateway-authtype": "awsSigv4"
+      }
+    },
+    "schemas": {
+      "GenerateImageRequest": {
+        "type": "object",
+        "required": ["prompt"],
+        "properties": {
+          "prompt": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1000
+          },
+          "style": {
+            "type": "string",
+            "enum": ["product", "illustration", "cinematic", "natural"]
+          },
+          "size": {
+            "type": "string",
+            "enum": ["1024x1024"]
+          },
+          "client_context": {
+            "type": "object",
+            "description": "Optional caller metadata. Ignored for identity and accountability; Gateway-injected DNSid context is authoritative.",
+            "additionalProperties": true
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  }
+}

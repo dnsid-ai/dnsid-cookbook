@@ -1,0 +1,31 @@
+{
+  "openapi": "3.0.3",
+  "info": {"title": "DNSid Orders", "version": "1.0.0"},
+  "paths": {
+    "/orders": {
+      "post": {
+        "operationId": "place_order",
+        "description": "Place a small illustrative order.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "sku": {"type": "string"},
+                  "quantity": {"type": "integer", "minimum": 1, "maximum": 10}
+                },
+                "required": ["sku", "quantity"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {"description": "Order accepted"},
+          "403": {"description": "DNSid verification failed"}
+        }
+      }
+    }
+  }
+}

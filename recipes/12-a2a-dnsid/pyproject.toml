@@ -1,0 +1,15 @@
+[project]
+name = "recipe-12-a2a-dnsid"
+version = "0.1.0"
+description = "DNSid cookbook recipe 12 — A2A protocol + DNSid"
+requires-python = ">=3.11"
+# Versions below are the ones this recipe was actually tested against
+# (Python 3.13, 2026-09). Later versions probably work; these are known to.
+dependencies = [
+    "dnsid @ git+https://github.com/dnsid-ai/dnsid-py@v0.19.1",
+    "a2a-sdk==1.1.2",
+    "fastapi==0.141.1",
+    "uvicorn==0.52.4",
+    "dnspython==2.8.0",
+    "sse-starlette==3.4.8",
+]

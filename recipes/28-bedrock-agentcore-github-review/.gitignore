@@ -1,0 +1,11 @@
+agentcore/.env.local
+agentcore/.cli/
+agentcore/cdk/node_modules/
+agentcore/cdk/cdk.out/
+app/**/.venv/
+app/**/__pycache__/
+app/**/*.pyc
+app/**/dist/
+app/**/*.egg-info/
+*.jwk.json
+agent-creds.tar.gz

@@ -1,0 +1,10 @@
+/TASK.md
+/PLAN.md
+/artifacts/
+/tmp/
+/bin/
+/coverage.out
+*.test
+.env
+.env.*
+!.env.example

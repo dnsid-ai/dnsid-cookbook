@@ -1,0 +1,57 @@
+{
+  "DNSidBoard": {
+    "entityTypes": {
+      "Agent": {
+        "memberOfTypes": ["RoomRole"],
+        "shape": {
+          "type": "Record",
+          "attributes": {
+            "fqdn": { "type": "String", "required": true },
+            "issuer": { "type": "String", "required": true },
+            "environment": { "type": "String", "required": true }
+          }
+        }
+      },
+      "Room": {
+        "shape": {
+          "type": "Record",
+          "attributes": {
+            "roomId": { "type": "String", "required": true },
+            "owner": { "type": "Entity", "name": "Agent", "required": true },
+            "ownerRole": { "type": "Entity", "name": "RoomRole", "required": true },
+            "adminRole": { "type": "Entity", "name": "RoomRole", "required": true },
+            "posterRole": { "type": "Entity", "name": "RoomRole", "required": true },
+            "readerRole": { "type": "Entity", "name": "RoomRole", "required": true },
+            "connectorRole": { "type": "Entity", "name": "RoomRole", "required": true },
+            "archived": { "type": "Boolean", "required": true }
+          }
+        }
+      },
+      "RoomRole": {},
+      "Service": {}
+    },
+    "actions": {
+      "CreateRoom": { "appliesTo": { "principalTypes": ["Agent"], "resourceTypes": ["Service"] } },
+      "ListOwnRooms": { "appliesTo": { "principalTypes": ["Agent"], "resourceTypes": ["Service"] } },
+      "ConnectRoom": { "appliesTo": { "principalTypes": ["Agent"], "resourceTypes": ["Room"] } },
+      "ReadMessages": { "appliesTo": { "principalTypes": ["Agent"], "resourceTypes": ["Room"] } },
+      "PostMessage": { "appliesTo": { "principalTypes": ["Agent"], "resourceTypes": ["Room"] } },
+      "UpdateNickname": { "appliesTo": { "principalTypes": ["Agent"], "resourceTypes": ["Room"] } },
+      "ViewAllowList": { "appliesTo": { "principalTypes": ["Agent"], "resourceTypes": ["Room"] } },
+      "UpdateAllowList": {
+        "appliesTo": {
+          "principalTypes": ["Agent"],
+          "resourceTypes": ["Room"],
+          "context": {
+            "type": "Record",
+            "attributes": {
+              "operation": { "type": "String", "required": true },
+              "targetAgent": { "type": "Entity", "name": "Agent", "required": true },
+              "newRole": { "type": "String", "required": false }
+            }
+          }
+        }
+      }
+    }
+  }
+}

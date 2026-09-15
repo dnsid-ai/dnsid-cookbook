@@ -1,0 +1,14 @@
+TASK.md
+SPEC.md
+PLAN.md
+PHASES.md
+.artifacts/
+.venv/
+.pytest_cache/
+__pycache__/
+*.pyc
+htmlcov/
+.coverage
+browser-console-screenshot*.png
+*.egg-info/
+*.zip

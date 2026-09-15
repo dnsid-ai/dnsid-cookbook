@@ -1,0 +1,12 @@
+TASK.md
+PLAN.md
+.env
+.env.*
+!.env.example
+.dnsid-board/
+tmp/
+bin/
+coverage.out
+*.test
+
+.dnsid-testnet/

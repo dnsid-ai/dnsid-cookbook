@@ -1,0 +1,115 @@
+# Per-recipe `make verify` gate.
+#
+# Every recipe with a one-shot, hermetic `make verify` gets a matrix entry below.
+# Adding a recipe to the cookbook means adding it here in the same PR — a recipe
+# whose verify never runs in CI silently rots.
+#
+# Every verify job installs the `dnsid` CLI and pre-pulls the testnet registry
+# image, because the cookbook's single recipe harness is the real DNSid testnet
+# driven by that CLI (see CLAUDE.md). Recipes that predate the testnet harness
+# simply don't use them.
+name: verify-recipes
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  checks:
+    name: repo checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Hardcoded-identity scanner self-test
+        run: python3 scripts/test_scan_hardcoded_identities.py
+
+      - name: Scan for hardcoded identities
+        run: python3 scripts/scan-hardcoded-identities.py
+
+  verify:
+    name: verify ${{ matrix.recipe }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          # In the matrix: recipes whose `make verify` is one-shot and hermetic
+          # (no cloud account, no live domain, exits nonzero on failure).
+          #
+          # Excluded and why:
+          #   07 / 07b / 30 (AgentCore gateway) — verify targets a deployed AWS
+          #                                       gateway (deploy-only recipes)
+          #   28-bedrock-agentcore-github-review — no verify target (deploy-only)
+          - recipe: 01-publish-jwks
+          - recipe: 06b-go-http-stripe
+            go: true
+            sdk: true
+          - recipe: 12-a2a-dnsid
+            uv: true
+            sdk: true
+          - recipe: 29-dnsid-message-board
+            go: true
+            sdk: true
+          - recipe: 31-langgraph-dnsid-agent
+            uv: true
+            sdk: true
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        if: matrix.go
+        with:
+          go-version-file: recipes/${{ matrix.recipe }}/go.mod
+
+      - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        if: matrix.uv
+
+      # Route private DNSid SDK git dependencies through the org PAT.
+      - name: Configure git auth for private SDK dependencies
+        if: matrix.sdk
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
+        run: |
+          git config --global url."https://x-access-token:${GH_PAT}@github.com/".insteadOf "https://github.com/"
+
+      # The dnsid repo is private, so the default workflow token cannot read its
+      # releases; GH_PAT is the org PAT already used by dnsid-sdk-compliance CI.
+      - name: Install dnsid CLI
+        env:
+          GH_TOKEN: ${{ secrets.GH_PAT || github.token }}
+        run: |
+          set -euo pipefail
+          tag=$(gh api 'repos/dnsid-ai/dnsid/releases?per_page=100' \
+            --jq 'map(select(any(.assets[]; .name == "dnsid_linux_amd64.tar.gz")))[0].tag_name')
+          test -n "$tag"
+          gh release download "$tag" --repo dnsid-ai/dnsid \
+            --pattern 'dnsid_linux_amd64.tar.gz' --dir "$RUNNER_TEMP"
+          tar -xzf "$RUNNER_TEMP/dnsid_linux_amd64.tar.gz" -C "$RUNNER_TEMP" dnsid
+          sudo install -m 0755 "$RUNNER_TEMP/dnsid" /usr/local/bin/dnsid
+          dnsid --version
+
+      - name: Pull testnet registry image
+        run: docker pull ghcr.io/identity-digital/dnsid-testnet-registry:main
+
+      - name: make verify
+        run: make -C "recipes/${{ matrix.recipe }}" verify
+
+      # Testnet-in-CI has real moving parts (container startup ordering, DNS
+      # routing); without the container logs, a red job is undebuggable.
+      - name: Dump container state and logs on failure
+        if: failure()
+        run: |
+          docker ps -a
+          for c in $(docker ps -aq); do
+            echo "=== docker logs $c ==="
+            docker logs --tail 200 "$c" 2>&1 || true
+          done

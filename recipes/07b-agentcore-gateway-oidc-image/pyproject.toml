@@ -1,0 +1,26 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agentcore-gateway-oidc-image"
+version = "0.1.0"
+description = "Minimal DNSid OIDC adapter image generation recipe for AgentCore Gateway"
+requires-python = ">=3.11"
+dependencies = [
+    "boto3>=1.35.0",
+    "dnsid @ git+https://github.com/dnsid-ai/dnsid-py@v0.19.1",
+]
+
+[project.optional-dependencies]
+dev = [
+    "coverage>=7.0",
+    "pytest>=8.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]

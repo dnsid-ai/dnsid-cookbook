@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>AgentCore Image PoC</title>
+    <link rel="stylesheet" href="/assets/styles.css?v=phase3b">
+  </head>
+  <body>
+    <main class="shell">
+      <section class="workspace" aria-labelledby="title">
+        <div class="controls">
+          <div class="title-row">
+            <div>
+              <p class="eyebrow">AgentCore image PoC</p>
+              <h1 id="title">Bedrock image target</h1>
+            </div>
+            <span class="mode-badge" id="modeBadge">gateway-dnsid</span>
+          </div>
+
+          <form id="generateForm" class="form" novalidate>
+            <label for="prompt">Prompt</label>
+            <textarea id="prompt" name="prompt" rows="7" maxlength="1000"></textarea>
+
+            <div class="field-grid">
+              <label>
+                <span>Style</span>
+                <select id="style" name="style">
+                  <option value="product">Product</option>
+                  <option value="illustration">Illustration</option>
+                  <option value="cinematic">Cinematic</option>
+                  <option value="natural">Natural</option>
+                </select>
+              </label>
+              <label>
+                <span>Size</span>
+                <select id="size" name="size">
+                  <option value="1024x1024">1024 x 1024</option>
+                </select>
+              </label>
+            </div>
+
+            <button id="generateButton" type="submit">Generate</button>
+          </form>
+        </div>
+
+        <div class="result-pane">
+          <div id="status" class="status" role="status" aria-live="polite">Ready</div>
+          <figure class="preview">
+            <img id="outputImage" alt="Generated image preview" hidden>
+            <figcaption id="emptyState">No image generated</figcaption>
+          </figure>
+          <dl id="metadata" class="metadata"></dl>
+          <p id="warning" class="warning">Gateway DNSid mode: token minting and MCP calls happen in the local backend; the browser receives only a local preview URL.</p>
+        </div>
+      </section>
+    </main>
+    <script src="/assets/app.js?v=phase3b" defer></script>
+  </body>
+</html>

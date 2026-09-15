@@ -1,0 +1,24 @@
+[build-system]
+requires = ["setuptools==84.0.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "agentcore-gateway-dnsid-orders"
+version = "0.1.0"
+description = "Minimal DNSid action verification for Amazon Bedrock AgentCore Gateway"
+requires-python = ">=3.11"
+# Versions tested with Python 3.13.
+dependencies = [
+    "boto3==1.43.81",
+    "dnsid @ git+https://github.com/dnsid-ai/dnsid-py@v0.19.1",
+]
+
+[project.optional-dependencies]
+dev = ["pip==26.2.1", "pytest==9.1.1"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
