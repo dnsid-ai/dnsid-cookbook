@@ -22,7 +22,7 @@ AgentCore can validate an OIDC access token, but a sensitive tool may also need 
 - An AWS account with Bedrock AgentCore Gateway, API Gateway, Lambda, DynamoDB, IAM, and CloudWatch access in `us-east-1`
 - AWS credentials available to the SDK; AWS CLI v2 is useful for inspection
 - [`uv`](https://docs.astral.sh/uv/) 0.12.6 with Python 3.11+
-- The [`dnsid` CLI](https://github.com/dnsid-ai/dnsid/releases) and a production or lab identity it has already issued
+- The [`dnsid` CLI](https://docs.dnsid.ai/cli-installation) and a production or lab identity it has already issued
 - The identity directory containing `config.json` and `private.jwk`; if it is not the CLI's current identity, set `DNSID_CONFIG_DIR`
 - The registry operator's independently trusted C2SP transparency-log policy—the rules and key used to validate issuance history—at `DNSID_LOG_POLICY_URL`. Obtain this URL from trusted operator configuration; never derive it from the DNSid record or log reference.
 

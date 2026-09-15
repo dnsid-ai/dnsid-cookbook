@@ -81,19 +81,19 @@ jobs:
         run: |
           git config --global url."https://x-access-token:${GH_PAT}@github.com/".insteadOf "https://github.com/"
 
-      # The dnsid repo is private, so the default workflow token cannot read its
-      # releases; GH_PAT is the org PAT already used by dnsid-sdk-compliance CI.
+      # Public release binaries (same source the dnsid-ai/homebrew-tap cask uses);
+      # no GitHub auth needed, so this works regardless of which org owns the
+      # private dnsid source repo.
       - name: Install dnsid CLI
-        env:
-          GH_TOKEN: ${{ secrets.GH_PAT || github.token }}
         run: |
           set -euo pipefail
-          tag=$(gh api 'repos/dnsid-ai/dnsid/releases?per_page=100' \
-            --jq 'map(select(any(.assets[]; .name == "dnsid_linux_amd64.tar.gz")))[0].tag_name')
-          test -n "$tag"
-          gh release download "$tag" --repo dnsid-ai/dnsid \
-            --pattern 'dnsid_linux_amd64.tar.gz' --dir "$RUNNER_TEMP"
-          tar -xzf "$RUNNER_TEMP/dnsid_linux_amd64.tar.gz" -C "$RUNNER_TEMP" dnsid
+          base=https://dnsid-prod-cli-binaries.s3.us-east-1.amazonaws.com/cli
+          version=$(curl -fsSL "$base/latest")
+          test -n "$version"
+          cd "$RUNNER_TEMP"
+          curl -fsSLO "$base/$version/dnsid_linux_amd64.tar.gz"
+          curl -fsSL "$base/$version/SHA256SUMS" | grep linux_amd64.tar.gz | sha256sum -c
+          tar -xzf dnsid_linux_amd64.tar.gz dnsid
           sudo install -m 0755 "$RUNNER_TEMP/dnsid" /usr/local/bin/dnsid
           dnsid --version
 

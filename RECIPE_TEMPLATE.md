@@ -37,7 +37,7 @@ Copy this file to `recipes/NN-slug/README.md` and fill in. Delete the commentary
 
 - Docker 24+ (running)
 - `make`
-- The `dnsid` CLI — download from [dnsid-ai/dnsid releases](https://github.com/dnsid-ai/dnsid/releases) and put it on `PATH`
+- The `dnsid` CLI — `brew install dnsid-ai/tap/dnsid`, or download a binary per the [installation docs](https://docs.dnsid.ai/cli-installation) and put it on `PATH`
 - *The language toolchain — for Python recipes, [`uv`](https://docs.astral.sh/uv/) (which installs Python 3.11+ itself)*
 - A clone of this repo
 - *Anything else the reader must have installed before step 1*

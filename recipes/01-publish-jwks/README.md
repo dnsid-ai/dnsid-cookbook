@@ -21,7 +21,7 @@ Every other recipe in this cookbook depends on a published identity; this is the
 
 - Docker 24+ (running)
 - `make`
-- The `dnsid` CLI — download the binary for your platform from the [dnsid-ai/dnsid releases](https://github.com/dnsid-ai/dnsid/releases) and put it on your `PATH`
+- The `dnsid` CLI — `brew install dnsid-ai/tap/dnsid`, or download a binary per the [installation docs](https://docs.dnsid.ai/cli-installation) and put it on `PATH`
 - Python 3.9+ (`python3` — standard library only, no packages to install)
 - `dig` and `curl` (preinstalled on macOS and most Linux; `dnsutils`/`bind-utils` package otherwise)
 - A clone of this repo
