@@ -14,5 +14,5 @@ dependencies = [
     "fastapi==0.141.1",
     "uvicorn==0.52.4",
     "dnspython==2.8.0",
-    "sse-starlette==3.4.8",
+    "sse-starlette==3.4.11",
 ]
