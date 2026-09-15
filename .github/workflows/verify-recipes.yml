@@ -81,9 +81,7 @@ jobs:
         run: |
           git config --global url."https://x-access-token:${GH_PAT}@github.com/".insteadOf "https://github.com/"
 
-      # Public release binaries (same source the dnsid-ai/homebrew-tap cask uses);
-      # no GitHub auth needed, so this works regardless of which org owns the
-      # private dnsid source repo.
+      # Public release binaries (same source the dnsid-ai/homebrew-tap cask uses).
       - name: Install dnsid CLI
         run: |
           set -euo pipefail
