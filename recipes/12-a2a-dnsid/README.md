@@ -21,7 +21,7 @@ A2A (Google's Agent2Agent protocol) standardizes how agents talk — agent cards
 
 - Docker 24+ (running)
 - `make`
-- The `dnsid` CLI — download the binary for your platform from the [dnsid-ai/dnsid releases](https://github.com/dnsid-ai/dnsid/releases) and put it on your `PATH`
+- The `dnsid` CLI — `brew install dnsid-ai/tap/dnsid`, or download a binary per the [installation docs](https://docs.dnsid.ai/cli-installation) and put it on `PATH`
 - [`uv`](https://docs.astral.sh/uv/) 0.12+ (manages Python and the recipe's dependencies; installs a compatible Python 3.11+ automatically)
 - A clone of this repo
 

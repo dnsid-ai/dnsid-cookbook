@@ -23,7 +23,7 @@ Agent frameworks like LangGraph standardize the loop — model decides, tools ex
 
 - Docker 24+ (running)
 - `make`
-- The `dnsid` CLI — download the binary for your platform from the [dnsid-ai/dnsid releases](https://github.com/dnsid-ai/dnsid/releases) and put it on your `PATH`
+- The `dnsid` CLI — `brew install dnsid-ai/tap/dnsid`, or download a binary per the [installation docs](https://docs.dnsid.ai/cli-installation) and put it on `PATH`
 - [`uv`](https://docs.astral.sh/uv/) 0.12+ (manages Python and the recipe's dependencies; installs a compatible Python 3.11+ automatically)
 - A clone of this repo
 - Optional: an `ANTHROPIC_API_KEY`, only if you want a real model in the loop — `make verify` never needs one

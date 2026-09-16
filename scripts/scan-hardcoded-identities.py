@@ -43,6 +43,7 @@ ALLOWED_DNSID_HOSTS = {
     "api.dnsid.dev",
     "app.dnsid.ai",
     "dev.dnsid.ai",
+    "docs.dnsid.ai",
     "lab.dnsid.dev",
     "oidc.dnsid.dev",
 }
