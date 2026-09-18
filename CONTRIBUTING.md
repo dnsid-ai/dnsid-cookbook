@@ -22,7 +22,7 @@ the spec or SDK behavior it relies on.
 
 ## Licensing of contributions
 
-By contributing you agree that your sample code is licensed under the Apache License 2.0
+This project does not use a CLA or DCO (inbound = outbound). By contributing you agree that your sample code is licensed under the Apache License 2.0
 (`LICENSE.txt`) and your documentation and recipe prose under CC BY 4.0 (`LICENSE-docs.txt`),
 matching the rest of the repository. Do not copy code or text from sources under other licenses.
 
