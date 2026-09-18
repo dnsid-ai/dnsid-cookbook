@@ -22,10 +22,19 @@ Deploy-only recipes require real vendor infrastructure, such as CloudFront, Fast
 
 ## Contributing
 
-1. Fork.
-2. Copy `RECIPE_TEMPLATE.md` into `recipes/NN-slug/README.md` and fill in.
-3. Add the entry to [INDEX.md](INDEX.md) under the right section.
-4. Open a PR.
+See [CONTRIBUTING.md](CONTRIBUTING.md). Runnable recipes must pass `make bootstrap` / `run` / `verify` / `clean`
+on a clean clone and be in the CI verify matrix.
 
-Runnable recipes must pass the `make bootstrap`, `make run`, `make verify`, and `make clean` lifecycle on a clean clone before merge.
-Run `make scan-hardcoded-identities` before opening a PR to catch checked-in AWS account IDs and concrete DNSid identities.
+## Security & trust
+
+Recipes are examples for the DNSid SDKs, not production deployments. Every runnable recipe targets the
+local `dnsid` CLI testnet under `*.dev.dnsid.test`; nothing here contains real identities, keys, or
+credentials. Report problems per [SECURITY.md](SECURITY.md). For what the SDKs themselves do on the
+network and why software is not identity, see the "Security & trust" section in each SDK README
+([go](https://github.com/dnsid-ai/dnsid-go), [ts](https://github.com/dnsid-ai/dnsid-ts), [py](https://github.com/dnsid-ai/dnsid-py)).
+
+## License
+
+Sample code (everything under `recipes/*/` and `examples/*/` that is not a Markdown file) is licensed
+under the [Apache License 2.0](LICENSE.txt). Documentation and recipe prose (Markdown files) are
+licensed under [CC BY 4.0](LICENSE-docs.txt). Code blocks embedded in Markdown are Apache-2.0.

@@ -1,13 +1,13 @@
 # **Security Policy**
 
-Identity Digital Innovation Labs takes the security of this project seriously. This document explains how to report vulnerabilities and what you can expect from us in return.
+Known Systems AI, Inc. takes the security of this project seriously. This document explains how to report vulnerabilities and what you can expect from us in return.
 
 ## **Supported Versions**
 
 | Version | Supported |
 | :---- | :---- |
-| 0.11.x (latest) | ✅ |
-| < 0.11 | ❌ |
+| Latest tagged minor release | ✅ |
+| Earlier minor releases | ❌ |
 
 ## **Reporting a Vulnerability**
 
@@ -15,7 +15,8 @@ Identity Digital Innovation Labs takes the security of this project seriously. T
 
 Report privately through one of the following:
 
-- **GitHub Security Advisories** (preferred): use the **"Report a vulnerability"** button under this repository's **Security** tab. This opens a private advisory visible only to maintainers.  
+- **GitHub Security Advisories**: if the **"Report a vulnerability"** button is available under
+  this repository's **Security** tab, use it to open a private advisory.
 - **Email**: `idil-bugreport@identity.digital`
 
 ## **Our Commitment**
@@ -33,5 +34,4 @@ We will not pursue or support legal action against researchers who:
 - Avoid privacy violations, service disruption, and destruction/exfiltration of data beyond what is needed to demonstrate the issue, and  
 - Give us a reasonable time to respond before disclosing.
 
-*This policy applies to this open-source project only. It does not create any obligation with respect to Identity Digital's commercial products or services.*
-
+*This policy applies to this open-source project only. It does not create any obligation with respect to Known Systems' commercial products or services.*

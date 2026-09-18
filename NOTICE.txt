@@ -1,0 +1,18 @@
+THIRD-PARTY SOFTWARE NOTICES
+dnsid-cookbook
+Copyright 2026 Known Systems AI, Inc.
+
+This repository is a collection of recipes: documentation and sample
+code showing how to use the DNSid SDKs and CLI. It is not published as
+a package and distributes no compiled artifact.
+
+Sample code is licensed under the Apache License 2.0 (LICENSE.txt).
+Documentation and recipe prose are licensed under Creative Commons
+Attribution 4.0 International (LICENSE-docs.txt).
+
+Recipes depend on third-party components at build and run time (the
+DNSid SDKs, cloud vendor SDKs, agent frameworks). Those are fetched by
+the person running the recipe from their upstream sources under their
+own licenses and are not redistributed here. Each recipe's dependency
+manifest (go.mod, package.json, pyproject.toml, requirements.txt) names
+them.

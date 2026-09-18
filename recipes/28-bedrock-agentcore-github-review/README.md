@@ -97,6 +97,10 @@ Review comment posted to PR:
 
 ## Prerequisites
 
+> **Observability note.** The deployed bot depends on `aws-opentelemetry-distro`, which AgentCore uses to
+> emit traces and metrics to **your own** AWS account (CloudWatch / X-Ray). Nothing is sent to DNSid or
+> Known Systems. Set `enableOtel: false` in the AgentCore config to turn it off.
+
 - Python 3.11+, `uv`
 - Node.js 20+ (for the AgentCore CLI)
 - AWS CLI with credentials for account `<AWS_ACCOUNT_ID>`, region `us-east-1`
