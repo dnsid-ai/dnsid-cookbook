@@ -26,8 +26,8 @@ SERVER_PID=""
 
 fail() {
     echo "FAIL: $1" >&2
-    docker ps --filter name=dnsid >&2 || true
-    docker ps -q --filter name=dnsid | while read -r container; do
+    docker ps --filter name=dnsid-local >&2 || true
+    docker ps -q --filter name=dnsid-local | while read -r container; do
         echo "--- docker logs ${container} (tail) ---" >&2
         docker logs --tail 50 "${container}" >&2 || true
     done
@@ -56,6 +56,24 @@ run_agent() {
         env "DNSID_BOARD_API=${API}" "DNSID_BOARD_AUDIENCE=${AUDIENCE}" \
         "DNSID_AGENT_DOMAIN=${domain}" "$@"
 }
+
+# A freshly published record takes a couple of seconds to appear (the local
+# registry DNS reloads its zone periodically). The board verifies every token
+# subject against DNS, so wait for all three records before the flow starts.
+for domain in "${BOARD_DOMAIN}" "${OWNER_DOMAIN}" "${POSTER_DOMAIN}"; do
+    echo -n "==> waiting for _dnsid.${domain} to resolve"
+    resolved=""
+    for _ in $(seq 1 30); do
+        if dig @127.0.0.1 -p "${DNS_PORT}" "_dnsid.${domain}" TXT +short 2>/dev/null | grep -q 'v=dnsid'; then
+            resolved=1
+            break
+        fi
+        echo -n "."
+        sleep 1
+    done
+    echo ""
+    [[ -n "${resolved}" ]] || fail "_dnsid.${domain} TXT did not resolve within 30s"
+done
 
 echo "==> starting board as ${BOARD_DOMAIN}"
 "${LOCAL_ENV[@]}" "${DNSID_CLI}" local run board --state "${STATE}" \
