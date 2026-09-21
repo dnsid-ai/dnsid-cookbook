@@ -25,7 +25,7 @@ func LoadIdentity(ctx context.Context) (*dnsid.IdentityManager, error) {
 	governanceDomain := os.Getenv("DNSID_GOVERNANCE_ID")
 	policyURL := os.Getenv("DNSID_LOG_POLICY_URL")
 	if transport.DNSServer == "" || transport.CABundlePath == "" || governanceDomain == "" || policyURL == "" {
-		return nil, fmt.Errorf("DNSid testnet environment is required; run with `dnsid testnet run`")
+		return nil, fmt.Errorf("DNSid testnet environment is required; run with `dnsid local run`")
 	}
 
 	client, err := testnetHTTPClient(transport)

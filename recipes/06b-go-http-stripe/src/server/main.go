@@ -92,7 +92,7 @@ func main() {
 
 	port := os.Getenv("DNSID_AGENT_PORT")
 	if port == "" {
-		log.Fatal("DNSID_AGENT_PORT is required; run with `dnsid testnet run`")
+		log.Fatal("DNSID_AGENT_PORT is required; run with `dnsid local run`")
 	}
 	log.Printf("fake-stripe ready on :%s; writers=%v", port, writers)
 	server := &http.Server{Addr: ":" + port, Handler: mux, ReadHeaderTimeout: 5 * time.Second}
@@ -104,7 +104,7 @@ func authenticate(profile *httpsig.Profile, next http.Handler) http.Handler {
 		if r.Body != nil && r.Body != http.NoBody {
 			r.Body = http.MaxBytesReader(w, r.Body, 1<<20)
 		}
-		// The testnet TLS proxy forwards plain HTTP. Restore the public request
+		// The local registry TLS proxy forwards plain HTTP. Restore the public request
 		// URL because @target-uri covered the external HTTPS URL.
 		publicRequest := r.Clone(r.Context())
 		publicURL := *r.URL

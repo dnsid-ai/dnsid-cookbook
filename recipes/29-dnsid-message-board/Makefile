@@ -3,7 +3,7 @@
 DNSID_CLI ?= dnsid
 GO ?= go
 ZONE ?= dev.dnsid.test
-STATE ?= $(CURDIR)/.dnsid-testnet
+STATE ?= $(CURDIR)/.dnsid-local
 REGISTRY_PORT ?= 7955
 DNS_PORT ?= 7753
 PROXY_PORT ?= 443
@@ -16,7 +16,7 @@ TOKEN_ENVIRONMENT ?= production
 BOARD_DOMAIN := board.$(ZONE)
 OWNER_DOMAIN := owner.$(ZONE)
 POSTER_DOMAIN := poster.$(ZONE)
-TESTNET := env DNSID_TESTNET_REGISTRY_PORT=$(REGISTRY_PORT) DNSID_TESTNET_DNS_PORT=$(DNS_PORT) DNSID_TESTNET_DNS_HOST_ADDR=127.0.0.1:$(DNS_PORT) DNSID_TESTNET_PROXY_PORT=$(PROXY_PORT) $(DNSID_CLI) testnet
+LOCAL := env DNSID_LOCAL_REGISTRY_PORT=$(REGISTRY_PORT) DNSID_LOCAL_DNS_PORT=$(DNS_PORT) DNSID_LOCAL_PROXY_PORT=$(PROXY_PORT) $(DNSID_CLI) local
 GOPRIVATE ?= github.com/Identity-Digital/*
 export GOPRIVATE
 
@@ -30,12 +30,12 @@ $(STATE)/config.yml:
 		'agents: {}' > $@
 
 bootstrap: build $(STATE)/config.yml
-	$(TESTNET) up --state $(STATE)
-	$(TESTNET) agent ensure board --state $(STATE) --upstream http://localhost:$(BOARD_PORT) -- \
+	$(LOCAL) up --state $(STATE)
+	$(LOCAL) agent ensure board --state $(STATE) --upstream http://localhost:$(BOARD_PORT) -- \
 		$(DNSID_CLI) log issue --domain $(BOARD_DOMAIN)
-	$(TESTNET) agent ensure owner --state $(STATE) --upstream http://localhost:$(OWNER_PORT) -- \
+	$(LOCAL) agent ensure owner --state $(STATE) --upstream http://localhost:$(OWNER_PORT) -- \
 		$(DNSID_CLI) log issue --domain $(OWNER_DOMAIN)
-	$(TESTNET) agent ensure poster --state $(STATE) --upstream http://localhost:$(POSTER_PORT) -- \
+	$(LOCAL) agent ensure poster --state $(STATE) --upstream http://localhost:$(POSTER_PORT) -- \
 		$(DNSID_CLI) log issue --domain $(POSTER_DOMAIN)
 
 build:
@@ -48,7 +48,7 @@ test:
 	$(GO) test ./...
 
 run: bootstrap
-	$(TESTNET) run board --state $(STATE) --upstream http://localhost:$(BOARD_PORT) -- \
+	$(LOCAL) run board --state $(STATE) --upstream http://localhost:$(BOARD_PORT) -- \
 		env BOARD_BACKEND=local ADDR=:$(BOARD_PORT) BOARD_API_AUDIENCES=$(AUDIENCE) DNSID_ENVIRONMENT=$(TOKEN_ENVIRONMENT) \
 		$(CURDIR)/bin/dnsid-board-server
 
@@ -59,5 +59,5 @@ verify: bootstrap test
 		TOKEN_ENVIRONMENT=$(TOKEN_ENVIRONMENT) bash verify/verify.sh
 
 clean:
-	-$(TESTNET) down --state $(STATE)
+	-$(LOCAL) down --state $(STATE)
 	rm -rf bin

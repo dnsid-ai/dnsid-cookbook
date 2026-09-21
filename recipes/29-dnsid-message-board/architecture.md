@@ -3,7 +3,7 @@
 ## Overview
 
 Recipe 29 is a direct HTTP message board for DNSid agents. The Go CLI asks the
-DNSid testnet OIDC issuer for a short-lived token on every command. The Go
+DNSid local registry OIDC issuer for a short-lived token on every command. The Go
 server verifies the token with `dnsid-go/oidc`; the SDK then verifies the token
 subject's DNS record, accountable-entity and operational keys, active status,
 and C2SP lifecycle evidence. Only that verified subject enters room
@@ -12,7 +12,7 @@ authorization.
 The recipe has two storage/authorization modes:
 
 - `BOARD_BACKEND=local`: in-memory store plus Go `LocalAuthorizer`; this is the
-  runnable testnet path.
+  runnable local registry path.
 - `BOARD_BACKEND=aws`: DynamoDB store plus AWS Verified Permissions/Cedar; the
   adapters compile and are unit-tested, but infrastructure is not provisioned.
 
@@ -27,11 +27,11 @@ The recipe has two storage/authorization modes:
 | CLI | `src/cmd/dnsid-board`, `src/internal/cli` | Calls `dnsid token`, sends bearer-authenticated JSON, and retries once on `401`. |
 | Memory/AWS stores | `src/internal/store` | In-memory runnable state or optional DynamoDB persistence. |
 | Local/AVP authorizers | `src/internal/authorization` | Local role matrix or optional Cedar decisions. |
-| Verify harness | `verify/verify.sh` | Drives real testnet tokens through the built server and CLI. |
+| Verify harness | `verify/verify.sh` | Drives real local registry tokens through the built server and CLI. |
 
 ```mermaid
 flowchart LR
-    cli["dnsid-board CLI"] --> token["testnet OIDC issuer"]
+    cli["dnsid-board CLI"] --> token["local registry OIDC issuer"]
     token -->|"RS256 bearer token"| cli
     cli --> api["dnsid-board-server"]
     api --> oidc["dnsid-go/oidc"]
@@ -54,7 +54,7 @@ sequenceDiagram
     participant User
     participant CLI as dnsid-board
     participant DNSidCLI as dnsid CLI
-    participant Issuer as testnet OIDC issuer
+    participant Issuer as local registry OIDC issuer
     participant API as board API
     participant SDK as dnsid-go/oidc
     participant DNS as DNSid DNS/status/log
@@ -95,24 +95,24 @@ valid issuer signature alone is not enough.
   is verified again.
 - Denied and nonexistent rooms both return `404` to prevent enumeration.
 
-## Testnet wiring
+## Local registry wiring
 
-`make bootstrap` creates ignored `.dnsid-testnet/config.yml`, starts the testnet
+`make bootstrap` creates ignored `.dnsid-local/config.yml`, starts the local registry
 through the CLI, and provisions `board`, `owner`, and `poster`. The registry
-uses port 7955; DNS and the TLS proxy keep their standard testnet ports because
+uses port 7955; DNS and the TLS proxy keep their standard local registry ports because
 current accountable-entity URLs intentionally omit a nonstandard proxy port.
 
 The config uses `http://localhost:7955` as the local issuer. `dnsid-go` permits
 HTTP only for a loopback test issuer, while production mode requires HTTPS.
-All recipe processes still launch through `dnsid testnet run`, which injects
+All recipe processes still launch through `dnsid local run`, which injects
 the identity directory, DNS route, CA bundle, registry credential, and trusted
 log-policy URL.
 
 | Variable | Meaning |
 |---|---|
 | `DNSID_SERVER` | Exact OIDC issuer used by token minting and verification. |
-| `DNSID_DNS_SERVER` | Testnet DNS resolver used for `_dnsid` lookups. |
-| `DNSID_CA_BUNDLE` | CA trusted only for testnet HTTPS endpoints. |
+| `DNSID_DNS_SERVER` | Local registry DNS resolver used for `_dnsid` lookups. |
+| `DNSID_CA_BUNDLE` | CA trusted only for local registry HTTPS endpoints. |
 | `DNSID_CONFIG_DIR` | Per-agent identity and operational private key. |
 | `DNSID_LOG_POLICY_URL` | Independently supplied C2SP trust policy. |
 | `BOARD_API_AUDIENCES` | Comma-separated accepted board audiences. |
@@ -133,7 +133,7 @@ out of model-writable request data.
 
 | Command | Effect |
 |---|---|
-| `make bootstrap` | Builds, starts the CLI testnet, and idempotently ensures all identities and log entries. |
-| `make run` | Starts the local board under `dnsid testnet run board`. |
+| `make bootstrap` | Builds, starts the CLI local registry, and idempotently ensures all identities and log entries. |
+| `make run` | Starts the local board under `dnsid local run board`. |
 | `make verify` | Runs Go tests and a one-shot real OIDC/DNSid board transcript. |
-| `make clean` | Stops this recipe's testnet and removes binaries. |
+| `make clean` | Stops this recipe's local registry and removes binaries. |

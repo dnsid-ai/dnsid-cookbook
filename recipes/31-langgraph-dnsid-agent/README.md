@@ -36,31 +36,31 @@ Dependency versions this recipe was tested against are pinned in [`pyproject.tom
 - **RFC 9421 — HTTP Message Signatures** — an IETF standard for signing HTTP requests with detached signatures carried in headers. A signature commits to chosen *covered components* — method, target URI, content type, and a SHA-256 digest of the exact body bytes — so none of them can be altered in transit.
 - **A2A** — the [Agent2Agent protocol](https://a2a-protocol.org/): agents publish a capability document (*agent card*) and accept JSON-RPC messages. The graph agent here is an A2A endpoint exactly like recipe 12's agents.
 - **LangGraph** — an agent framework where the agent is a small *graph*: a model node decides what to do, a tool node executes tool calls, and edges route between them until the model produces a final answer. Two of its concepts carry this recipe's security story: **state** (the messages that flow through the graph — writable by node output, and therefore downstream of model output) and **config** (out-of-band, per-invocation configuration set by the calling code — writable only by *your* code). Verified identity lives in config, never state.
-- **The DNSid testnet** — a disposable, fully local DNSid deployment (DNS server, registry, transparency log, TLS proxy) run by the `dnsid` CLI in Docker. Real registration, real DNS records, real countersigned transparency-log entries; nothing leaves your machine.
+- **The DNSid local registry** — a disposable, fully local DNSid deployment (DNS server, registry, transparency log, TLS proxy) run by the `dnsid` CLI in Docker. Real registration, real DNS records, real countersigned transparency-log entries; nothing leaves your machine.
 
 ## Running system
 
-`dnsid testnet up` manages its own containers — the recipe owns no compose file. What's running when the recipe is up:
+`dnsid local up` manages its own containers — the recipe owns no compose file. What's running when the recipe is up:
 
 | Process | Where | Role |
 |---|---|---|
-| DNS server | testnet container, `127.0.0.1:7753` | Serves live `_dnsid.*.dev.dnsid.test` TXT records |
-| Registry + transparency log | testnet container, `127.0.0.1:7755` | Registration, challenge verification, publication, C2SP log |
-| TLS proxy | testnet container | Terminates `https://*.dev.dnsid.test` with a local CA and routes to each identity's upstream port |
+| DNS server | local registry container, `127.0.0.1:7753` | Serves live `_dnsid.*.dev.dnsid.test` TXT records |
+| Registry + transparency log | local registry container, `127.0.0.1:7755` | Registration, challenge verification, publication, C2SP log |
+| TLS proxy | local registry container | Terminates `https://*.dev.dnsid.test` with a local CA and routes to each identity's upstream port |
 | Graph agent | host process, `:3101` | The LangGraph agent — A2A ingress verified, tool calls signed |
 | Tools API | host process, `:3103` | Plain HTTP `POST /price`, `POST /order` — verifies every caller |
 | Peer | host process, `:3102` | Allowlisted A2A caller — sends one order request, exits |
 | Outsider | host process, `:3104` | Verified but non-allowlisted caller — the negative test |
 
-## Step 1 — Bootstrap the testnet and four identities
+## Step 1 — Bootstrap the local registry and four identities
 
 ```bash
 make bootstrap
 ```
 
-Same idempotent harness as every recipe: `dnsid testnet up`, then `dnsid testnet agent ensure` + `dnsid log issue` for each of the four identities ([`Makefile`](Makefile)). Note what's *not* here: no API key issuance for the tools server, no credential exchange between any pair of parties. Four DNS records is the entire trust setup.
+Same idempotent harness as every recipe: `dnsid local up`, then `dnsid local agent ensure` + `dnsid log issue` for each of the four identities ([`Makefile`](Makefile)). Note what's *not* here: no API key issuance for the tools server, no credential exchange between any pair of parties. Four DNS records is the entire trust setup.
 
-Each process loads its identity from the `DNSID_*` environment in [`src/lifecycle.py`](src/lifecycle.py), exactly as recipe 12 does — including recipe 12's testnet-only `private_address_hosts = {"." + governance_id}`: the SDK's HTTPS fetcher blocks hosts that resolve to private addresses, and on the testnet every name under the governance domain does. Production deployments leave that set empty.
+Each process loads its identity from the `DNSID_*` environment in [`src/lifecycle.py`](src/lifecycle.py), exactly as recipe 12 does — including recipe 12's local-registry-only `private_address_hosts = {"." + governance_id}`: the SDK's HTTPS fetcher blocks hosts that resolve to private addresses, and on the local registry every name under the governance domain does. Production deployments leave that set empty.
 
 ## Step 2 — The tools server: an ordinary API that verifies callers
 
@@ -81,7 +81,7 @@ Every inbound POST must carry an RFC 9421 signature that resolves, via DNS, to a
 
 When the graph decides to call a tool, that tool call becomes an ordinary HTTP POST to the tools API — and this step is about making every one of those POSTs *attributable*: cryptographic proof, checkable by anyone via DNS, that the request came from `graph.dev.dnsid.test` and arrived exactly as sent.
 
-The mechanism is signing at the **transport layer** rather than in tool code. The dnsid SDK's `create_signed_async_http_client` returns an httpx client that buffers and signs every request immediately before sending it. Because signing lives on the shared client, no tool author can forget it, and the client inherits the identity manager's testnet DNS and TLS configuration. Here's the heart of [`src/graph.py`](src/graph.py):
+The mechanism is signing at the **transport layer** rather than in tool code. The dnsid SDK's `create_signed_async_http_client` returns an httpx client that buffers and signs every request immediately before sending it. Because signing lives on the shared client, no tool author can forget it, and the client inherits the identity manager's local registry DNS and TLS configuration. Here's the heart of [`src/graph.py`](src/graph.py):
 
 ```python
 return bundle.http_sig.create_signed_async_http_client(
@@ -99,7 +99,7 @@ sequenceDiagram
     participant G as graph agent<br/>graph.dev.dnsid.test
     participant C as shared signed httpx client
     participant T as tools API<br/>tools.dev.dnsid.test
-    participant D as testnet DNS
+    participant D as local registry DNS
 
     G->>C: place_order → POST /order {"item":"widgets","quantity":3}
     Note over C: buffer exact body bytes,<br/>sign @method, @target-uri,<br/>content-type, content-digest
@@ -233,7 +233,7 @@ Runs the same flow one-shot and asserts the transcript ([`verify/verify.sh`](ver
 ✓ verify passed
 ```
 
-Re-running without a reset exercises the idempotent path (`already published (READY)`). `make clean` tears the testnet down; `dnsid testnet reset --hard` wipes all identity state for a truly fresh start.
+Re-running without a reset exercises the idempotent path (`already published (READY)`). `make clean` tears the local registry down; `dnsid local reset --hard` wipes all identity state for a truly fresh start.
 
 ## What goes wrong
 
@@ -275,4 +275,4 @@ That 401 is the *good* outcome — it's why the injected-client rule (step 3) ma
 - **Covered components** — the parts of an HTTP request an RFC 9421 signature commits to (method, target URI, content type, body digest). Anything outside them is unprotected.
 - **JWKS** — JSON Web Key Set: a JSON document of public keys served at `/.well-known/jwks.json` on each identity's domain — the `ku=` target a verifier fetches.
 - **ToolNode** — LangGraph's tool-execution node. It can only execute tools it was constructed with, which is why tool gating here filters the ToolNode's set, not just the model's.
-- **Testnet** — the local, disposable DNSid deployment managed by `dnsid testnet up/down/reset`. Real DNS, real registry, real transparency log; nothing leaves your machine.
+- **Local registry** — the disposable, fully local DNSid deployment managed by `dnsid local up/down/reset`. Real DNS, real registry, real transparency log; nothing leaves your machine.

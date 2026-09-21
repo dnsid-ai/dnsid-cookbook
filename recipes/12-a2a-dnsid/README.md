@@ -11,7 +11,7 @@
 
 ## What you'll build
 
-Two A2A agents, Alice and Bob, each with its own cryptographic identity anchored in DNS. Bob runs as a server; Alice sends him one signed message. Before that message is accepted, both sides verify each other with nothing but DNS lookups: Alice resolves Bob's identity record to check who she's talking to, and Bob verifies the RFC 9421 signature on Alice's request against keys published at Alice's domain. Neither agent has ever seen the other before, and no secret was exchanged between them at any point. You'll also watch the whole identity lifecycle that makes this possible — registration, a signed challenge, publication to DNS, and a transparency-log entry — because the recipe runs against a real (local) DNSid testnet, not a mock.
+Two A2A agents, Alice and Bob, each with its own cryptographic identity anchored in DNS. Bob runs as a server; Alice sends him one signed message. Before that message is accepted, both sides verify each other with nothing but DNS lookups: Alice resolves Bob's identity record to check who she's talking to, and Bob verifies the RFC 9421 signature on Alice's request against keys published at Alice's domain. Neither agent has ever seen the other before, and no secret was exchanged between them at any point. You'll also watch the whole identity lifecycle that makes this possible — registration, a signed challenge, publication to DNS, and a transparency-log entry — because the recipe runs against a real (local) DNSid registry, not a mock.
 
 ## Why this matters
 
@@ -33,28 +33,28 @@ Dependency versions this recipe was tested against are pinned in [`pyproject.tom
 - **JWKS** — JSON Web Key Set, a list of public keys in a standard JSON format ([RFC 7517](https://datatracker.ietf.org/doc/html/rfc7517)). Each agent serves its own at `/.well-known/jwks.json`.
 - **RFC 9421 — HTTP Message Signatures** — an IETF standard for signing HTTP requests with detached signatures carried in headers ([RFC 9421](https://datatracker.ietf.org/doc/html/rfc9421)). A signature commits to a chosen set of *covered components* — here the method, target URI, content type, a SHA-256 digest of the body, and the A2A negotiation headers — so none of them can be altered in transit.
 - **A2A** — the [Agent2Agent protocol](https://a2a-protocol.org/), which standardizes agent-to-agent interaction. Each agent publishes an *agent card* (a machine-readable capability document at `/.well-known/agent-card.json`) and accepts JSON-RPC messages. This recipe uses the official `a2a-sdk` and declares DNSid signing as a required A2A extension in the card.
-- **The DNSid testnet** — a disposable, fully local DNSid deployment (DNS server, registry, transparency log, TLS proxy) that the `dnsid` CLI runs in Docker. It behaves like the real system — agents register, answer challenges, publish records, get countersigned log entries — so everything you learn here transfers, and everything the agents "trust" is provisioned live in front of you.
+- **The DNSid local registry** — a disposable, fully local DNSid deployment (DNS server, registry, transparency log, TLS proxy) that the `dnsid` CLI runs in Docker. It behaves like the real system — agents register, answer challenges, publish records, get countersigned log entries — so everything you learn here transfers, and everything the agents "trust" is provisioned live in front of you.
 - **Transparency log (C2SP tlog)** — an append-only, publicly auditable log of identity issuance events, in the [C2SP](https://c2sp.org/) checkpoint format. When an identity is published, the log's countersigned ISSUANCE entry is what makes a quietly swapped key detectable. Which logs to trust is defined by a *policy file* fetched from an independently configured URL — a point this recipe makes twice, because getting it wrong quietly destroys the guarantee.
 
 ## Running system
 
-`dnsid testnet up` manages its own containers — the recipe owns no compose file. What's running when the recipe is up:
+`dnsid local up` manages its own containers — the recipe owns no compose file. What's running when the recipe is up:
 
 | Process | Where | Role |
 |---|---|---|
-| DNS server | testnet container, `127.0.0.1:7753` | Serves live `_dnsid.*.dev.dnsid.test` TXT records — the records your agents publish |
-| Registry + transparency log | testnet container, `127.0.0.1:7755` | Registration, challenge verification, record publication, C2SP log |
-| TLS proxy | testnet container | Terminates `https://*.dev.dnsid.test` with a local CA and routes to each agent's upstream port |
+| DNS server | local registry container, `127.0.0.1:7753` | Serves live `_dnsid.*.dev.dnsid.test` TXT records — the records your agents publish |
+| Registry + transparency log | local registry container, `127.0.0.1:7755` | Registration, challenge verification, record publication, C2SP log |
+| TLS proxy | local registry container | Terminates `https://*.dev.dnsid.test` with a local CA and routes to each agent's upstream port |
 | Bob (this recipe) | host process, `:3002` | A2A echo agent — stays running, verifies every inbound request |
 | Alice (this recipe) | host process, `:3001` | A2A agent — sends Bob one signed message, then exits |
 
-## Step 1 — Bootstrap the testnet and two identities
+## Step 1 — Bootstrap the local registry and two identities
 
 ```bash
 make bootstrap
 ```
 
-This runs three idempotent things (see [`Makefile`](Makefile)): `dnsid testnet up` starts the containers; `dnsid testnet agent ensure <name>` provisions each agent — a keypair on disk, a registered upstream, a published `_dnsid` record; and `dnsid log issue` submits each identity's countersigned ISSUANCE entry to the transparency log. Safe to re-run at any time.
+This runs three idempotent things (see [`Makefile`](Makefile)): `dnsid local up` starts the containers; `dnsid local agent ensure <name>` provisions each agent — a keypair on disk, a registered upstream, a published `_dnsid` record; and `dnsid log issue` submits each identity's countersigned ISSUANCE entry to the transparency log. Safe to re-run at any time.
 
 Because this is a real DNS server, you can inspect what was just published — this TXT record is the entire public anchor of Bob's identity:
 
@@ -70,16 +70,16 @@ One semicolon-separated value: `v` (spec version) first, then `cu=` pointing at 
 
 ## Step 2 — Identity from the environment
 
-Recipe processes never configure DNS servers, CA bundles, or registry credentials in code. They launch under `dnsid testnet run <name> -- <cmd>`, which injects the full `DNSID_*` environment: DNS routing (`DNSID_DNS_SERVER`), TLS trust (`DNSID_CA_BUNDLE`), the registry credential (`DNSID_API_KEY`), the provisioned identity directory (`DNSID_CONFIG_DIR`), and the independently trusted policy location (`DNSID_LOG_POLICY_URL`).
+Recipe processes never configure DNS servers, CA bundles, or registry credentials in code. They launch under `dnsid local run <name> -- <cmd>`, which injects the full `DNSID_*` environment: DNS routing (`DNSID_DNS_SERVER`), TLS trust (`DNSID_CA_BUNDLE`), the registry credential (`DNSID_API_KEY`), the provisioned identity directory (`DNSID_CONFIG_DIR`), and the independently trusted policy location (`DNSID_LOG_POLICY_URL`).
 
 [`src/identity.py`](src/identity.py) turns that environment into a usable identity. The one rule in it worth memorizing:
 
 ```python
 def required_log_policy_url(environment: Mapping[str, str]) -> str:
-    """Return the independently supplied testnet C2SP policy URL."""
+    """Return the independently supplied local registry C2SP policy URL."""
     policy_url = environment.get("DNSID_LOG_POLICY_URL", "").strip()
     if not policy_url:
-        raise RuntimeError("DNSID_LOG_POLICY_URL is required; run with `dnsid testnet run`")
+        raise RuntimeError("DNSID_LOG_POLICY_URL is required; run with `dnsid local run`")
     return policy_url
 ```
 
@@ -87,11 +87,11 @@ def required_log_policy_url(environment: Mapping[str, str]) -> str:
 
 The rest of the module wires the SDK: `config_from_environment` parses the env into a `DnsidConfig` (identity, verification, transport) plus registry config, `LocalKeyProvider.from_cli_directory` loads the provisioned key (its `private.jwk` carries the RFC 7638 thumbprint `kid` the registry requires), and `make_log_registry` fetches the policy file and registers a C2SP log reader for issuance verification.
 
-One testnet-only wrinkle: the SDK's HTTPS fetcher refuses any host that resolves to a private address (an SSRF guard), and on the testnet *every* name under the governance domain resolves to the loopback proxy. Bob can't list his callers in advance, so `load_identity` allows the whole zone with one leading-dot entry — `private_address_hosts = {"." + governance_id}`. Production verifiers leave that set empty.
+One local-registry-only wrinkle: the SDK's HTTPS fetcher refuses any host that resolves to a private address (an SSRF guard), and on the local registry *every* name under the governance domain resolves to the loopback proxy. Bob can't list his callers in advance, so `load_identity` allows the whole zone with one leading-dot entry — `private_address_hosts = {"." + governance_id}`. Production verifiers leave that set empty.
 
 ## Step 3 — Register, prove key possession, publish
 
-Bootstrap already published both identities, so on the testnet this step is a fast no-op — but [`src/identity.py`](src/identity.py) carries the full flow because in any real deployment your agent code drives it. `register_and_publish` walks the registry state machine:
+Bootstrap already published both identities, so on the local registry this step is a fast no-op — but [`src/identity.py`](src/identity.py) carries the full flow because in any real deployment your agent code drives it. `register_and_publish` walks the registry state machine:
 
 ```python
 if not status.published and not status.ready_for_publication:
@@ -178,7 +178,7 @@ reply_text = f"[from: {agent_id}; verified sender: {sender_id}] {text}"
 make run
 ```
 
-Bob starts under `dnsid testnet run` and publishes; Alice then verifies him, sends one signed hello, and exits. Expected output (abridged):
+Bob starts under `dnsid local run` and publishes; Alice then verifies him, sends one signed hello, and exits. Expected output (abridged):
 
 ```
 ==> starting Bob on :3002
@@ -217,7 +217,7 @@ Runs the same flow one-shot and asserts the transcript ([`verify/verify.sh`](ver
 ✓ verify passed
 ```
 
-Re-running `make verify` without a reset exercises the idempotent path — both agents log `already published (READY)` instead of re-registering. `make clean` tears the testnet down; `dnsid testnet reset --hard` also wipes all identity state for a truly fresh start.
+Re-running `make verify` without a reset exercises the idempotent path — both agents log `already published (READY)` instead of re-registering. `make clean` tears the local registry down; `dnsid local reset --hard` also wipes all identity state for a truly fresh start.
 
 ## What goes wrong
 
@@ -243,8 +243,8 @@ The request never reached the A2A handlers — identity is enforced before proto
 ## What to try next
 
 - **Cross-language interop** — the same agents exist in TypeScript ([dnsid-ts/examples/a2a](https://github.com/dnsid-ai/dnsid-ts/tree/main/examples/a2a)). Run TypeScript Bob against this recipe's Python Alice (or vice versa): the wire format is standard RFC 9421 + A2A, so nothing changes.
-- **Watch a true first run** — `dnsid testnet reset --hard && make verify` wipes all state, so you see fresh registration and challenge-signing instead of the idempotent path.
-- **Inspect the transparency log** — the testnet serves a stream explorer at `http://127.0.0.1:7755/streams/bob.dev.dnsid.test` showing Bob's countersigned ISSUANCE entry.
+- **Watch a true first run** — `dnsid local reset --hard && make verify` wipes all state, so you see fresh registration and challenge-signing instead of the idempotent path.
+- **Inspect the transparency log** — the local registry serves a stream explorer at `http://127.0.0.1:7755/streams/bob.dev.dnsid.test` showing Bob's countersigned ISSUANCE entry.
 - **Recipe 1 — Publish `_dnsid` + JWKS** — the anatomy of the record and key set this recipe's agents published automatically.
 - **Recipes 7 / 7b / 8** — DNSid composed with MCP instead of A2A, for tool-calling rather than agent-messaging trust.
 
@@ -258,4 +258,4 @@ The request never reached the A2A handlers — identity is enforced before proto
 - **Ed25519** — a fast, modern public-key signature algorithm. Small keys (32 bytes), small signatures (64 bytes), no parameter choices to get wrong.
 - **JWKS** — JSON Web Key Set. A JSON document listing one or more public keys with metadata (key id, algorithm, use). Served at `/.well-known/jwks.json` on the agent's domain.
 - **JWS** — JSON Web Signature. A signed-payload format used here to sign the agent card, so the signature can travel with (or detached from) the JSON it protects.
-- **Testnet** — the local, disposable DNSid deployment managed by `dnsid testnet up/down/reset`. Real DNS, real registry, real transparency log; nothing leaves your machine.
+- **Local registry** — the disposable, fully local DNSid deployment managed by `dnsid local up/down/reset`. Real DNS, real registry, real transparency log; nothing leaves your machine.

@@ -1,4 +1,4 @@
-// agent signs a read-credit-read flow with its testnet DNSid identity.
+// agent signs a read-credit-read flow with its local registry DNSid identity.
 package main
 
 import (
@@ -51,7 +51,7 @@ func main() {
 	})
 	port := os.Getenv("DNSID_AGENT_PORT")
 	if port == "" {
-		log.Fatal("DNSID_AGENT_PORT is required; run with `dnsid testnet run`")
+		log.Fatal("DNSID_AGENT_PORT is required; run with `dnsid local run`")
 	}
 	keyServer := &http.Server{Handler: mux, ReadHeaderTimeout: 5 * time.Second}
 	listener, err := net.Listen("tcp", ":"+port)

@@ -14,10 +14,10 @@ GOPRIVATE ?= github.com/Identity-Digital/*
 export GOPRIVATE
 
 bootstrap: build
-	$(DNSID_CLI) testnet up
-	$(DNSID_CLI) testnet agent ensure stripe --upstream http://localhost:$(STRIPE_PORT) -- \
+	$(DNSID_CLI) local up
+	$(DNSID_CLI) local agent ensure stripe --upstream http://localhost:$(STRIPE_PORT) -- \
 		$(DNSID_CLI) log issue --domain $(STRIPE_DOMAIN)
-	$(DNSID_CLI) testnet agent ensure writer --upstream http://localhost:$(WRITER_PORT) -- \
+	$(DNSID_CLI) local agent ensure writer --upstream http://localhost:$(WRITER_PORT) -- \
 		$(DNSID_CLI) log issue --domain $(WRITER_DOMAIN)
 
 build:
@@ -32,5 +32,5 @@ verify: bootstrap
 	bash verify/verify.sh
 
 clean:
-	$(DNSID_CLI) testnet down
+	$(DNSID_CLI) local down
 	rm -rf bin

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Entry point for the three roles in this recipe.
 
-Roles (each process runs under `dnsid testnet run <name>`, which injects the
+Roles (each process runs under `dnsid local run <name>`, which injects the
 DNSID_* environment for that identity):
 
     tools                     the plain-HTTP tools API (tools.dev.dnsid.test)
@@ -10,13 +10,13 @@ DNSID_* environment for that identity):
                               message as the current identity, print the reply
 
 Usage:
-    dnsid testnet run tools --upstream http://localhost:3103 -- \
+    dnsid local run tools --upstream http://localhost:3103 -- \
         uv run python -u src/main.py tools
 
-    dnsid testnet run graph --upstream http://localhost:3101 -- \
+    dnsid local run graph --upstream http://localhost:3101 -- \
         uv run python -u src/main.py graph
 
-    dnsid testnet run peer --upstream http://localhost:3102 -- \
+    dnsid local run peer --upstream http://localhost:3102 -- \
         uv run python -u src/main.py send graph.dev.dnsid.test "Please order 3 widgets"
 """
 

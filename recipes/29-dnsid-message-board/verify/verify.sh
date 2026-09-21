@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# One-shot message-board flow using the real DNSid testnet and Go SDK.
+# One-shot message-board flow using the real DNSid local registry and Go SDK.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
 DNSID_CLI="${DNSID_CLI:-dnsid}"
-STATE="${STATE:-$PWD/.dnsid-testnet}"
+STATE="${STATE:-$PWD/.dnsid-local}"
 REGISTRY_PORT="${REGISTRY_PORT:-7955}"
 DNS_PORT="${DNS_PORT:-7753}"
 PROXY_PORT="${PROXY_PORT:-443}"
@@ -18,7 +18,7 @@ BOARD_DOMAIN="board.${ZONE}"
 OWNER_DOMAIN="owner.${ZONE}"
 POSTER_DOMAIN="poster.${ZONE}"
 API="http://127.0.0.1:${BOARD_PORT}"
-TESTNET_ENV=(env "DNSID_TESTNET_REGISTRY_PORT=${REGISTRY_PORT}" "DNSID_TESTNET_DNS_PORT=${DNS_PORT}" "DNSID_TESTNET_DNS_HOST_ADDR=127.0.0.1:${DNS_PORT}" "DNSID_TESTNET_PROXY_PORT=${PROXY_PORT}")
+LOCAL_ENV=(env "DNSID_LOCAL_REGISTRY_PORT=${REGISTRY_PORT}" "DNSID_LOCAL_DNS_PORT=${DNS_PORT}" "DNSID_LOCAL_PROXY_PORT=${PROXY_PORT}")
 SERVER_LOG=$(mktemp "${TMPDIR:-/tmp}/dnsid-recipe29-server.XXXXXX")
 OWNER_LOG=$(mktemp "${TMPDIR:-/tmp}/dnsid-recipe29-owner.XXXXXX")
 POSTER_LOG=$(mktemp "${TMPDIR:-/tmp}/dnsid-recipe29-poster.XXXXXX")
@@ -51,14 +51,14 @@ pkill -f "${PWD}/bin/dnsid-board-server" 2>/dev/null || true
 run_agent() {
     local name=$1 port=$2 domain=$3
     shift 3
-    "${TESTNET_ENV[@]}" "${DNSID_CLI}" testnet run "${name}" --state "${STATE}" \
+    "${LOCAL_ENV[@]}" "${DNSID_CLI}" local run "${name}" --state "${STATE}" \
         --upstream "http://localhost:${port}" -- \
         env "DNSID_BOARD_API=${API}" "DNSID_BOARD_AUDIENCE=${AUDIENCE}" \
         "DNSID_AGENT_DOMAIN=${domain}" "$@"
 }
 
 echo "==> starting board as ${BOARD_DOMAIN}"
-"${TESTNET_ENV[@]}" "${DNSID_CLI}" testnet run board --state "${STATE}" \
+"${LOCAL_ENV[@]}" "${DNSID_CLI}" local run board --state "${STATE}" \
     --upstream "http://localhost:${BOARD_PORT}" -- \
     env BOARD_BACKEND=local "ADDR=:${BOARD_PORT}" "BOARD_API_AUDIENCES=${AUDIENCE}" \
     "DNSID_ENVIRONMENT=${TOKEN_ENVIRONMENT}" "${PWD}/bin/dnsid-board-server" >"${SERVER_LOG}" 2>&1 &
@@ -103,7 +103,7 @@ run_agent poster "${POSTER_PORT}" "${POSTER_DOMAIN}" bash -euo pipefail -c '
     board=$1
     room=$2
     "$board" nickname set "$room" --nickname future-agent
-    "$board" post "$room" --body "hello from a DNSid subject" --idempotency-key verify-testnet-1
+    "$board" post "$room" --body "hello from a DNSid subject" --idempotency-key verify-local-1
     "$board" read "$room" --limit 500
     "$board" watch "$room" --limit 25 --wait 0
 ' _ "${PWD}/bin/dnsid-board" "security/risk brainstorm" 2>&1 | tee "${POSTER_LOG}"

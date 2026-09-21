@@ -4,21 +4,22 @@ Recipes that teach DNSid — DNS-anchored cryptographic identity for agents and
 services — by building small, runnable systems. The audience is a reader who has
 never seen DNSid before landing on a recipe page.
 
-## One harness: the DNSid testnet
+## One harness: the DNSid local registry
 
-This repo has exactly **one** recipe harness: the real DNSid testnet, driven by the
-`dnsid` CLI (from the `dnsid-ai/dnsid` repo). Do not build or propose recipes
+This repo has exactly **one** recipe harness: the real DNSid local registry (`dnsid
+local`), driven by the `dnsid` CLI (from the `dnsid-ai/dnsid` repo). `dnsid testnet` is
+the deprecated former name of the same command; do not use it in new or updated text. Do not build or propose recipes
 on CoreDNS zone files, docker-compose DNS services, or mock registries — that earlier
 convention is retired. If you find template text, scaffold output, or a recipe still
 describing it, that is migration debt, not a pattern to copy.
 
 The harness contract every runnable recipe follows:
 
-- `dnsid testnet up` / `down` / `reset --hard` own the testnet lifecycle.
+- `dnsid local up` / `down` / `reset --hard` own the local registry lifecycle.
 - Identities are provisioned with
-  `dnsid testnet agent ensure <name> --upstream <url> -- dnsid log issue --domain <fqdn>`
+  `dnsid local agent ensure <name> --upstream <url> -- dnsid log issue --domain <fqdn>`
   (idempotent; safe to re-run).
-- Recipe processes launch under `dnsid testnet run <name> -- <cmd>`, which injects the
+- Recipe processes launch under `dnsid local run <name> -- <cmd>`, which injects the
   full `DNSID_*` environment: DNS routing (`DNSID_DNS_SERVER`), TLS trust
   (`DNSID_CA_BUNDLE`), the registry credential (`DNSID_API_KEY`), the identity
   directory (`DNSID_CONFIG_DIR`), and the independently trusted C2SP policy location
@@ -26,10 +27,13 @@ The harness contract every runnable recipe follows:
 - **Policy trust rule (normative):** the C2SP policy URL comes only from
   `DNSID_LOG_POLICY_URL`. Never derive it from `DNSID_LOG_REF`, the log prefix, or any
   log-provided data.
-- Testnet image: `ghcr.io/identity-digital/dnsid-testnet-registry:main`
-  (anonymously pullable; override with `DNSID_TESTNET_IMAGE`).
+- Local registry image: `ghcr.io/identity-digital/dnsid-local-registry:main`
+  (anonymously pullable; override with `DNSID_LOCAL_IMAGE`). State lives in
+  `~/.dnsid-local` (or `--state <dir>`); containers are named `dnsid-dnsid-local-*`.
+- The registry still emits `lr=c2sp-tlog:testnet:...` — `testnet` there is the C2SP
+  verification scope, not the CLI command. Leave it alone.
 - Readers inspect live records with `dig @$DNSID_DNS_SERVER _dnsid.<domain> TXT` and
-  `curl` against `/.well-known/jwks.json` — teach against the real testnet, not
+  `curl` against `/.well-known/jwks.json` — teach against the real local registry, not
   hand-written fixtures.
 
 ## Recipe conventions
@@ -37,9 +41,9 @@ The harness contract every runnable recipe follows:
 - **Structure is non-negotiable.** Every recipe README follows `RECIPE_TEMPLATE.md`,
   section for section. Write progressively: define every term of art in one plain
   clause on first use; assume the reader has read no other page in this repo.
-- **Make contract:** `make bootstrap` (testnet up + identities), `make run`,
+- **Make contract:** `make bootstrap` (local registry up + identities), `make run`,
   `make verify` (one-shot, asserts expected transcript, nonzero on failure),
-  `make clean` (testnet down). "Runnable means runnable": don't merge until these pass
+  `make clean` (local registry down). "Runnable means runnable": don't merge until these pass
   on a clean clone.
 - **Code lives in `src/`**, not only in README fences. The README quotes from source
   files so the code compiles and the tutorial can't silently drift.
