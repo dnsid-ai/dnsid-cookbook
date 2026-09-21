@@ -73,7 +73,7 @@ One semicolon-separated value — this is the identity's entire public anchor. T
 |---|---|
 | `v=` | Spec version, always first. A verifier that doesn't recognize it stops here. |
 | `ku=` | Key URL — where the domain's JWKS lives. The tag a verifier follows to fetch keys. |
-| `su=` | Status URL — live standing (READY, revoked, …). Checked per verification, so revocation takes effect without touching DNS consumers. |
+| `su=` | Status URL — live standing (ACTIVE, revoked, …). Checked per verification, so revocation takes effect without touching DNS consumers. |
 | `lr=` | Log reference — which transparency log carries this identity's ISSUANCE entry. |
 | `sg=` | A signature over the record itself, so tampering with any tag is detectable. |
 | `gi=` | Governance id — the namespace operator this identity is provisioned under. |
@@ -126,7 +126,7 @@ curl --cacert ~/.dnsid-testnet/certs/root-ca.pem \
 ```
 
 ```json
-{"id": "ag-...", "domain": "publish.dev.dnsid.test", "status": "READY", ...}
+{"state": "ACTIVE", "lastTransitionAt": "2026-..."}
 ```
 
 ## Run it
@@ -165,7 +165,7 @@ v=dnsid-draft-01;...;ku=https://publish.dev.dnsid.test/.well-known/jwks.json;...
 ✓ binding resolved
 ✓ JWKS reachable at https://publish.dev.dnsid.test/.well-known/jwks.json
 ✓ kid matches local keypair: L6rgyZbQpknTUv-yOwqoXTEhOIhpUjeJaKHw5aQagC4
-✓ status: READY
+✓ status: ACTIVE
 ```
 
 `make clean` tears the testnet down. `dnsid testnet reset --hard` also wipes all identity state — re-running `make verify` after that provisions a brand-new keypair and record, worth watching once.

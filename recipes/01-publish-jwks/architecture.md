@@ -43,4 +43,4 @@ flowchart LR
    and `DNSID_CA_BUNDLE`.
 3. Verification resolves `_dnsid.publish.dev.dnsid.test` TXT from the testnet
    DNS, fetches the `ku=` JWKS through the TLS proxy, asserts the served `kid`
-   equals the local `public.jwk`'s, and asserts `su=` reports `READY`.
+   equals the local `public.jwk`'s, and asserts `su=` reports `ACTIVE`.

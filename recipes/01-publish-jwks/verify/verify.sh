@@ -9,7 +9,7 @@
 #   1. `_dnsid.<domain>` TXT resolves and starts with the v= version tag
 #   2. the ku= JWKS URL from the record serves a key over HTTPS
 #   3. the kid served in DNS-land matches the local keypair on disk
-#   4. the su= status URL reports the identity as READY
+#   4. the su= status URL reports the identity as ACTIVE
 #
 # Exits nonzero on any miss.
 
@@ -123,11 +123,11 @@ local_kid=$(python3 -c "import json; print(json.load(open('${DNSID_CONFIG_DIR}/p
 # 4. Live status: follow su=
 # ---------------------------------------------------------------------------
 status=$(fetch "${su}") || fail "could not fetch status from ${su}"
-printf '%s' "${status}" | grep -q '"status":"READY"' \
-    || fail "status document does not report READY: ${status}"
+printf '%s' "${status}" | grep -q '"state":"ACTIVE"' \
+    || fail "status document does not report ACTIVE: ${status}"
 
 echo ""
 echo "✓ binding resolved"
 echo "✓ JWKS reachable at ${ku}"
 echo "✓ kid matches local keypair: ${served_kid}"
-echo "✓ status: READY"
+echo "✓ status: ACTIVE"
