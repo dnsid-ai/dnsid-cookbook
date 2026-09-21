@@ -11,7 +11,7 @@
 
 ## What you'll build
 
-A small Go service with `GET /v1/balance` and `POST /v1/balance/credit` endpoints. A worker calls both endpoints through the local DNSid testnet. The worker signs each request with `dnsid-go`; the server uses the same SDK to resolve and verify the caller's signed `_dnsid` record, accountable-entity endorsement, operational JWKS, status, transparency-log lifecycle, and RFC 9421 signature before a route runs. An unsigned request receives `401`.
+A small Go service with `GET /v1/balance` and `POST /v1/balance/credit` endpoints. A worker calls both endpoints through the local DNSid registry. The worker signs each request with `dnsid-go`; the server uses the same SDK to resolve and verify the caller's signed `_dnsid` record, accountable-entity endorsement, operational JWKS, status, transparency-log lifecycle, and RFC 9421 signature before a route runs. An unsigned request receives `401`.
 
 ## Why this matters
 
@@ -34,17 +34,17 @@ The recipe pins `dnsid-go` v0.33.1 in [`go.mod`](go.mod).
 - **JWKS** — JSON Web Key Set ([RFC 7517](https://datatracker.ietf.org/doc/html/rfc7517)), a standard list of public keys. Each DNSid identity serves its current operational public key at the binding's `ku=` URL.
 - **RFC 9421 HTTP Message Signatures** — detached request signatures carried in `Signature-Input` and `Signature` headers. Covered components are the request fields protected by the signature; this SDK covers the method, authority, target URI, and a body digest when a body exists.
 - **Content-Digest** — an RFC 9530 header containing a digest of the request body. Covering it with the HTTP signature makes a changed credit amount fail verification.
-- **The DNSid testnet** — a disposable local DNS server, registry, C2SP transparency log, and TLS proxy managed by `dnsid testnet`. It publishes real records and lifecycle evidence under `.test` domains without requiring an external account.
+- **The DNSid local registry** — a disposable local DNS server, registry, C2SP transparency log, and TLS proxy managed by `dnsid local`. It publishes real records and lifecycle evidence under `.test` domains without requiring an external account.
 
 ## Running system
 
-The recipe owns no Docker Compose file; the CLI manages the testnet containers.
+The recipe owns no Docker Compose file; the CLI manages the local registry containers.
 
 | Process | Where | Role |
 |---|---|---|
-| DNS server | testnet container, `127.0.0.1:7753` | Serves `_dnsid.stripe.dev.dnsid.test` and `_dnsid.writer.dev.dnsid.test` |
-| Registry + C2SP log | testnet container, `127.0.0.1:7755` | Provisions identities, serves status, and records lifecycle events |
-| TLS proxy | testnet container, `127.0.0.1:443` | Routes each `https://*.dev.dnsid.test` name to its local process |
+| DNS server | local registry container, `127.0.0.1:7753` | Serves `_dnsid.stripe.dev.dnsid.test` and `_dnsid.writer.dev.dnsid.test` |
+| Registry + C2SP log | local registry container, `127.0.0.1:7755` | Provisions identities, serves status, and records lifecycle events |
+| TLS proxy | local registry container, `127.0.0.1:443` | Routes each `https://*.dev.dnsid.test` name to its local process |
 | fake-Stripe server | host process, `:3301` | Verifies signed requests and maintains an in-memory balance |
 | writer agent | host process, `:3302` | Serves its JWKS and sends the signed read-credit-read flow |
 
@@ -54,24 +54,24 @@ The recipe owns no Docker Compose file; the CLI manages the testnet containers.
 make bootstrap
 ```
 
-[`Makefile`](Makefile) downloads the Go modules, builds both binaries, starts the testnet, provisions `stripe.dev.dnsid.test` and `writer.dev.dnsid.test`, and issues their transparency-log entries. Provisioning is idempotent, so re-running it keeps the existing identities.
+[`Makefile`](Makefile) downloads the Go modules, builds both binaries, starts the local registry, provisions `stripe.dev.dnsid.test` and `writer.dev.dnsid.test`, and issues their transparency-log entries. Provisioning is idempotent, so re-running it keeps the existing identities.
 
-Every recipe process later starts under `dnsid testnet run`. That command injects its private identity directory, testnet DNS server, local CA bundle, and independently trusted C2SP policy URL as `DNSID_*` environment variables.
+Every recipe process later starts under `dnsid local run`. That command injects its private identity directory, local registry DNS server, local CA bundle, and independently trusted C2SP policy URL as `DNSID_*` environment variables.
 
-[`src/internal/testnet`](src/internal/testnet) is testnet-only harness glue: it teaches the SDK to use the injected private DNS server and local CA. Production applications keep the SDK's public-network protections and do not copy this package. The application integration taught below is the signer, verifier middleware, and authorization check.
+[`src/internal/localregistry`](src/internal/localregistry) is local-registry-only harness glue: it teaches the SDK to use the injected private DNS server and local CA. Production applications keep the SDK's public-network protections and do not copy this package. The application integration taught below is the signer, verifier middleware, and authorization check.
 
 ### Inspect the live caller identity
 
-In one terminal, serve the writer's real operational JWKS through the testnet proxy:
+In one terminal, serve the writer's real operational JWKS through the local registry proxy:
 
 ```bash
-dnsid testnet run writer --upstream http://localhost:3302 -- ./bin/agent --serve
+dnsid local run writer --upstream http://localhost:3302 -- ./bin/agent --serve
 ```
 
 In a second terminal, inspect the TXT binding and follow its `ku=` endpoint with `curl`:
 
 ```bash
-dnsid testnet run stripe -- sh -c '
+dnsid local run stripe -- sh -c '
   host=${DNSID_DNS_SERVER%:*}
   port=${DNSID_DNS_SERVER##*:}
   dig @"$host" -p "$port" _dnsid.writer.dev.dnsid.test TXT +short
@@ -86,7 +86,7 @@ The TXT output is the signed DNSid binding; its `ku=` URL returns the writer's c
 
 ## Step 2 — Verify before dispatch
 
-The server creates the SDK's HTTP Message Signatures profile from its testnet-configured identity manager. [`src/server/main.go`](src/server/main.go) verifies the request before placing the resulting domain in out-of-band request context:
+The server creates the SDK's HTTP Message Signatures profile from its locally configured identity manager. [`src/server/main.go`](src/server/main.go) verifies the request before placing the resulting domain in out-of-band request context:
 
 ```go
 caller, err := profile.VerifyHTTPRequest(r.Context(), publicRequest)
@@ -101,11 +101,11 @@ next.ServeHTTP(w, publicRequest.WithContext(
 
 `VerifyHTTPRequest` delegates identity verification to `dnsid-go`: it checks the signed record, entity endorsement, operational key, status, and C2SP lifecycle before using the selected key to verify the HTTP signature. The verified domain reaches the route only through context set by this middleware; request input cannot supply it.
 
-The testnet terminates TLS before forwarding to the local HTTP server, so the middleware restores the external HTTPS scheme before verification. This is required because `@target-uri` commits to the public URL the worker signed.
+The local registry terminates TLS before forwarding to the local HTTP server, so the middleware restores the external HTTPS scheme before verification. This is required because `@target-uri` commits to the public URL the worker signed.
 
 ## Step 3 — Sign with the worker identity
 
-[`src/agent/main.go`](src/agent/main.go) loads the identity injected by `dnsid testnet run` and asks the SDK to sign each request:
+[`src/agent/main.go`](src/agent/main.go) loads the identity injected by `dnsid local run` and asks the SDK to sign each request:
 
 ```go
 profile := httpsig.NewFromIdentityManagerKeyProvider(identity, httpsig.Config{})
@@ -116,7 +116,7 @@ signed, err := profile.CreateSignedHTTPRequest(req, httpsig.SigningOptions{
 
 For the credit POST, the SDK reads the body, adds `Content-Digest`, covers that digest, and restores the body before sending. It also adds a creation time, expiry, random nonce, algorithm, and `<domain>#<kid>` key identifier.
 
-The worker runs a small JWKS endpoint while making its calls. The fake-Stripe verifier follows the live `ku=https://writer.dev.dnsid.test/.well-known/jwks.json` URL through the testnet TLS proxy to that endpoint.
+The worker runs a small JWKS endpoint while making its calls. The fake-Stripe verifier follows the live `ku=https://writer.dev.dnsid.test/.well-known/jwks.json` URL through the local registry TLS proxy to that endpoint.
 
 ## Step 4 — Authorize the verified domain
 
@@ -150,7 +150,7 @@ make run AMOUNT=500 ACCOUNT=acct_demo
 make verify
 ```
 
-The one-shot check provisions both identities, starts both binaries under `dnsid testnet run`, and asserts that unsigned and tampered requests fail while valid signed calls carry the expected verified domain and balance.
+The one-shot check provisions both identities, starts both binaries under `dnsid local run`, and asserts that unsigned and tampered requests fail while valid signed calls carry the expected verified domain and balance.
 
 Expected output:
 
@@ -164,13 +164,13 @@ GET balance -> 1250 (verified as writer.dev.dnsid.test)
 ✓ verify passed
 ```
 
-Failures include testnet container logs. `make clean` stops the testnet and removes the two built binaries.
+Failures include local registry container logs. `make clean` stops the local registry and removes the two built binaries.
 
 ## What to try next
 
 - Inspect the worker's `Signature-Input` and `Content-Digest` headers before they are sent.
 - Provision a second caller and run it without adding its domain to `WRITER_DOMAINS`; signed reads pass but credits return `403`.
-- Run `dnsid testnet reset --hard && make verify` to watch both identities complete first-time issuance.
+- Run `dnsid local reset --hard && make verify` to watch both identities complete first-time issuance.
 - [Recipe 31](../31-langgraph-dnsid-agent/) applies the same verified ingress and signed egress pattern around an agent's tools.
 
 ## Glossary

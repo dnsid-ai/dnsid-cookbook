@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# One-shot fake-Stripe flow using the real DNSid testnet and Go SDK.
+# One-shot fake-Stripe flow using the real DNSid local registry and Go SDK.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -19,8 +19,8 @@ STRIPE_PID=""
 
 fail() {
     echo "FAIL: $1" >&2
-    docker ps --filter "name=dnsid-testnet" >&2 || true
-    docker ps -q --filter "name=dnsid-testnet" | while read -r container; do
+    docker ps --filter "name=dnsid-local" >&2 || true
+    docker ps -q --filter "name=dnsid-local" | while read -r container; do
         echo "--- docker logs ${container} (tail) ---" >&2
         docker logs --tail 50 "${container}" >&2 || true
     done
@@ -47,7 +47,7 @@ trap cleanup EXIT
 kill_our_processes
 
 echo "==> starting fake-Stripe as ${STRIPE_DOMAIN}"
-"${DNSID_CLI}" testnet run stripe --upstream "http://localhost:${STRIPE_PORT}" -- \
+"${DNSID_CLI}" local run stripe --upstream "http://localhost:${STRIPE_PORT}" -- \
     env WRITER_DOMAINS="${WRITER_DOMAIN}" "${PWD}/bin/server" >"${STRIPE_LOG}" 2>&1 &
 STRIPE_PID=$!
 
@@ -62,7 +62,7 @@ done
 grep -q "fake-stripe ready" "${STRIPE_LOG}" || fail "fake-Stripe did not become ready"
 
 echo "==> running ${WRITER_DOMAIN}"
-"${DNSID_CLI}" testnet run writer --upstream "http://localhost:${WRITER_PORT}" -- \
+"${DNSID_CLI}" local run writer --upstream "http://localhost:${WRITER_PORT}" -- \
     "${PWD}/bin/agent" \
         --server "https://${STRIPE_DOMAIN}" \
         --account "${ACCOUNT}" \

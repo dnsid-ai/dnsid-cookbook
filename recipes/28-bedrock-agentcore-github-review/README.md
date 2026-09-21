@@ -9,7 +9,7 @@
 
 > **Deploy-only:** this recipe needs an AWS account, a GitHub App, and a
 > server-side DNSid identity directory. Its managed Gateway path is not part of
-> the cookbook's hermetic testnet matrix. It proves the bot's outbound identity
+> the cookbook's hermetic local-registry matrix. It proves the bot's outbound identity
 > at `ReviewGateway`; Runtime caller authentication is deployment-specific.
 
 ---

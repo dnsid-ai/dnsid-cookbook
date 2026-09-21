@@ -1,4 +1,4 @@
-package testnet
+package localregistry
 
 import (
 	"context"
@@ -17,7 +17,7 @@ import (
 	"github.com/dnsid-ai/dnsid-go/log/c2sptlog"
 )
 
-func LoadIdentity(ctx context.Context) (*dnsid.IdentityManager, error) {
+func LoadIdentity(ctx context.Context) (*dnsid.IdentityManager, *http.Client, error) {
 	transport := dnsid.TransportConfig{
 		DNSServer:    os.Getenv("DNSID_DNS_SERVER"),
 		CABundlePath: os.Getenv("DNSID_CA_BUNDLE"),
@@ -25,20 +25,20 @@ func LoadIdentity(ctx context.Context) (*dnsid.IdentityManager, error) {
 	governanceDomain := os.Getenv("DNSID_GOVERNANCE_ID")
 	policyURL := os.Getenv("DNSID_LOG_POLICY_URL")
 	if transport.DNSServer == "" || transport.CABundlePath == "" || governanceDomain == "" || policyURL == "" {
-		return nil, fmt.Errorf("DNSid testnet environment is required; run with `dnsid testnet run`")
+		return nil, nil, fmt.Errorf("DNSid local registry environment is required; run with `dnsid local run`")
 	}
 
-	client, err := testnetHTTPClient(transport)
+	client, err := localRegistryHTTPClient(transport)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	fetcher := &testnetFetcher{client: client, suffix: governanceDomain}
+	fetcher := &localRegistryFetcher{client: client, suffix: governanceDomain}
 	registry, err := c2sptlog.NewVerificationRegistry(ctx, c2sptlog.VerificationRegistryConfig{
 		PolicyURL:       policyURL,
 		ResourceFetcher: fetcher,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("configure lifecycle log: %w", err)
+		return nil, nil, fmt.Errorf("configure lifecycle log: %w", err)
 	}
 	identity, err := dnsid.NewIdentityManagerFromDnsid(
 		"",
@@ -49,15 +49,15 @@ func LoadIdentity(ctx context.Context) (*dnsid.IdentityManager, error) {
 		dnsid.WithLogRegistry(registry),
 	)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return identity, nil
+	return identity, client, nil
 }
 
-// The production SDK rejects private destinations. The local testnet is
+// The production SDK rejects private destinations. The local registry is
 // private by design, so this client limits trust to its injected DNS server,
 // CA, and .test zone instead.
-func testnetHTTPClient(config dnsid.TransportConfig) (*http.Client, error) {
+func localRegistryHTTPClient(config dnsid.TransportConfig) (*http.Client, error) {
 	client, err := dnsid.CreateDnsidHTTPClient(config)
 	if err != nil {
 		return nil, err
@@ -100,12 +100,12 @@ func testnetHTTPClient(config dnsid.TransportConfig) (*http.Client, error) {
 	return client, nil
 }
 
-type testnetFetcher struct {
+type localRegistryFetcher struct {
 	client *http.Client
 	suffix string
 }
 
-func (f *testnetFetcher) FetchJSON(ctx context.Context, rawURL string, opts dnsid.FetchOptions) (json.RawMessage, *tls.Certificate, error) {
+func (f *localRegistryFetcher) FetchJSON(ctx context.Context, rawURL string, opts dnsid.FetchOptions) (json.RawMessage, *tls.Certificate, error) {
 	if err := f.validateURL(rawURL, opts.AllowedHost, opts.DomainBoundary); err != nil {
 		return nil, nil, err
 	}
@@ -114,7 +114,7 @@ func (f *testnetFetcher) FetchJSON(ctx context.Context, rawURL string, opts dnsi
 		return nil, nil, err
 	}
 
-	// The testnet registry wraps su= in its agent-detail response.
+	// The local registry wraps su= in its agent-detail response.
 	var envelope struct {
 		ProtocolStatus json.RawMessage `json:"protocolStatus"`
 	}
@@ -124,7 +124,7 @@ func (f *testnetFetcher) FetchJSON(ctx context.Context, rawURL string, opts dnsi
 	return data, cert, nil
 }
 
-func (f *testnetFetcher) FetchBounded(ctx context.Context, rawURL string, maxBytes int64) ([]byte, error) {
+func (f *localRegistryFetcher) FetchBounded(ctx context.Context, rawURL string, maxBytes int64) ([]byte, error) {
 	if err := f.validateURL(rawURL, "", false); err != nil {
 		return nil, err
 	}
@@ -132,7 +132,7 @@ func (f *testnetFetcher) FetchBounded(ctx context.Context, rawURL string, maxByt
 	return data, err
 }
 
-func (*testnetFetcher) SecurityGuarantees() c2sptlog.ResourceFetchGuarantees {
+func (*localRegistryFetcher) SecurityGuarantees() c2sptlog.ResourceFetchGuarantees {
 	return c2sptlog.ResourceFetchGuarantees{
 		HTTPSOnly:                     true,
 		RejectsRedirects:              true,
@@ -142,24 +142,24 @@ func (*testnetFetcher) SecurityGuarantees() c2sptlog.ResourceFetchGuarantees {
 	}
 }
 
-func (f *testnetFetcher) validateURL(rawURL, allowedHost string, domainBoundary bool) error {
+func (f *localRegistryFetcher) validateURL(rawURL, allowedHost string, domainBoundary bool) error {
 	u, err := url.Parse(rawURL)
 	if err != nil || u.Scheme != "https" || u.Hostname() == "" || u.User != nil || u.Fragment != "" {
-		return fmt.Errorf("invalid testnet HTTPS URL %q", rawURL)
+		return fmt.Errorf("invalid local registry HTTPS URL %q", rawURL)
 	}
 	host := strings.ToLower(u.Hostname())
 	suffix := strings.ToLower(strings.TrimPrefix(f.suffix, "."))
 	if host != suffix && !strings.HasSuffix(host, "."+suffix) {
-		return fmt.Errorf("testnet HTTPS host %q is outside %q", host, suffix)
+		return fmt.Errorf("local registry HTTPS host %q is outside %q", host, suffix)
 	}
 	allowed := strings.ToLower(allowedHost)
 	if allowed != "" && host != allowed && (!domainBoundary || !strings.HasSuffix(host, "."+allowed)) {
-		return fmt.Errorf("testnet HTTPS host %q does not match %q", host, allowed)
+		return fmt.Errorf("local registry HTTPS host %q does not match %q", host, allowed)
 	}
 	return nil
 }
 
-func (f *testnetFetcher) fetch(ctx context.Context, rawURL string, maxBytes int64) ([]byte, *tls.Certificate, error) {
+func (f *localRegistryFetcher) fetch(ctx context.Context, rawURL string, maxBytes int64) ([]byte, *tls.Certificate, error) {
 	if maxBytes <= 0 {
 		maxBytes = 1 << 20
 	}
@@ -173,14 +173,14 @@ func (f *testnetFetcher) fetch(ctx context.Context, rawURL string, maxBytes int6
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode/100 != 2 {
-		return nil, nil, fmt.Errorf("testnet HTTPS fetch returned HTTP %s", resp.Status)
+		return nil, nil, fmt.Errorf("local registry HTTPS fetch returned HTTP %s", resp.Status)
 	}
 	data, err := io.ReadAll(io.LimitReader(resp.Body, maxBytes+1))
 	if err != nil {
 		return nil, nil, err
 	}
 	if int64(len(data)) > maxBytes {
-		return nil, nil, fmt.Errorf("testnet HTTPS response exceeds %d bytes", maxBytes)
+		return nil, nil, fmt.Errorf("local registry HTTPS response exceeds %d bytes", maxBytes)
 	}
 	var cert *tls.Certificate
 	if resp.TLS != nil && len(resp.TLS.PeerCertificates) > 0 {

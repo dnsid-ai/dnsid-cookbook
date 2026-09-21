@@ -11,7 +11,7 @@
 
 ## What you'll build
 
-You will run a Go HTTP API and CLI for a private agent message board. The `owner.dev.dnsid.test` agent creates a room and grants `poster.dev.dnsid.test` access. Every CLI command asks the real DNSid testnet issuer for a short-lived OIDC token. The server verifies that token with `dnsid-go/oidc`, then verifies the token subject's signed DNS record, keys, active status, and transparency-log lifecycle before using the subject as the room principal.
+You will run a Go HTTP API and CLI for a private agent message board. The `owner.dev.dnsid.test` agent creates a room and grants `poster.dev.dnsid.test` access. Every CLI command asks the real DNSid local registry issuer for a short-lived OIDC token. The server verifies that token with `dnsid-go/oidc`, then verifies the token subject's signed DNS record, keys, active status, and transparency-log lifecycle before using the subject as the room principal.
 
 The local flow uses an in-memory store and Go authorization rules. The source also contains optional DynamoDB and AWS Verified Permissions adapters, but no AWS account is needed for the runnable recipe.
 
@@ -36,20 +36,20 @@ The recipe pins `github.com/dnsid-ai/dnsid-go` v0.33.1 in `go.mod`.
 - **DNSid binding** — a signed DNS TXT record at `_dnsid.<domain>` that names the agent's accountable-entity keys, operational keys, status endpoint, and lifecycle log. Verifying it answers whether the subject is controlled by the expected keys and is still active.
 - **OIDC token** — a signed JSON Web Token (JWT) minted by an OpenID Connect issuer for one audience. The board accepts the `sub` claim only after checking the issuer signature, exact audience, time claims, and the subject's DNSid binding.
 - **JWKS** — a JSON Web Key Set (RFC 7517), which publishes public verification keys. The OIDC issuer has an RSA JWKS for its tokens; each DNSid agent has an operational JWKS selected by its DNS record.
-- **The DNSid testnet** — a disposable local DNSid deployment, including DNS, registry, OIDC issuer, status service, TLS proxy, and C2SP transparency log. The `dnsid` CLI owns its lifecycle.
+- **The DNSid local registry** — a disposable local DNSid deployment, including DNS, registry, OIDC issuer, status service, TLS proxy, and C2SP transparency log. The `dnsid` CLI owns its lifecycle.
 - **Out-of-band principal** — verified identity carried in request context rather than request JSON. Handlers and authorization code receive the identity produced by verification; callers cannot write it.
 
 ## Running system
 
 | Process | Where | Role |
 |---|---|---|
-| DNS server | testnet container, `127.0.0.1:7753` | Serves live `_dnsid.*.dev.dnsid.test` records |
-| Registry, OIDC issuer, and transparency log | testnet container, `http://localhost:7955` | Provisions agents and exchanges signed assertions for OIDC tokens |
-| TLS proxy | testnet container, `127.0.0.1:443` | Serves agent JWKS, status, and lifecycle resources with the testnet CA |
+| DNS server | local registry container, `127.0.0.1:7753` | Serves live `_dnsid.*.dev.dnsid.test` records |
+| Registry, OIDC issuer, and transparency log | local registry container, `http://localhost:7955` | Provisions agents and exchanges signed assertions for OIDC tokens |
+| TLS proxy | local registry container, `127.0.0.1:443` | Serves agent JWKS, status, and lifecycle resources with the local registry CA |
 | `dnsid-board-server` | host process, `:3401` | Verifies tokens and DNSid subjects, then serves the board API |
 | `dnsid-board` | host process | Mints one token per command and calls the API |
 
-The recipe keeps its testnet state in ignored `.dnsid-testnet/`. Its testnet config uses `localhost` for the HTTP issuer because `dnsid-go` permits insecure HTTP only for an explicit loopback development issuer. Application code still receives the issuer, DNS server, CA bundle, identity directory, and log policy through `dnsid testnet run`.
+The recipe keeps its local registry state in ignored `.dnsid-local/`. Its local registry config uses `localhost` for the HTTP issuer because `dnsid-go` permits insecure HTTP only for an explicit loopback development issuer. Application code still receives the issuer, DNS server, CA bundle, identity directory, and log policy through `dnsid local run`.
 
 ## Step 1 — Provision the board identities
 
@@ -60,14 +60,14 @@ cd recipes/29-dnsid-message-board
 make bootstrap
 ```
 
-The Makefile starts the CLI-owned testnet and provisions three independently keyed identities:
+The Makefile starts the CLI-owned local registry and provisions three independently keyed identities:
 
 ```make
-$(TESTNET) agent ensure board --state $(STATE) --upstream http://localhost:$(BOARD_PORT) -- \
+$(LOCAL) agent ensure board --state $(STATE) --upstream http://localhost:$(BOARD_PORT) -- \
 	$(DNSID_CLI) log issue --domain $(BOARD_DOMAIN)
-$(TESTNET) agent ensure owner --state $(STATE) --upstream http://localhost:$(OWNER_PORT) -- \
+$(LOCAL) agent ensure owner --state $(STATE) --upstream http://localhost:$(OWNER_PORT) -- \
 	$(DNSID_CLI) log issue --domain $(OWNER_DOMAIN)
-$(TESTNET) agent ensure poster --state $(STATE) --upstream http://localhost:$(POSTER_PORT) -- \
+$(LOCAL) agent ensure poster --state $(STATE) --upstream http://localhost:$(POSTER_PORT) -- \
 	$(DNSID_CLI) log issue --domain $(POSTER_DOMAIN)
 ```
 
@@ -75,12 +75,12 @@ Inspect a real record and operational JWKS:
 
 ```bash
 dig @127.0.0.1 -p 7753 _dnsid.owner.dev.dnsid.test TXT +short
-curl --cacert .dnsid-testnet/certs/root-ca.pem \
+curl --cacert .dnsid-local/certs/root-ca.pem \
   --resolve owner.dev.dnsid.test:443:127.0.0.1 \
   https://owner.dev.dnsid.test/.well-known/jwks.json
 ```
 
-The `_dnsid` value is emitted by the testnet; the recipe does not maintain a zone fixture.
+The `_dnsid` value is emitted by the local registry; the recipe does not maintain a zone fixture.
 
 ## Step 2 — Verify the bearer token and DNSid subject
 
@@ -95,7 +95,7 @@ result, err := v.profile.VerifyOIDCToken(ctx, token, oidc.VerifyOIDCTokenOptions
 
 `VerifyOIDCToken` checks the OIDC signature and claims, then calls the supplied DNSid resolver for `sub`. The resolver validates the exact signed TXT profile, accountable-entity and operational JWKS documents, active status, and C2SP lifecycle evidence. The server additionally requires a `jti`, applies its configured environment policy, and stores only a hash of the token identifier for audit data.
 
-The testnet resolver is configured in `src/internal/testnet/testnet.go`. Its C2SP trust policy comes only from `DNSID_LOG_POLICY_URL`, which is injected independently by the harness. It never derives policy trust from `DNSID_LOG_REF` or log-provided data.
+The local registry resolver is configured in `src/internal/localregistry/localregistry.go`. Its C2SP trust policy comes only from `DNSID_LOG_POLICY_URL`, which is injected independently by the harness. It never derives policy trust from `DNSID_LOG_REF` or log-provided data.
 
 ## Step 3 — Mint a token for every command
 
@@ -110,7 +110,7 @@ cmd := exec.CommandContext(ctx, cfg.DNSIDCLI,
 )
 ```
 
-The DNSid CLI signs a fresh JWT-bearer assertion with the operational key in the injected `DNSID_CONFIG_DIR` and exchanges it with the testnet OIDC issuer. The board CLI sends the returned access token as `Authorization: Bearer <token>` and retries once with a fresh token after `401`.
+The DNSid CLI signs a fresh JWT-bearer assertion with the operational key in the injected `DNSID_CONFIG_DIR` and exchanges it with the local registry OIDC issuer. The board CLI sends the returned access token as `Authorization: Bearer <token>` and retries once with a fresh token after `401`.
 
 Token contents are never logged. `UnsafeTokenExpiry` decodes `exp` only to display `token_expires_at`; the server's trust decision always uses `VerifyOIDCToken`.
 
@@ -143,7 +143,7 @@ AWS mode requires `DNSID_ISSUER`, `DNSID_ENVIRONMENT`, `DNSID_LOG_POLICY_URL`, `
 
 ## Run it
 
-Start the board under its testnet identity:
+Start the board under its local registry identity:
 
 ```bash
 make run
@@ -152,7 +152,7 @@ make run
 The API listens on `http://127.0.0.1:3401`. In another terminal, run commands under an identity environment:
 
 ```bash
-dnsid testnet run owner --state .dnsid-testnet --upstream http://localhost:3402 -- \
+dnsid local run owner --state .dnsid-local --upstream http://localhost:3402 -- \
   env DNSID_BOARD_API=http://127.0.0.1:3401 \
       DNSID_BOARD_AUDIENCE=urn:dnsid-message-board:testnet \
       DNSID_AGENT_DOMAIN=owner.dev.dnsid.test \
@@ -187,7 +187,7 @@ ok arbitrary room ID, allowlist, nickname, post, read, and bounded watch
 - Set `DNSID_BOARD_AUDIENCE` to another value and confirm `whoami` returns `401`.
 - Grant `reader`, then confirm reads succeed while posting returns concealed `404`.
 - Add an unprovisioned `future.dev.dnsid.test` allowlist row, then provision it and retry under that identity.
-- Run `dnsid testnet reset --hard --state .dnsid-testnet && make verify` to watch first-run provisioning again.
+- Run `dnsid local reset --hard --state .dnsid-local && make verify` to watch first-run provisioning again.
 - Compare with Recipe 06b for DNSid-bound HTTP Message Signatures instead of bearer tokens.
 
 ## Glossary

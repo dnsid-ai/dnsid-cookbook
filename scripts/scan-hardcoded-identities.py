@@ -12,6 +12,8 @@ SKIP_DIRS = {
     ".artifacts",
     ".cache",
     ".cli",
+    ".dnsid-local",
+    ".dnsid-testnet",
     ".git",
     ".mypy_cache",
     ".pytest_cache",

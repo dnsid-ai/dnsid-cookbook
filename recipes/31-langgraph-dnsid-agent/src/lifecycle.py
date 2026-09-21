@@ -1,7 +1,7 @@
 """Identity lifecycle: environment config, C2SP log trust, registration, publication.
 
 Everything here happens before the agent exchanges a single A2A message. It
-turns the DNSID_* environment injected by `dnsid testnet run` into a usable,
+turns the DNSID_* environment injected by `dnsid local run` into a usable,
 published identity:
 
   load config from env -> register with the registry -> answer the challenge
@@ -47,20 +47,20 @@ class PollAbortError(RuntimeError):
 
 
 def required_log_policy_url(environment: Mapping[str, str]) -> str:
-    """Return the independently supplied testnet C2SP policy URL."""
+    """Return the independently supplied local registry C2SP policy URL."""
     policy_url = environment.get("DNSID_LOG_POLICY_URL", "").strip()
     if not policy_url:
-        raise RuntimeError("DNSID_LOG_POLICY_URL is required; run with `dnsid testnet run`")
+        raise RuntimeError("DNSID_LOG_POLICY_URL is required; run with `dnsid local run`")
     return policy_url
 
 
 def make_log_registry(
     log_ref: str, policy_url: str, transport_config: TransportConfig
 ) -> LogRegistry | None:
-    """Register a c2sp-tlog reader using independently trusted testnet policy.
+    """Register a c2sp-tlog reader using independently trusted local registry policy.
 
-    The policy URL comes from trusted testnet configuration, independently of
-    the log reference. The transport routes through the testnet DNS server and
+    The policy URL comes from trusted local registry configuration, independently of
+    the log reference. The transport routes through the local registry DNS server and
     CA bundle. Returns None when the log_ref is not a c2sp-tlog reference.
     """
     if not log_ref.startswith("c2sp-tlog:"):
@@ -124,7 +124,7 @@ class AgentIdentity:
 def load_identity() -> AgentIdentity:
     """Build an AgentIdentity from the DNSID_* environment.
 
-    Requires the process to run under `dnsid testnet run`, which injects DNS
+    Requires the process to run under `dnsid local run`, which injects DNS
     routing (DNSID_DNS_SERVER), TLS trust (DNSID_CA_BUNDLE), the registry
     credential (DNSID_API_KEY), the identity directory (DNSID_CONFIG_DIR),
     and the independently trusted policy location (DNSID_LOG_POLICY_URL).
@@ -137,21 +137,21 @@ def load_identity() -> AgentIdentity:
     registry_config = result.registry_config
     policy_url = required_log_policy_url(env)
 
-    # The CLI testnet resolves every name under the governance domain (this
+    # The CLI local registry resolves every name under the governance domain (this
     # agent's endpoints and every peer's) to the host's loopback proxy, which
     # the SDK's SSRF guard would otherwise block. A leading-dot entry allows
     # that zone only; production verifiers keep this empty.
     transport_config.private_address_hosts = frozenset({"." + protocol_config.governance_id})
 
     # Registry mutation calls (register/verify/publish) require a session
-    # credential. `dnsid testnet run` injects DNSID_API_KEY; DNSID_REGISTRY_API_KEY
+    # credential. `dnsid local run` injects DNSID_API_KEY; DNSID_REGISTRY_API_KEY
     # is accepted as a manual override. Fail fast before starting the server
     # rather than surfacing an HTTP 401 partway through registration.
     registry_api_key = (env.get("DNSID_API_KEY") or env.get("DNSID_REGISTRY_API_KEY") or "").strip()
     if not registry_api_key:
         raise SystemExit(
             "DNSID_API_KEY (or DNSID_REGISTRY_API_KEY) is required to register with "
-            "the registry. Run via `dnsid testnet run` (see the recipe README)."
+            "the registry. Run via `dnsid local run` (see the recipe README)."
         )
 
     # Set capabilities_url to point at the agent card endpoint.
@@ -159,13 +159,13 @@ def load_identity() -> AgentIdentity:
     if not protocol_config.capabilities_url:
         protocol_config.capabilities_url = f"{public_url.rstrip('/')}/.well-known/agent-card.json"
 
-    # The identity directory provisioned by `dnsid testnet run`
+    # The identity directory provisioned by `dnsid local run`
     # (DNSID_CONFIG_DIR): its private.jwk carries the RFC 7638 thumbprint kid
     # the registry requires.
     config_dir = (env.get("DNSID_CONFIG_DIR") or "").strip()
     if not config_dir:
         raise SystemExit(
-            "DNSID_CONFIG_DIR is not set. Run via `dnsid testnet run <name> -- ...` "
+            "DNSID_CONFIG_DIR is not set. Run via `dnsid local run <name> -- ...` "
             "so the provisioned identity directory is injected."
         )
     key_provider = LocalKeyProvider.from_cli_directory(config_dir)
@@ -272,7 +272,7 @@ async def register_and_publish(identity: AgentIdentity) -> None:
 async def await_self_resolvable(identity: AgentIdentity) -> None:
     """Wait until the agent's own freshly published record verifies end-to-end.
 
-    The testnet DNS reloads the generated zone every two seconds; wait for
+    The local registry DNS reloads the generated zone every two seconds; wait for
     that reload before the first self-check so an initial NXDOMAIN isn't
     cached, then retry until the record is resolvable.
     """

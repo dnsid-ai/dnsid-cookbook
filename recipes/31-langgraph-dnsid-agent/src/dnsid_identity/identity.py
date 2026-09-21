@@ -41,9 +41,9 @@ def load_identity(
     """Load the local agent's DNSid identity.
 
     - ``source="env"`` — read ``DNSID_*`` environment variables + key store.
-      Under `dnsid testnet run` this recipe builds the manager through
+      Under `dnsid local run` this recipe builds the manager through
       lifecycle.load_identity() instead, which also wires the C2SP log
-      registry and the testnet transport; prefer ``source="manager"`` there.
+      registry and the local registry transport; prefer ``source="manager"`` there.
     - ``source="manager"`` — wrap an ``IdentityManager`` you already built.
     """
     if source == "manager":

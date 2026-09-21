@@ -1,4 +1,4 @@
-// agent signs a read-credit-read flow with its testnet DNSid identity.
+// agent signs a read-credit-read flow with its local registry DNSid identity.
 package main
 
 import (
@@ -17,7 +17,7 @@ import (
 	"time"
 
 	"github.com/dnsid-ai/dnsid-go/httpsig"
-	"github.com/identity-digital/dnsid-cookbook/recipes/06b-go-http-stripe/src/internal/testnet"
+	"github.com/identity-digital/dnsid-cookbook/recipes/06b-go-http-stripe/src/internal/localregistry"
 )
 
 type balanceResponse struct {
@@ -39,7 +39,7 @@ func main() {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
-	identity, client, err := testnet.LoadIdentity(ctx)
+	identity, client, err := localregistry.LoadIdentity(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -51,7 +51,7 @@ func main() {
 	})
 	port := os.Getenv("DNSID_AGENT_PORT")
 	if port == "" {
-		log.Fatal("DNSID_AGENT_PORT is required; run with `dnsid testnet run`")
+		log.Fatal("DNSID_AGENT_PORT is required; run with `dnsid local run`")
 	}
 	keyServer := &http.Server{Handler: mux, ReadHeaderTimeout: 5 * time.Second}
 	listener, err := net.Listen("tcp", ":"+port)

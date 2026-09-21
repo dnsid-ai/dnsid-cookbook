@@ -60,7 +60,7 @@ def make_signed_tools_client(idm: IdentityManager) -> httpx.AsyncClient:
     """Build the single httpx client that signs every outbound tool call.
 
     The SDK client signs the exact bytes sent, so the tool server's required
-    ``content-digest`` component verifies. It inherits the manager's testnet
+    ``content-digest`` component verifies. It inherits the manager's local registry
     DNS server and CA bundle.
     """
     bundle = load_identity(source="manager", manager=idm)
