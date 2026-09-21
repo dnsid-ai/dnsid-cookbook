@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # One-shot check of the published identity, exactly the way a verifier sees it.
 #
-# Runs UNDER `dnsid testnet run publish` (the Makefile does this), so the
+# Runs UNDER `dnsid local run publish` (the Makefile does this), so the
 # DNSID_* environment is present: DNSID_DNS_SERVER for lookups,
 # DNSID_CA_BUNDLE for TLS trust, DNSID_CONFIG_DIR for the local keypair.
 #
@@ -16,9 +16,9 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
-: "${DNSID_DNS_SERVER:?run via 'make verify' (dnsid testnet run injects DNSID_DNS_SERVER)}"
-: "${DNSID_CA_BUNDLE:?run via 'make verify' (dnsid testnet run injects DNSID_CA_BUNDLE)}"
-: "${DNSID_CONFIG_DIR:?run via 'make verify' (dnsid testnet run injects DNSID_CONFIG_DIR)}"
+: "${DNSID_DNS_SERVER:?run via 'make verify' (dnsid local run injects DNSID_DNS_SERVER)}"
+: "${DNSID_CA_BUNDLE:?run via 'make verify' (dnsid local run injects DNSID_CA_BUNDLE)}"
+: "${DNSID_CONFIG_DIR:?run via 'make verify' (dnsid local run injects DNSID_CONFIG_DIR)}"
 
 DOMAIN="${DNSID_DOMAIN:-publish.dev.dnsid.test}"
 DNS_HOST="${DNSID_DNS_SERVER%:*}"
@@ -32,8 +32,8 @@ SERVE_PID=""
 fail() {
     echo "" >&2
     echo "FAIL: $1" >&2
-    echo "--- testnet containers ---" >&2
-    docker ps --filter "name=dnsid-testnet" >&2 || true
+    echo "--- local registry containers ---" >&2
+    docker ps --filter "name=dnsid-local" >&2 || true
     exit 1
 }
 
@@ -46,7 +46,7 @@ cleanup() {
 }
 trap cleanup EXIT
 
-# Resolve a URL's host with the testnet DNS and fetch it over TLS, the same
+# Resolve a URL's host with the local registry DNS and fetch it over TLS, the same
 # two steps any DNSid verifier performs.
 fetch() {
     local url="$1"
@@ -71,7 +71,7 @@ done
 # ---------------------------------------------------------------------------
 # 1. The binding: _dnsid.<domain> TXT
 # ---------------------------------------------------------------------------
-# A freshly published record takes a couple of seconds to appear (the testnet
+# A freshly published record takes a couple of seconds to appear (the local registry
 # DNS reloads its zone periodically) — retry before declaring failure.
 txt=""
 for _ in $(seq 1 30); do

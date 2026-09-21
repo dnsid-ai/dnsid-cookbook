@@ -12,7 +12,7 @@ An agent does not need to be publicly discoverable or host a public application 
 
 ## What gets published
 
-For an agent such as `alice.dev.dnsid.test`, the accountable entity publishes exactly one TXT record at `_dnsid.alice.dev.dnsid.test`. The current DNSid testnet emits this shape:
+For an agent such as `alice.dev.dnsid.test`, the accountable entity publishes exactly one TXT record at `_dnsid.alice.dev.dnsid.test`. The current DNSid local registry emits this shape:
 
 ```txt
 v=dnsid-draft-01;ek=https://dnsid.dnsid.test/.well-known/dnsid-ek.json;gi=dnsid.test;ku=https://alice.dev.dnsid.test/.well-known/jwks.json;lr=c2sp-tlog:testnet:https://registry.dev.dnsid.test#<stream-id>;sg=<base64url-signature>;su=https://registry.dev.dnsid.test/v1/status/alice.dev.dnsid.test
@@ -75,7 +75,7 @@ A C2SP verifier checks the canonical lifecycle-event bytes, event signatures, Me
 
 The C2SP policy names the accepted log key, witness keys, and witness quorum. That policy is a trust anchor, not data to discover from the log being verified.
 
-In the cookbook testnet, its trusted location comes only from `DNSID_LOG_POLICY_URL`. A verifier must never derive the policy URL from `DNSID_LOG_REF`, the log prefix, `/dnsid-policy` conventions, or any record-, log-, mirror-, or bundle-provided value. Fetching a policy from the same log endpoint is advisory unless its bytes or key are independently trusted.
+In the cookbook local registry, its trusted location comes only from `DNSID_LOG_POLICY_URL`. A verifier must never derive the policy URL from `DNSID_LOG_REF`, the log prefix, `/dnsid-policy` conventions, or any record-, log-, mirror-, or bundle-provided value. Fetching a policy from the same log endpoint is advisory unless its bytes or key are independently trusted.
 
 ## How verification works
 
@@ -111,7 +111,7 @@ Protocols such as OIDC, OAuth, RFC 9421 HTTP Message Signatures, MCP, A2A, SPIFF
 
 - [DNSid Internet-Draft 01](https://github.com/dnsid-ai/dnsid-ietf-spec/blob/main/current-draft/draft-ihsanullah-dnsid-01.md)
 - [DNSid C2SP transparency-log method](https://github.com/dnsid-ai/dnsid-ietf-spec/blob/main/log-method-extensions/c2sp-tlog-log-method.md)
-- [DNSid CLI and local testnet](https://github.com/dnsid-ai/dnsid#local-testnet)
+- [DNSid CLI and local registry](https://github.com/dnsid-ai/dnsid#local-registry)
 - [C2SP implementation and testnet notes](https://github.com/dnsid-ai/dnsid/blob/main/docs/c2sp-tlog.md)
 - [Go SDK](https://github.com/dnsid-ai/dnsid-go)
 - [Python SDK](https://github.com/dnsid-ai/dnsid-py)

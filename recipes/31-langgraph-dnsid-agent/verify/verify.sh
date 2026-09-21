@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # One-shot run of the full LangGraph + DNSid flow, with transcript assertions.
 #
-# Starts the tools API and the graph agent under `dnsid testnet run`, waits
+# Starts the tools API and the graph agent under `dnsid local run`, waits
 # for both identities to publish, then:
 #   1. peer (allowlisted) asks the graph to place an order — the graph's
 #      scripted model calls place_order, which travels to the tools API as a
@@ -17,7 +17,7 @@
 #   - the tools log contains exactly one verified /order call
 #
 # DNSID_RECIPE_ASSERT=0 skips the assertions (used by `make run`).
-# Assumes `make bootstrap` has run (testnet up, identities ensured).
+# Assumes `make bootstrap` has run (local registry up, identities ensured).
 
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -43,10 +43,10 @@ GRAPH_PID=""
 fail() {
     echo "" >&2
     echo "FAIL: $1" >&2
-    # Emit the testnet container logs — without them a red CI job is undebuggable.
-    echo "--- testnet containers ---" >&2
-    docker ps --filter "name=dnsid-testnet" >&2 || true
-    docker ps -q --filter "name=dnsid-testnet" | while read -r c; do
+    # Emit the local registry container logs — without them a red CI job is undebuggable.
+    echo "--- local registry containers ---" >&2
+    docker ps --filter "name=dnsid-local" >&2 || true
+    docker ps -q --filter "name=dnsid-local" | while read -r c; do
         echo "--- docker logs ${c} (tail) ---" >&2
         docker logs --tail 50 "${c}" >&2 || true
     done
@@ -54,7 +54,7 @@ fail() {
 }
 
 kill_our_agents() {
-    # `dnsid testnet run` wraps the python process; killing the wrapper alone
+    # `dnsid local run` wraps the python process; killing the wrapper alone
     # can leave the agent holding its port. Kill by command line instead.
     pkill -f "python -u src/main.py" 2>/dev/null || true
 }
@@ -105,14 +105,14 @@ wait_for() {
 # 1. Start the tools API and the graph agent
 # ---------------------------------------------------------------------------
 echo "==> starting tools API on :${TOOLS_PORT}"
-"${DNSID_CLI}" testnet run tools --upstream "http://localhost:${TOOLS_PORT}" -- \
+"${DNSID_CLI}" local run tools --upstream "http://localhost:${TOOLS_PORT}" -- \
     uv run python -u src/main.py tools \
     >"${TOOLS_LOG}" 2>&1 &
 TOOLS_PID=$!
 wait_for "published" "${TOOLS_LOG}" "${TOOLS_PID}" "tools identity to publish"
 
 echo "==> starting graph agent on :${GRAPH_PORT}"
-"${DNSID_CLI}" testnet run graph --upstream "http://localhost:${GRAPH_PORT}" --cu "${GRAPH_CU}" -- \
+"${DNSID_CLI}" local run graph --upstream "http://localhost:${GRAPH_PORT}" --cu "${GRAPH_CU}" -- \
     uv run python -u src/main.py graph \
     >"${GRAPH_LOG}" 2>&1 &
 GRAPH_PID=$!
@@ -122,7 +122,7 @@ wait_for "verified: graph.${ZONE} -> tools.${ZONE}" "${GRAPH_LOG}" "${GRAPH_PID}
 # 2. The allowlisted peer places an order through the graph
 # ---------------------------------------------------------------------------
 echo "==> peer asks the graph to order 3 widgets"
-"${DNSID_CLI}" testnet run peer --upstream "http://localhost:${PEER_PORT}" -- \
+"${DNSID_CLI}" local run peer --upstream "http://localhost:${PEER_PORT}" -- \
     uv run python -u src/main.py send "graph.${ZONE}" "Please order 3 widgets" \
     2>&1 | tee "${PEER_LOG}"
 
@@ -130,7 +130,7 @@ echo "==> peer asks the graph to order 3 widgets"
 # 3. The outsider (verified, not allowlisted) tries the same
 # ---------------------------------------------------------------------------
 echo "==> outsider asks the graph to order 3 widgets"
-"${DNSID_CLI}" testnet run outsider --upstream "http://localhost:${OUTSIDER_PORT}" -- \
+"${DNSID_CLI}" local run outsider --upstream "http://localhost:${OUTSIDER_PORT}" -- \
     uv run python -u src/main.py send "graph.${ZONE}" "Please order 3 widgets" \
     2>&1 | tee "${OUTSIDER_LOG}"
 

@@ -4,9 +4,9 @@
 # Adding a recipe to the cookbook means adding it here in the same PR — a recipe
 # whose verify never runs in CI silently rots.
 #
-# Every verify job installs the `dnsid` CLI and pre-pulls the testnet registry
-# image, because the cookbook's single recipe harness is the real DNSid testnet
-# driven by that CLI (see CLAUDE.md). Recipes that predate the testnet harness
+# Every verify job installs the `dnsid` CLI and pre-pulls the local registry
+# image, because the cookbook's single recipe harness is the real DNSid local registry
+# driven by that CLI (see CLAUDE.md). Recipes that predate the local registry harness
 # simply don't use them.
 name: verify-recipes
 
@@ -95,13 +95,13 @@ jobs:
           sudo install -m 0755 "$RUNNER_TEMP/dnsid" /usr/local/bin/dnsid
           dnsid --version
 
-      - name: Pull testnet registry image
-        run: docker pull ghcr.io/identity-digital/dnsid-testnet-registry:main
+      - name: Pull local registry image
+        run: docker pull ghcr.io/identity-digital/dnsid-local-registry:main
 
       - name: make verify
         run: make -C "recipes/${{ matrix.recipe }}" verify
 
-      # Testnet-in-CI has real moving parts (container startup ordering, DNS
+      # Local-registry-in-CI has real moving parts (container startup ordering, DNS
       # routing); without the container logs, a red job is undebuggable.
       - name: Dump container state and logs on failure
         if: failure()

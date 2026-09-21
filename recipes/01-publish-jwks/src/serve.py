@@ -3,12 +3,12 @@
 
 The `_dnsid` TXT record published for this identity points verifiers at
 `ku=https://<domain>/.well-known/jwks.json` — this process is what answers
-that URL. The testnet's TLS proxy terminates https://<domain> and forwards
+that URL. The local registry's TLS proxy terminates https://<domain> and forwards
 to this server's local port.
 
-Run under the testnet so the identity directory is injected:
+Run under the local registry so the identity directory is injected:
 
-    dnsid testnet run publish --upstream http://localhost:3201 -- \
+    dnsid local run publish --upstream http://localhost:3201 -- \
         python3 -u src/serve.py
 
 The public key comes from DNSID_CONFIG_DIR/public.jwk — the keypair the
@@ -30,7 +30,7 @@ def load_jwks() -> dict:
     config_dir = os.environ.get("DNSID_CONFIG_DIR", "").strip()
     if not config_dir:
         raise SystemExit(
-            "DNSID_CONFIG_DIR is not set. Run via `dnsid testnet run publish -- ...` "
+            "DNSID_CONFIG_DIR is not set. Run via `dnsid local run publish -- ...` "
             "so the provisioned identity directory is injected."
         )
     public_jwk = json.loads((Path(config_dir) / "public.jwk").read_text())

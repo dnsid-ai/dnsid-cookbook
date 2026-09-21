@@ -10,14 +10,14 @@ the spec or SDK behavior it relies on.
    `make clean` on a clean clone. Deploy-only recipes say so and document their platform steps.
 3. Add the recipe to `INDEX.md` and to the `verify` matrix in `.github/workflows/verify-recipes.yml`
    in the same PR. A recipe whose verify never runs in CI silently rots.
-4. Run `make scan-hardcoded-identities`. Recipes use testnet identities under `*.dev.dnsid.test`;
+4. Run `make scan-hardcoded-identities`. Recipes use local registry identities under `*.dev.dnsid.test`;
    never check in a real domain, AWS account ID, key, or token.
 
 ## Pull requests
 
 - Branch off `main`; PRs require one approving review from a code owner and signed commits.
 - Keep recipes self-contained; do not add shared frameworks or Docker DNS stacks — the `dnsid` CLI
-  testnet is the only harness.
+  local registry is the only harness.
 - Pin SDK versions in each recipe's manifest; Dependabot proposes bumps.
 
 ## Licensing of contributions

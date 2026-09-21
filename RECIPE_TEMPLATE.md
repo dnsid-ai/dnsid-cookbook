@@ -53,20 +53,20 @@ For deploy-only recipes, also list the platform account / CLI tools required (e.
 - **DNSid binding** — a small record published in DNS that says "this domain owns this public key." A verifier resolves `_dnsid.<domain>` (a TXT record) to find the binding, then follows the record's `ku=` tag to fetch the public keys at `/.well-known/jwks.json`. This is what lets us trust a signature without a CA.
 - **JWKS** — JSON Web Key Set, a list of public keys in a standard JSON format ([RFC 7517](https://datatracker.ietf.org/doc/html/rfc7517)). DNSid hosts these at the `/.well-known/jwks.json` URL on the agent's domain.
 - **RFC 9421** — IETF standard for signing HTTP requests with detached signatures in headers. We use covered components `@method`, `@target-uri`, `content-digest`. The covered components are the parts of the request the signature commits to.
-- **The DNSid testnet** — a disposable, fully local DNSid deployment (DNS server, registry, transparency log, TLS proxy) that the `dnsid` CLI runs in Docker. Every runnable recipe uses it as the harness.
+- **The DNSid local registry** — a disposable, fully local DNSid deployment (DNS server, registry, transparency log, TLS proxy) that the `dnsid` CLI runs in Docker via `dnsid local`. Every runnable recipe uses it as the harness.
 - *…one bullet per concept the recipe touches. If you find yourself with more than five, consider whether the recipe is doing too much, or move some into the Glossary.*
 
 If a concept is non-obvious or contested, say so honestly. Don't fake confidence.
 
 ## Running system
 
-*What's up when the recipe runs. The testnet's containers are CLI-managed — the recipe owns no compose file — so this table describes the running system, not a Docker stack the reader maintains. One row per process: testnet services first, then the recipe's own processes.*
+*What's up when the recipe runs. The local registry's containers are CLI-managed — the recipe owns no compose file — so this table describes the running system, not a Docker stack the reader maintains. One row per process: local registry services first, then the recipe's own processes.*
 
 | Process | Where | Role |
 |---|---|---|
-| DNS server | testnet container, `127.0.0.1:7753` | Serves live `_dnsid.*.dev.dnsid.test` TXT records |
-| Registry + transparency log | testnet container, `127.0.0.1:7755` | Registration, challenge verification, publication, C2SP log |
-| TLS proxy | testnet container | Terminates `https://*.dev.dnsid.test` with a local CA, routes to agent upstreams |
+| DNS server | local registry container, `127.0.0.1:7753` | Serves live `_dnsid.*.dev.dnsid.test` TXT records |
+| Registry + transparency log | local registry container, `127.0.0.1:7755` | Registration, challenge verification, publication, C2SP log |
+| TLS proxy | local registry container | Terminates `https://*.dev.dnsid.test` with a local CA, routes to agent upstreams |
 | *your-process* | host process, `:PORT` | *what it does* |
 
 ## Step 1 — *Short imperative title*
@@ -119,7 +119,7 @@ For deploy-only recipes: how to confirm the recipe is working in the vendor's ed
 
 - Recipe X — *what it adds*
 - Recipe Y — *what it adds*
-- `dnsid testnet reset --hard && make verify` — watch the full first-run lifecycle instead of the idempotent path.
+- `dnsid local reset --hard && make verify` — watch the full first-run lifecycle instead of the idempotent path.
 
 ## Glossary
 
@@ -140,23 +140,23 @@ For deploy-only recipes: how to confirm the recipe is working in the vendor's ed
 
 *Delete this section before committing. It's guidance for you, not the reader.*
 
-- **One harness: the DNSid testnet.** Every runnable recipe runs against the real DNSid testnet, driven by the `dnsid` CLI (from `dnsid-ai/dnsid`). Do not add CoreDNS zone files, docker-compose DNS services, or mock registries — that earlier convention is retired. The testnet pulls `ghcr.io/identity-digital/dnsid-testnet-registry:main` (anonymously pullable; override with `DNSID_TESTNET_IMAGE`).
+- **One harness: the DNSid local registry.** Every runnable recipe runs against the real DNSid local registry (`dnsid local`), driven by the `dnsid` CLI (from `dnsid-ai/dnsid`). `dnsid testnet` is the deprecated former name of the same command — don't write it. Do not add CoreDNS zone files, docker-compose DNS services, or mock registries — that earlier convention is retired. The local registry pulls `ghcr.io/identity-digital/dnsid-local-registry:main` (anonymously pullable; override with `DNSID_LOCAL_IMAGE`).
 
 - **The harness contract.** Follow it exactly — recipe 12 (`recipes/12-a2a-dnsid/`) is the reference implementation:
-  1. `dnsid testnet up` / `down` / `reset --hard` own the testnet lifecycle. Recipes own no DNS or registry containers.
-  2. Identities are provisioned idempotently with `dnsid testnet agent ensure <name> --upstream <url> -- dnsid log issue --domain <fqdn>`.
-  3. Recipe processes launch under `dnsid testnet run <name> -- <cmd>`, which injects the full `DNSID_*` environment: DNS routing (`DNSID_DNS_SERVER`), TLS trust (`DNSID_CA_BUNDLE`), the registry credential (`DNSID_API_KEY`), the identity directory (`DNSID_CONFIG_DIR`), and the independently trusted policy location (`DNSID_LOG_POLICY_URL`). Application code reads config from that environment; it never hardcodes testnet endpoints.
+  1. `dnsid local up` / `down` / `reset --hard` own the local registry lifecycle. Recipes own no DNS or registry containers.
+  2. Identities are provisioned idempotently with `dnsid local agent ensure <name> --upstream <url> -- dnsid log issue --domain <fqdn>`.
+  3. Recipe processes launch under `dnsid local run <name> -- <cmd>`, which injects the full `DNSID_*` environment: DNS routing (`DNSID_DNS_SERVER`), TLS trust (`DNSID_CA_BUNDLE`), the registry credential (`DNSID_API_KEY`), the identity directory (`DNSID_CONFIG_DIR`), and the independently trusted policy location (`DNSID_LOG_POLICY_URL`). Application code reads config from that environment; it never hardcodes local registry endpoints.
 
 - **Policy trust rule (normative).** The C2SP policy URL comes only from `DNSID_LOG_POLICY_URL`. Never derive it from `DNSID_LOG_REF`, the log prefix, or any log-provided data — a log that can name its own trust policy can vouch for itself.
 
-- **Make contract.** Four targets, no exceptions: `make bootstrap` (testnet up + identities ensured; idempotent), `make run` (the flow, human-watchable), `make verify` (one-shot; asserts the expected transcript; exits nonzero on failure), `make clean` (testnet down). `verify` may depend on `bootstrap` — provisioning is idempotent. On failure, the verify script should dump the testnet container logs (`docker ps --filter name=dnsid-testnet` + `docker logs`); a red CI job without them is undebuggable.
+- **Make contract.** Four targets, no exceptions: `make bootstrap` (local registry up + identities ensured; idempotent), `make run` (the flow, human-watchable), `make verify` (one-shot; asserts the expected transcript; exits nonzero on failure), `make clean` (local registry down). `verify` may depend on `bootstrap` — provisioning is idempotent. On failure, the verify script should dump the local registry container logs (`docker ps --filter name=dnsid-local` + `docker logs`); a red CI job without them is undebuggable.
 
-- **Teach against the live testnet.** Readers inspect real state, not fixtures: `dig @127.0.0.1 -p 7753 _dnsid.<domain> TXT +short` for records, `curl` for `/.well-known/jwks.json` and status. Quote real transcripts in the README.
+- **Teach against the live local registry.** Readers inspect real state, not fixtures: `dig @127.0.0.1 -p 7753 _dnsid.<domain> TXT +short` for records, `curl` for `/.well-known/jwks.json` and status. Quote real transcripts in the README.
 
-- **Scaffolding.** `make new N=<number> SLUG=<slug>` scaffolds the testnet-cli layout: Makefile (`bootstrap`/`run`/`verify`/`clean`), `pyproject.toml`, `src/`, `verify/verify.sh`, and a README skeleton. Recipes 12 and 31 are the reference implementations to crib from.
+- **Scaffolding.** `make new N=<number> SLUG=<slug>` scaffolds the local-registry layout: Makefile (`bootstrap`/`run`/`verify`/`clean`), `pyproject.toml`, `src/`, `verify/verify.sh`, and a README skeleton. Recipes 12 and 31 are the reference implementations to crib from.
 
-- **Use `.test`, not `.local`.** Testnet identities live under `*.dev.dnsid.test`. `.local` is reserved for Multicast DNS (RFC 6762); RFC 2606 reserves `.test` for testing, and it will never resolve in public DNS. `python3 scripts/scan-hardcoded-identities.py` must pass.
-- **Use the canonical TXT shape.** One semicolon-separated `_dnsid` TXT value with `v` first, `ku=` for the JWKS endpoint, and `su=` for status. Do not emit the legacy space-separated `kid` / `jwks` / `registry` shape. (The testnet emits the canonical shape; this rule mainly constrains prose and hand-written examples.)
+- **Use `.test`, not `.local`.** Local registry identities live under `*.dev.dnsid.test`. `.local` is reserved for Multicast DNS (RFC 6762); RFC 2606 reserves `.test` for testing, and it will never resolve in public DNS. `python3 scripts/scan-hardcoded-identities.py` must pass.
+- **Use the canonical TXT shape.** One semicolon-separated `_dnsid` TXT value with `v` first, `ku=` for the JWKS endpoint, and `su=` for status. Do not emit the legacy space-separated `kid` / `jwks` / `registry` shape. (The local registry emits the canonical shape; this rule mainly constrains prose and hand-written examples.)
 
 - **Python recipes:** Python 3.11+, managed with `uv`. Pin dependencies in the recipe's own `pyproject.toml` and record the versions actually tested against. Launch with `uv run python -u …` — the `-u` matters, because verify scripts grep the process output and Python buffers stdout when piped.
 

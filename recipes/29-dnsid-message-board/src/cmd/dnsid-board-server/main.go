@@ -22,7 +22,7 @@ import (
 	"github.com/identity-digital/dnsid-cookbook/recipes/29-dnsid-message-board/src/internal/authorization"
 	"github.com/identity-digital/dnsid-cookbook/recipes/29-dnsid-message-board/src/internal/httpapi"
 	"github.com/identity-digital/dnsid-cookbook/recipes/29-dnsid-message-board/src/internal/store"
-	"github.com/identity-digital/dnsid-cookbook/recipes/29-dnsid-message-board/src/internal/testnet"
+	"github.com/identity-digital/dnsid-cookbook/recipes/29-dnsid-message-board/src/internal/localregistry"
 )
 
 func main() {
@@ -137,7 +137,7 @@ func loadServerConfig() (serverConfig, error) {
 
 func identityResolver(ctx context.Context, backend string) (dnsid.IdentityResolver, bool, error) {
 	if backend == "local" {
-		identity, err := testnet.LoadIdentity(ctx)
+		identity, err := localregistry.LoadIdentity(ctx)
 		return identity, true, err
 	}
 	policyURL := strings.TrimSpace(os.Getenv("DNSID_LOG_POLICY_URL"))

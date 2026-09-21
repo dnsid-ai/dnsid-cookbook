@@ -8,17 +8,17 @@ BOB_PORT ?= 3002
 ALICE_CU := https://alice.$(ZONE)/.well-known/agent-card.json
 BOB_CU := https://bob.$(ZONE)/.well-known/agent-card.json
 
-# Start the testnet and provision both identities. Idempotent: `agent ensure`
+# Start the local registry and provision both identities. Idempotent: `agent ensure`
 # and `log issue` are safe to re-run for existing identities.
 bootstrap:
-	$(DNSID_CLI) testnet up
-	$(DNSID_CLI) testnet agent ensure bob --upstream http://localhost:$(BOB_PORT) --cu "$(BOB_CU)" -- \
+	$(DNSID_CLI) local up
+	$(DNSID_CLI) local agent ensure bob --upstream http://localhost:$(BOB_PORT) --cu "$(BOB_CU)" -- \
 		$(DNSID_CLI) log issue --domain bob.$(ZONE)
-	$(DNSID_CLI) testnet agent ensure alice --upstream http://localhost:$(ALICE_PORT) --cu "$(ALICE_CU)" -- \
+	$(DNSID_CLI) local agent ensure alice --upstream http://localhost:$(ALICE_PORT) --cu "$(ALICE_CU)" -- \
 		$(DNSID_CLI) log issue --domain alice.$(ZONE)
 	uv sync
 
-# Full flow: Bob comes up under `dnsid testnet run`, Alice sends one signed
+# Full flow: Bob comes up under `dnsid local run`, Alice sends one signed
 # message, both identities verified. Same script as `make verify`, without
 # the transcript assertions.
 run: bootstrap
@@ -31,4 +31,4 @@ verify: bootstrap
 	bash verify/verify.sh
 
 clean:
-	$(DNSID_CLI) testnet down
+	$(DNSID_CLI) local down

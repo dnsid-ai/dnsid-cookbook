@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # One-shot run of the full A2A + DNSid flow, with transcript assertions.
 #
-# Starts Bob under `dnsid testnet run`, waits for his identity to publish,
+# Starts Bob under `dnsid local run`, waits for his identity to publish,
 # runs Alice (sends one signed message, exits), then asserts the transcript:
 #   - Bob's identity published (or `already published (READY)` on re-runs)
 #   - Bob logged a verified signed POST from alice.<zone>
 #   - Alice's reply text carries both verified identities
 #
 # DNSID_RECIPE_ASSERT=0 skips the assertions (used by `make run`).
-# Assumes `make bootstrap` has run (testnet up, identities ensured).
+# Assumes `make bootstrap` has run (local registry up, identities ensured).
 
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -30,10 +30,10 @@ BOB_PID=""
 fail() {
     echo "" >&2
     echo "FAIL: $1" >&2
-    # Emit the testnet container logs — without them a red CI job is undebuggable.
-    echo "--- testnet containers ---" >&2
-    docker ps --filter "name=dnsid-testnet" >&2 || true
-    docker ps -q --filter "name=dnsid-testnet" | while read -r c; do
+    # Emit the local registry container logs — without them a red CI job is undebuggable.
+    echo "--- local registry containers ---" >&2
+    docker ps --filter "name=dnsid-local" >&2 || true
+    docker ps -q --filter "name=dnsid-local" | while read -r c; do
         echo "--- docker logs ${c} (tail) ---" >&2
         docker logs --tail 50 "${c}" >&2 || true
     done
@@ -41,7 +41,7 @@ fail() {
 }
 
 kill_our_agents() {
-    # `dnsid testnet run` wraps the python process; killing the wrapper alone
+    # `dnsid local run` wraps the python process; killing the wrapper alone
     # can leave the agent holding its port. Kill by command line instead.
     pkill -f "python -u src/main.py" 2>/dev/null || true
 }
@@ -66,7 +66,7 @@ kill_our_agents
 # 1. Start Bob in the background
 # ---------------------------------------------------------------------------
 echo "==> starting Bob on :${BOB_PORT}"
-"${DNSID_CLI}" testnet run bob --upstream "http://localhost:${BOB_PORT}" --cu "${BOB_CU}" -- \
+"${DNSID_CLI}" local run bob --upstream "http://localhost:${BOB_PORT}" --cu "${BOB_CU}" -- \
     uv run python -u src/main.py \
     >"${BOB_LOG}" 2>&1 &
 BOB_PID=$!
@@ -94,7 +94,7 @@ echo " done"
 # 2. Run Alice — sends one signed message to Bob then exits
 # ---------------------------------------------------------------------------
 echo "==> starting Alice on :${ALICE_PORT} — sending hello to Bob"
-"${DNSID_CLI}" testnet run alice --upstream "http://localhost:${ALICE_PORT}" --cu "${ALICE_CU}" -- \
+"${DNSID_CLI}" local run alice --upstream "http://localhost:${ALICE_PORT}" --cu "${ALICE_CU}" -- \
     uv run python -u src/main.py "bob.${ZONE}" \
     2>&1 | tee "${ALICE_LOG}"
 
