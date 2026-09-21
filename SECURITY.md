@@ -17,7 +17,7 @@ Report privately through one of the following:
 
 - **GitHub Security Advisories**: if the **"Report a vulnerability"** button is available under
   this repository's **Security** tab, use it to open a private advisory.
-- **Email**: `idil-bugreport@identity.digital`
+- **Email**: `security@dnsid.ai`
 
 ## **Our Commitment**
 
