@@ -13,7 +13,7 @@ import (
 
 	dnsid "github.com/dnsid-ai/dnsid-go"
 	"github.com/dnsid-ai/dnsid-go/httpsig"
-	"github.com/identity-digital/dnsid-cookbook/recipes/06b-go-http-stripe/src/internal/testnet"
+	"github.com/identity-digital/dnsid-cookbook/recipes/06b-go-http-stripe/src/internal/localregistry"
 )
 
 type ledger struct {
@@ -39,7 +39,7 @@ type callerContextKey struct{}
 func main() {
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
-	identity, _, err := testnet.LoadIdentity(ctx)
+	identity, _, err := localregistry.LoadIdentity(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}

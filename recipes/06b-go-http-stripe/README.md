@@ -58,7 +58,7 @@ make bootstrap
 
 Every recipe process later starts under `dnsid local run`. That command injects its private identity directory, local registry DNS server, local CA bundle, and independently trusted C2SP policy URL as `DNSID_*` environment variables.
 
-[`src/internal/testnet`](src/internal/testnet) is testnet-only harness glue: it teaches the SDK to use the injected private DNS server and local CA. Production applications keep the SDK's public-network protections and do not copy this package. The application integration taught below is the signer, verifier middleware, and authorization check.
+[`src/internal/localregistry`](src/internal/localregistry) is local-registry-only harness glue: it teaches the SDK to use the injected private DNS server and local CA. Production applications keep the SDK's public-network protections and do not copy this package. The application integration taught below is the signer, verifier middleware, and authorization check.
 
 ### Inspect the live caller identity
 

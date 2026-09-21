@@ -22,7 +22,7 @@ The recipe has two storage/authorization modes:
 |---|---|---|
 | Server | `src/cmd/dnsid-board-server/main.go` | Loads the DNSid resolver and OIDC verifier, selects backend dependencies, and starts HTTP. |
 | OIDC adapter | `src/internal/auth/verifier.go` | Calls `oidc.Profile.VerifyOIDCToken` and maps the verified result to board identity. |
-| Testnet transport | `src/internal/testnet/testnet.go` | Uses injected DNS, CA, and independently trusted C2SP policy for `.test` verification. |
+| Local registry transport | `src/internal/localregistry/localregistry.go` | Uses injected DNS, CA, and independently trusted C2SP policy for `.test` verification. |
 | HTTP API | `src/internal/httpapi/server.go` | Authenticates before routing and carries identity in request context. |
 | CLI | `src/cmd/dnsid-board`, `src/internal/cli` | Calls `dnsid token`, sends bearer-authenticated JSON, and retries once on `401`. |
 | Memory/AWS stores | `src/internal/store` | In-memory runnable state or optional DynamoDB persistence. |

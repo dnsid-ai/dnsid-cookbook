@@ -95,7 +95,7 @@ result, err := v.profile.VerifyOIDCToken(ctx, token, oidc.VerifyOIDCTokenOptions
 
 `VerifyOIDCToken` checks the OIDC signature and claims, then calls the supplied DNSid resolver for `sub`. The resolver validates the exact signed TXT profile, accountable-entity and operational JWKS documents, active status, and C2SP lifecycle evidence. The server additionally requires a `jti`, applies its configured environment policy, and stores only a hash of the token identifier for audit data.
 
-The local registry resolver is configured in `src/internal/testnet/testnet.go`. Its C2SP trust policy comes only from `DNSID_LOG_POLICY_URL`, which is injected independently by the harness. It never derives policy trust from `DNSID_LOG_REF` or log-provided data.
+The local registry resolver is configured in `src/internal/localregistry/localregistry.go`. Its C2SP trust policy comes only from `DNSID_LOG_POLICY_URL`, which is injected independently by the harness. It never derives policy trust from `DNSID_LOG_REF` or log-provided data.
 
 ## Step 3 — Mint a token for every command
 
