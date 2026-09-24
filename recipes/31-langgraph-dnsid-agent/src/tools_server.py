@@ -63,6 +63,7 @@ def build_tools_app(identity: AgentIdentity) -> DnsidSignatureMiddleware:
         identity.domain,
         http_sig,
         TOOLS_VERIFY_OPTS,
+        public_url=identity.public_url or f"https://{identity.domain}",
         # Plain HTTP ingress: signature verification only, no A2A headers.
         require_a2a_headers=False,
     )

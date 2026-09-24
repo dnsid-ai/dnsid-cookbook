@@ -28,6 +28,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - name: Hardcoded-identity scanner self-test
         run: python3 scripts/test_scan_hardcoded_identities.py
@@ -52,18 +54,16 @@ jobs:
           - recipe: 01-publish-jwks
           - recipe: 06b-go-http-stripe
             go: true
-            sdk: true
           - recipe: 12-a2a-dnsid
             uv: true
-            sdk: true
           - recipe: 29-dnsid-message-board
             go: true
-            sdk: true
           - recipe: 31-langgraph-dnsid-agent
             uv: true
-            sdk: true
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
 
       - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
         if: matrix.go
@@ -72,14 +72,6 @@ jobs:
 
       - uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
         if: matrix.uv
-
-      # Route private DNSid SDK git dependencies through the org PAT.
-      - name: Configure git auth for private SDK dependencies
-        if: matrix.sdk
-        env:
-          GH_PAT: ${{ secrets.GH_PAT }}
-        run: |
-          git config --global url."https://x-access-token:${GH_PAT}@github.com/".insteadOf "https://github.com/"
 
       # Public release binaries (same source the dnsid-ai/homebrew-tap cask uses).
       - name: Install dnsid CLI

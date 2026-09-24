@@ -9,7 +9,7 @@ description = "Minimal DNSid OIDC adapter image generation recipe for AgentCore 
 requires-python = ">=3.11"
 dependencies = [
     "boto3>=1.35.0",
-    "dnsid @ git+https://github.com/dnsid-ai/dnsid-py@v0.19.1",
+    "dnsid @ git+https://github.com/dnsid-ai/dnsid-py@c9ae777cb4b473eace67d2b745b1760032e32738",
 ]
 
 [project.optional-dependencies]

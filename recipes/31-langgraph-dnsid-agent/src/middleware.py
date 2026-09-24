@@ -18,6 +18,7 @@ sender domain in the ASGI scope.
 from __future__ import annotations
 
 import asyncio
+from urllib.parse import urlsplit
 
 from a2a.auth.user import UnauthenticatedUser, User
 from a2a.server.context import ServerCallContext
@@ -99,6 +100,7 @@ class DnsidSignatureMiddleware:
         http_sig: HttpSignatureProfile,
         verify_opts: HttpVerificationOptions,
         *,
+        public_url: str,
         require_a2a_headers: bool = False,
     ) -> None:
         self._app = app
@@ -106,6 +108,11 @@ class DnsidSignatureMiddleware:
         self._http_sig = http_sig
         self._verify_opts = verify_opts
         self._require_a2a_headers = require_a2a_headers
+        origin = urlsplit(public_url)
+        if origin.scheme != "https" or not origin.hostname or origin.username is not None:
+            raise ValueError("public_url must have a trusted HTTPS origin")
+        self._origin = f"https://{origin.netloc}"
+        self._authority = origin.netloc
 
     async def __call__(self, scope, receive, send) -> None:
         if scope["type"] != "http" or scope.get("method") != "POST":
@@ -123,15 +130,12 @@ class DnsidSignatureMiddleware:
         body = b"".join(chunks)
 
         headers_raw = {
-            k.decode("latin-1"): v.decode("latin-1") for k, v in scope.get("headers", [])
+            k.decode("latin-1").lower(): v.decode("latin-1") for k, v in scope.get("headers", [])
         }
-        scheme = scope.get("scheme", "https")
-        forwarded_proto = headers_raw.get("x-forwarded-proto", scheme)
-        host = headers_raw.get("x-forwarded-host") or headers_raw.get("host") or "localhost"
         path = scope.get("path", "/")
         query = scope.get("query_string", b"").decode("latin-1")
-        url = f"{forwarded_proto}://{host}{path}" + (f"?{query}" if query else "")
-        headers_raw["host"] = host
+        url = f"{self._origin}{path}" + (f"?{query}" if query else "")
+        headers_raw["host"] = self._authority  # Never trust client-supplied Host / X-Forwarded-*.
 
         if self._require_a2a_headers:
             a2a_version = headers_raw.get("a2a-version", "")

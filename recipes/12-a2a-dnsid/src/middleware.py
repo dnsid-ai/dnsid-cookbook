@@ -19,6 +19,7 @@ reads it via the a2a-sdk call context; nothing downstream can forge it.
 from __future__ import annotations
 
 import asyncio
+from urllib.parse import urlsplit
 
 from a2a.auth.user import UnauthenticatedUser, User
 from a2a.server.context import ServerCallContext
@@ -73,10 +74,15 @@ class DnsidServerCallContextBuilder(ServerCallContextBuilder):
 class DnsidSignatureMiddleware:
     """ASGI middleware that verifies inbound HTTP message signatures via dnsid."""
 
-    def __init__(self, app, idm: IdentityManager, http_sig: HttpSignatureProfile) -> None:
+    def __init__(self, app, idm: IdentityManager, http_sig: HttpSignatureProfile, public_url: str) -> None:
         self._app = app
         self._idm = idm
         self._http_sig = http_sig
+        origin = urlsplit(public_url)
+        if origin.scheme != "https" or not origin.hostname or origin.username is not None:
+            raise ValueError("public_url must have a trusted HTTPS origin")
+        self._origin = f"https://{origin.netloc}"
+        self._authority = origin.netloc
 
     async def __call__(self, scope, receive, send) -> None:
         if scope["type"] != "http" or scope.get("method") != "POST":
@@ -94,15 +100,12 @@ class DnsidSignatureMiddleware:
         body = b"".join(chunks)
 
         headers_raw = {
-            k.decode("latin-1"): v.decode("latin-1") for k, v in scope.get("headers", [])
+            k.decode("latin-1").lower(): v.decode("latin-1") for k, v in scope.get("headers", [])
         }
-        scheme = scope.get("scheme", "https")
-        forwarded_proto = headers_raw.get("x-forwarded-proto", scheme)
-        host = headers_raw.get("x-forwarded-host") or headers_raw.get("host") or "localhost"
         path = scope.get("path", "/")
         query = scope.get("query_string", b"").decode("latin-1")
-        url = f"{forwarded_proto}://{host}{path}" + (f"?{query}" if query else "")
-        headers_raw["host"] = host
+        url = f"{self._origin}{path}" + (f"?{query}" if query else "")
+        headers_raw["host"] = self._authority  # Never trust client-supplied Host / X-Forwarded-*.
 
         # Validate A2A-Version header.
         a2a_version = headers_raw.get("a2a-version", "")

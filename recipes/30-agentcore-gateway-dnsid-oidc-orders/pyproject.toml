@@ -10,7 +10,7 @@ requires-python = ">=3.11"
 # Versions tested with Python 3.13.
 dependencies = [
     "boto3==1.43.81",
-    "dnsid @ git+https://github.com/dnsid-ai/dnsid-py@v0.19.1",
+    "dnsid @ git+https://github.com/dnsid-ai/dnsid-py@c9ae777cb4b473eace67d2b745b1760032e32738",
 ]
 
 [project.optional-dependencies]

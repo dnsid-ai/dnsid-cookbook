@@ -121,8 +121,10 @@ claimed here.
 | `make invoke PR_OWNER=<o> PR_REPO=<r> PR_NUMBER=<n> RUNTIME_ARN=<arn> CALLER_DOMAIN=<d>` | Mints a caller token with the CLI and invokes the deployed runtime through `scripts/invoke.sh`. |
 | `make clean` | Destroys only stacks synthesized by this recipe's CDK app. |
 
-The local audit fallback is separate: run `python scripts/audit_server.py` with
-`ALLOWED_ISSUERS=<bot-domain>` when testing direct HTTP audit behavior.
+The local audit fallback is separate: run `scripts/audit_server.py` with
+`AUDIT_ISSUER=https://oidc.dnsid.ai`, `AUDIT_SUBJECT=<bot-domain>` and
+`AUDIT_AUDIENCE=http://localhost:9090` (matching `AUDIT_ENDPOINT`). It binds
+to loopback only and verifies the token against the trusted issuer's JWKS.
 
 ## Trust and Security Boundaries
 
@@ -138,8 +140,8 @@ The local audit fallback is separate: run `python scripts/audit_server.py` with
   audit Lambda.
 - The audit Lambda does not revalidate auth. That is correct only when it is
   reached through the Gateway.
-- The direct local audit server validates DNSid tokens itself and can restrict
-  issuers with `ALLOWED_ISSUERS`.
+- The direct local audit server requires a configured OIDC issuer, bot subject
+  and audience; it never uses an unverified `iss` to choose a network destination.
 
 ## Operational Notes and Limits
 

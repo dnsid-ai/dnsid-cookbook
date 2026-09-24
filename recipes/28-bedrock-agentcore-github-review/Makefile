@@ -21,7 +21,7 @@ deploy:
 	agentcore deploy
 
 verify: setup
-	cd app/GitHubReviewBot && uv run python -m unittest test_dnsid_identity.py
+	cd app/GitHubReviewBot && uv run python -m unittest test_dnsid_identity.py test_review_scope.py
 
 invoke:
 	@test -n "$(RUNTIME_ARN)"   || (echo "RUNTIME_ARN is required"   && exit 1)
