@@ -156,4 +156,4 @@ class EchoAgent:
         async def get_status():
             return active_status_document()
 
-        return DnsidSignatureMiddleware(app, idm, self._http_sig)
+        return DnsidSignatureMiddleware(app, idm, self._http_sig, self.url)

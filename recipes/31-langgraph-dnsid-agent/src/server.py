@@ -164,5 +164,6 @@ class A2AAgentServer:
             idm.local_domain,
             self._http_sig,
             A2A_VERIFY_OPTS,
+            public_url=self.url,
             require_a2a_headers=True,
         )
