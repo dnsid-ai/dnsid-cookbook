@@ -16,7 +16,7 @@
 
 ## What you'll build
 
-A GitHub code review bot deployed to Amazon Bedrock AgentCore Runtime with an AgentCore MCP Gateway. You invoke it with a prompt like `"Review PR #42 in owner/repo"`. The bot fetches the PR diff, runs a Claude-powered review via the Strands agent framework, posts a structured comment to GitHub, and records the audit via the ReviewGateway's `record_audit` MCP tool — with every comment attributing authorship to the bot's DNSid domain.
+A GitHub code review bot deployed to Amazon Bedrock AgentCore Runtime with an AgentCore MCP Gateway. You invoke it with the exact prompt form `"Review PR #42 in owner/repo"`; the bot binds all fetch, comment and audit tools to that PR so instructions hidden in PR content cannot redirect them. The bot fetches the PR diff, runs a Claude-powered review via the Strands agent framework, posts a structured comment to GitHub, and records the audit via the ReviewGateway's `record_audit` MCP tool — with every comment attributing authorship to the bot's DNSid domain.
 
 Two identities are active throughout:
 
