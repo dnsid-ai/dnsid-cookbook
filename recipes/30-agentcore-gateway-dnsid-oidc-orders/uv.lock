@@ -20,7 +20,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "boto3", specifier = "==1.43.81" },
-    { name = "dnsid", git = "https://github.com/dnsid-ai/dnsid-py?rev=v0.19.1" },
+    { name = "dnsid", git = "https://github.com/dnsid-ai/dnsid-py?rev=c9ae777cb4b473eace67d2b745b1760032e32738" },
     { name = "pip", marker = "extra == 'dev'", specifier = "==26.2.1" },
     { name = "pytest", marker = "extra == 'dev'", specifier = "==9.1.1" },
 ]
@@ -242,7 +242,7 @@ wheels = [
 [[package]]
 name = "dnsid"
 version = "0.19.1"
-source = { git = "https://github.com/dnsid-ai/dnsid-py?rev=v0.19.1#c9ae777cb4b473eace67d2b745b1760032e32738" }
+source = { git = "https://github.com/dnsid-ai/dnsid-py?rev=c9ae777cb4b473eace67d2b745b1760032e32738#c9ae777cb4b473eace67d2b745b1760032e32738" }
 dependencies = [
     { name = "cryptography" },
     { name = "dnspython" },
