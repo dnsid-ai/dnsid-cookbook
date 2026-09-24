@@ -21,7 +21,7 @@ configuration and CDK code, while `app/` contains the runtime and audit Lambda.
 | Runtime entrypoint | `app/GitHubReviewBot/main.py` | Defines the BedrockAgentCoreApp entrypoint, Strands agent, GitHub tools, and audit routing. |
 | DNSid identity | `app/GitHubReviewBot/dnsid_identity.py` | Loads the server-side operational key and mints OIDC tokens with `dnsid-py`. |
 | GitHub App auth | `main.py`, CDK stack | Uses the App ID from `GITHUB_APP_ID`; local private key from `GITHUB_APP_KEY_PATH`, deployed private key from Secrets Manager. |
-| AgentCore spec | `agentcore/agentcore.json` | Defines the runtime and `ReviewGateway` MCP Gateway with `CUSTOM_JWT` and `allowedScopes: ["dnsid:review"]`. |
+| AgentCore spec | `agentcore/agentcore.json` | Defines the runtime and `ReviewGateway` MCP Gateway with `CUSTOM_JWT` with fail-closed audience and subject placeholders (bound at CDK synthesis). |
 | CDK stack | `agentcore/cdk/lib/cdk-stack.ts` | Creates AgentCore application and Gateway resources, grants Secrets Manager read access, and injects runtime env vars. |
 | Audit Lambda | `app/audit_lambda/handler.py` | Backs the Gateway `record_audit` tool and logs PR URL plus summary length. |
 
@@ -60,18 +60,20 @@ grants the runtime role `secretsmanager:GetSecretValue`, and injects:
 - `GITHUB_APP_ID=<your-app-id>`
 - `GITHUB_APP_KEY_SECRET_ARN=<secret arn>`
 - `BOT_DOMAIN=<your-bot-domain>.dev.dnsid.ai`
+- `REVIEW_GATEWAY_AUDIENCE=<unique gateway audience>`
 
 Audit routing is selected at runtime. If `AGENTCORE_GATEWAY_REVIEWGATEWAY_URL`
 is present, or `REVIEW_GATEWAY_MCP_URL` is set, `audit_review` mints a DNSid
-token for that Gateway URL and calls the Gateway's `record_audit` MCP tool. If
+token for `REVIEW_GATEWAY_AUDIENCE` and calls the Gateway's `record_audit` MCP tool. If
 no Gateway URL is configured and `AUDIT_ENDPOINT` is set, it posts directly to
 `$AUDIT_ENDPOINT/audit` with a DNSid token for that endpoint. If neither is
 configured, audit recording is skipped.
 
 The managed `ReviewGateway` is configured with DNSid OIDC discovery at
 `https://api.dnsid.ai/.well-known/openid-configuration` and
-`allowedScopes: ["dnsid:review"]`. The audit Lambda assumes the Gateway has
-already enforced JWT auth.
+`allowedScopes: ["dnsid:review"]`, the configured audience, and an exact
+`sub == BOT_DOMAIN` claim. The audit Lambda assumes the Gateway has already
+enforced these JWT checks; it does not receive a verified subject claim.
 
 ## Runtime Flow
 

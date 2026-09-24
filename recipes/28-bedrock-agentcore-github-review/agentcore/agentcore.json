@@ -31,7 +31,16 @@
       "authorizerConfiguration": {
         "customJwtAuthorizer": {
           "discoveryUrl": "https://api.dnsid.ai/.well-known/openid-configuration",
-          "allowedScopes": ["dnsid:review"]
+          "allowedScopes": ["dnsid:review"],
+          "allowedAudience": ["UNCONFIGURED_REVIEW_GATEWAY_AUDIENCE"],
+          "customClaims": [{
+            "inboundTokenClaimName": "sub",
+            "inboundTokenClaimValueType": "STRING",
+            "authorizingClaimMatchValue": {
+              "claimMatchOperator": "EQUALS",
+              "claimMatchValue": {"matchValueString": "UNCONFIGURED_BOT_DOMAIN"}
+            }
+          }]
         }
       },
       "targets": [
