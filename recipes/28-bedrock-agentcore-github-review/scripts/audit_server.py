@@ -1,19 +1,19 @@
 #!/usr/bin/env python3
 """Minimal audit server for local recipe testing.
 
-Accepts POST /audit with a DNSid Bearer token. Validates the token against
-the issuer's JWKS, then logs and stores the audit record in memory.
+Accepts POST /audit with a DNSid OIDC Bearer token. Validates it against
+a configured issuer's JWKS, then stores the audit record in memory.
 
 Usage:
     python scripts/audit_server.py
 
 Environment:
     AUDIT_PORT          Port to listen on (default: 9090)
-    ALLOWED_ISSUERS     Comma-separated list of allowed DNSid domains.
-                        If unset, any valid token is accepted (dev mode).
+    AUDIT_ISSUER      Trusted HTTPS OIDC issuer URL (e.g. https://oidc.dnsid.ai).
+    AUDIT_SUBJECT     Allowed bot domain (the issued token's sub claim).
+    AUDIT_AUDIENCE    Exact AUDIT_ENDPOINT used to mint the token.
 
-In the recipe, the bot's BOT_DOMAIN should appear in ALLOWED_ISSUERS so
-only the known review bot can submit audit records.
+All three are required. This demo binds to loopback only.
 """
 
 import json
@@ -21,66 +21,69 @@ import os
 import time
 import uuid
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlsplit
 
 import httpx
 import jwt  # PyJWT
 
 PORT = int(os.environ.get("AUDIT_PORT", "9090"))
-ALLOWED_ISSUERS = [
-    d.strip()
-    for d in os.environ.get("ALLOWED_ISSUERS", "").split(",")
-    if d.strip()
-]
+ISSUER = os.environ.get("AUDIT_ISSUER", "").strip()
+SUBJECT = os.environ.get("AUDIT_SUBJECT", "").strip()
+AUDIENCE = os.environ.get("AUDIT_AUDIENCE", "").strip()
 
 # In-memory audit log — good enough for a recipe demo
 audit_log: list[dict] = []
 
 
+def _issuer_origin() -> str:
+    url = urlsplit(ISSUER)
+    if (url.scheme != "https" or not url.hostname or url.username is not None
+            or url.path or url.query or url.fragment):
+        raise ValueError("AUDIT_ISSUER must be an HTTPS origin without credentials or a path")
+    if not SUBJECT or not AUDIENCE:
+        raise ValueError("AUDIT_SUBJECT and AUDIT_AUDIENCE are required")
+    return f"https://{url.netloc}"
+
+
 def _validate_token(token: str) -> dict:
-    """Validate a DNSid OIDC token and return its claims.
-
-    Fetches the JWKS from the issuer's /.well-known/openid-configuration,
-    verifies the signature, and checks the issuer against the allowlist.
-
-    Raises ValueError with a reason string on any failure.
-    """
+    """Verify a token using only the configured issuer and its same-origin JWKS."""
+    origin = _issuer_origin()
     try:
         unverified = jwt.decode(token, options={"verify_signature": False})
-    except jwt.DecodeError as e:
-        raise ValueError(f"malformed token: {e}") from e
+        if unverified.get("iss") != ISSUER:
+            raise ValueError("issuer not allowed")
 
-    issuer = unverified.get("iss", "")
-    if not issuer:
-        raise ValueError("token missing iss claim")
+        with httpx.Client(timeout=5, follow_redirects=False, trust_env=False) as client:
+            response = client.get(f"{origin}/.well-known/openid-configuration")
+            response.raise_for_status()
+            discovery = response.json()
+            if discovery.get("issuer") != ISSUER:
+                raise ValueError("discovery issuer mismatch")
+            jwks_uri = discovery["jwks_uri"]
+            jwks_url = urlsplit(jwks_uri)
+            if (jwks_url.scheme != "https" or jwks_url.netloc != urlsplit(origin).netloc
+                    or not jwks_url.path.startswith("/") or jwks_url.fragment):
+                raise ValueError("JWKS URL must use the trusted issuer origin")
+            response = client.get(jwks_uri)
+            response.raise_for_status()
+            jwks = response.json()
 
-    if ALLOWED_ISSUERS and issuer not in ALLOWED_ISSUERS:
-        raise ValueError(f"issuer not allowed: {issuer}")
-
-    # Fetch OIDC discovery → JWKS URI
-    discovery_url = f"https://{issuer}/.well-known/openid-configuration"
-    try:
-        discovery = httpx.get(discovery_url, timeout=5).json()
-        jwks_uri = discovery["jwks_uri"]
-        jwks = httpx.get(jwks_uri, timeout=5).json()
-    except Exception as e:
-        raise ValueError(f"could not fetch JWKS for {issuer}: {e}") from e
-
-    # Verify signature
-    try:
-        jwks_client = jwt.PyJWKClient(jwks_uri)
-        signing_key = jwks_client.get_signing_key_from_jwt(token)
+        header = jwt.get_unverified_header(token)
+        if header.get("alg") not in ("EdDSA", "ES256", "RS256") or not header.get("kid"):
+            raise ValueError("unsupported JWT key or algorithm")
+        keys = [key for key in jwt.PyJWKSet.from_dict(jwks).keys if key.key_id == header["kid"]]
+        if len(keys) != 1:
+            raise ValueError("JWT key not found or ambiguous")
         claims = jwt.decode(
-            token,
-            signing_key.key,
-            algorithms=["EdDSA", "ES256", "RS256"],
-            audience=None,
-            options={"verify_aud": False},
+            token, keys[0].key, algorithms=[header["alg"]],
+            issuer=ISSUER, audience=AUDIENCE,
+            options={"require": ["iss", "sub", "aud", "exp", "iat"]},
         )
-    except jwt.PyJWTError as e:
-        raise ValueError(f"signature verification failed: {e}") from e
-
-    return claims
+        if claims["sub"] != SUBJECT:
+            raise ValueError("subject not allowed")
+        return claims
+    except (httpx.HTTPError, jwt.PyJWTError, KeyError, TypeError) as e:
+        raise ValueError(f"invalid token or issuer response: {e}") from e
 
 
 class AuditHandler(BaseHTTPRequestHandler):
@@ -122,7 +125,7 @@ class AuditHandler(BaseHTTPRequestHandler):
         record = {
             "id": str(uuid.uuid4()),
             "ts": time.time(),
-            "agent": claims.get("iss"),
+            "agent": claims["sub"],
             "pr_url": body.get("pr_url"),
             "summary": body.get("summary"),
         }
@@ -138,9 +141,9 @@ class AuditHandler(BaseHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    server = HTTPServer(("", PORT), AuditHandler)
-    issuers = ", ".join(ALLOWED_ISSUERS) if ALLOWED_ISSUERS else "any (dev mode)"
-    print(f"[audit] listening on :{PORT}  allowed issuers: {issuers}")
+    _issuer_origin()  # Fail closed before accepting requests.
+    server = HTTPServer(("127.0.0.1", PORT), AuditHandler)
+    print(f"[audit] listening on 127.0.0.1:{PORT}  issuer: {ISSUER}  bot: {SUBJECT}")
     try:
         server.serve_forever()
     except KeyboardInterrupt:

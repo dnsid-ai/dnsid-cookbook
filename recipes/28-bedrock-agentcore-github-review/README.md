@@ -50,7 +50,7 @@ After this recipe: every review comment carries a cryptographically verifiable a
 ## Concepts
 
 - **DNSid binding** — a TXT record at `_dnsid.<domain>` pointing to a JWKS. A verifier resolves the TXT record and fetches the public key from the URL it contains. Any service can verify any other service's identity on first contact, without a pre-shared secret.
-- **OIDC token** — a short-lived signed JWT issued against the agent's DNSid OIDC endpoint. The `iss` claim is the agent's domain; the signature verifies against the JWKS at `/.well-known/jwks.json`. Standard OIDC libraries validate it.
+- **OIDC token** — a short-lived signed JWT issued by DNSid's OIDC service. The `iss` claim identifies the OIDC issuer (normally `https://oidc.dnsid.ai`), while `sub` identifies the agent's domain. Verify the issuer, subject, audience and signature using the issuer's JWKS.
 - **AgentCore Runtime** — AWS managed execution environment for agents. Takes a zip of your Python code, handles scaling and session lifecycle, exposes an HTTPS invocation endpoint.
 - **AgentCore Gateway (MCP)** — a managed MCP endpoint in front of tool backends (Lambda, MCP servers, API Gateway, etc.). Supports `NONE`, `AWS_IAM`, and `CUSTOM_JWT` inbound auth. The gateway auto-injects `AGENTCORE_GATEWAY_<NAME>_URL` and `AGENTCORE_GATEWAY_<NAME>_AUTH_TYPE` env vars into the runtime.
 - **CUSTOM_JWT authorizer** — validates inbound JWT tokens against a configured OIDC discovery endpoint. Requires `allowedScopes`, `allowedAudience`, `allowedClients`, or `customClaims` in the config. The MCP protocol layer additionally requires the token to carry a `scope` claim — JWT validation passing is not sufficient on its own.
@@ -174,9 +174,12 @@ The local server does not enforce inbound auth. The bot fetches the PR, runs the
 Optionally, start the audit server to test the direct-HTTP audit path:
 
 ```bash
-ALLOWED_ISSUERS=<your-bot-domain>.dev.dnsid.ai \
-  python scripts/audit_server.py
-# → [audit] listening on :9090
+AUDIT_ISSUER=https://oidc.dnsid.ai \
+AUDIT_SUBJECT="${BOT_DOMAIN:?set BOT_DOMAIN}" \
+AUDIT_AUDIENCE=http://localhost:9090 \
+  uv run --no-project --with 'pyjwt[crypto]' --with httpx python scripts/audit_server.py
+# → [audit] listening on 127.0.0.1:9090
+# AUDIT_AUDIENCE must match AUDIT_ENDPOINT exactly.
 ```
 
 ## Step 5 — Deploy
