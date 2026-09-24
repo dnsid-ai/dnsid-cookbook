@@ -13,7 +13,7 @@ from dnsid import (
     OIDCConfig,
     OIDCProfile,
     OIDCTokenExchangeOptions,
-    identity_manager_from_cli_directory,
+    identity_manager_from_dnsid,
 )
 
 from image_poc.config import DnsidSettings
@@ -135,7 +135,7 @@ def validate_gateway_url(gateway_url: str, audience: str) -> None:
 
 def mint_dnsid_token(dnsid: DnsidSettings, audience: str) -> str:
     try:
-        manager = identity_manager_from_cli_directory()
+        manager = identity_manager_from_dnsid()
         if manager.local_domain.rstrip(".").casefold() != dnsid.agent_domain.rstrip(
             "."
         ).casefold():

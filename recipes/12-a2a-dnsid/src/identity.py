@@ -26,7 +26,8 @@ from dnsid import (
     IdentityManagerDependencies,
     LocalKeyProvider,
     RegistryClient,
-    config_from_environment,
+    identity_manager_from_environment,
+    load_environment,
 )
 from dnsid.c2sp_tlog import (
     C2spTlogVerificationOptions,
@@ -131,10 +132,20 @@ def load_identity() -> AgentIdentity:
     """
     env = dict(os.environ)
 
-    result = config_from_environment(env, require=["registry_url", "agent_port"])
-    protocol_config = result.config.identity
-    transport_config = result.config.transport
-    registry_config = result.registry_config
+    loaded = load_environment(env)
+    protocol_config = loaded.dnsid.identity
+    if protocol_config is None:
+        raise SystemExit("DNSID_DOMAIN is required; run via `dnsid local run`")
+    transport_config = loaded.dnsid.transport
+    registry_url = loaded.registry.registry_url
+    if not registry_url:
+        raise SystemExit("DNSID_REGISTRY_URL is required; run via `dnsid local run`")
+    try:
+        agent_port = int(env["DNSID_AGENT_PORT"])
+        if agent_port <= 0:
+            raise ValueError
+    except (KeyError, ValueError):
+        raise SystemExit("DNSID_AGENT_PORT must be a positive integer") from None
     policy_url = required_log_policy_url(env)
 
     # The CLI local registry resolves every name under the governance domain (this
@@ -155,7 +166,7 @@ def load_identity() -> AgentIdentity:
         )
 
     # Set capabilities_url to point at the agent card endpoint.
-    public_url = result.public_url or f"https://{protocol_config.domain}"
+    public_url = env.get("DNSID_PUBLIC_URL", "").strip() or f"https://{protocol_config.domain}"
     if not protocol_config.capabilities_url:
         protocol_config.capabilities_url = f"{public_url.rstrip('/')}/.well-known/agent-card.json"
 
@@ -171,20 +182,19 @@ def load_identity() -> AgentIdentity:
     key_provider = LocalKeyProvider.from_cli_directory(config_dir)
 
     log_registry = make_log_registry(protocol_config.log_ref, policy_url, transport_config)
-    idm = IdentityManager(
-        result.config,
-        key_provider,
+    idm = identity_manager_from_environment(
+        env, overlay=loaded.dnsid, key_provider=key_provider,
         deps=IdentityManagerDependencies(log_registry=log_registry),
     )
 
-    registry = RegistryClient(registry_config.registry_url, api_key=registry_api_key)
+    registry = RegistryClient(registry_url, api_key=registry_api_key)
     return AgentIdentity(
         idm,
         key_provider,
         registry,
-        result.agent_port,
-        result.public_url,
-        result.agent_name,
+        agent_port,
+        env.get("DNSID_PUBLIC_URL", "").strip() or None,
+        env.get("DNSID_AGENT_NAME", "").strip() or None,
     )
 
 

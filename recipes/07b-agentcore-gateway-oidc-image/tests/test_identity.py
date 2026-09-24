@@ -15,7 +15,7 @@ def test_mint_dnsid_token_uses_loaded_identity(monkeypatch):
     profile = SimpleNamespace(
         mint_oidc_token=lambda options: SimpleNamespace(access_token="header.payload.sig")
     )
-    monkeypatch.setattr(identity, "identity_manager_from_cli_directory", lambda: manager)
+    monkeypatch.setattr(identity, "identity_manager_from_dnsid", lambda: manager)
     monkeypatch.setattr(
         identity.OIDCProfile,
         "from_identity_manager",
@@ -27,7 +27,7 @@ def test_mint_dnsid_token_uses_loaded_identity(monkeypatch):
 
 def test_mint_dnsid_token_rejects_wrong_identity(monkeypatch):
     manager = SimpleNamespace(local_domain="other.example.test")
-    monkeypatch.setattr(identity, "identity_manager_from_cli_directory", lambda: manager)
+    monkeypatch.setattr(identity, "identity_manager_from_dnsid", lambda: manager)
 
     with pytest.raises(ValueError, match="does not match"):
         identity.mint_dnsid_token(settings(), "audience")

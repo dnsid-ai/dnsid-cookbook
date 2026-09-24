@@ -4,14 +4,14 @@ from dnsid import (
     OIDCConfig,
     OIDCProfile,
     OIDCTokenExchangeOptions,
-    identity_manager_from_cli_directory,
+    identity_manager_from_dnsid,
 )
 
 from oidc_image.config import DnsidSettings
 
 
 def mint_dnsid_token(dnsid: DnsidSettings, audience: str) -> str:
-    manager = identity_manager_from_cli_directory()
+    manager = identity_manager_from_dnsid()
     if manager.local_domain.rstrip(".").casefold() != dnsid.agent_domain.rstrip(
         "."
     ).casefold():

@@ -15,7 +15,7 @@ from typing import Any
 import boto3
 from botocore.config import Config
 from botocore.exceptions import ClientError
-from dnsid import identity_manager_from_cli_directory
+from dnsid import identity_manager_from_dnsid
 
 from orders_common.config import Settings, load_settings
 from scripts.common import write_json
@@ -432,7 +432,7 @@ def ensure_target(settings: Settings, gateway_id: str, api_id: str) -> dict[str,
 
 def main() -> None:
     settings = load_settings()
-    identity = identity_manager_from_cli_directory(settings.dnsid_config_dir or None)
+    identity = identity_manager_from_dnsid(settings.dnsid_config_dir or None)
     config = identity.config.identity
     account = str(aws(settings, "sts", region=settings.aws_region).get_caller_identity()["Account"])
     package = package_lambda(settings)
