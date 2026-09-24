@@ -230,10 +230,13 @@ def _audit_via_gateway(gateway_url: str, pr_url: str, summary: str) -> str:
     """Call the ReviewGateway's record_audit MCP tool.
 
     The gateway is configured with CUSTOM_JWT auth (DNSid OIDC, scope:
-    dnsid:review). The bot presents its own DNSid token as Bearer auth;
+    dnsid:review, audience and subject). The bot presents its own DNSid token as Bearer auth;
     the gateway validates it before routing to the Lambda backend.
     """
-    token = _get_dnsid_token(audience=gateway_url)
+    audience = os.environ.get("REVIEW_GATEWAY_AUDIENCE", "").strip()
+    if not audience:
+        raise RuntimeError("REVIEW_GATEWAY_AUDIENCE must be set for gateway audit")
+    token = _get_dnsid_token(audience=audience)
     headers = {"Authorization": f"Bearer {token}"} if token else {}
     try:
         client = MCPClient(lambda: streamablehttp_client(gateway_url, headers=headers))

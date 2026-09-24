@@ -35,11 +35,11 @@ After this recipe: every review comment carries a cryptographically verifiable a
 
 **Private key in Secrets Manager.** The App's private key is stored in the Secrets Manager secret named by `GITHUB_APP_KEY_SECRET_NAME`. The CDK stack grants the runtime's IAM execution role `secretsmanager:GetSecretValue` and injects `GITHUB_APP_KEY_SECRET_ARN` as an env var. Locally, set `GITHUB_APP_KEY_PATH` to the downloaded `.pem` file.
 
-**AgentCore Gateway for audit routing.** The `ReviewGateway` (MCP gateway, `authorizerType: CUSTOM_JWT`) exposes a `record_audit` tool backed by a Lambda function. The bot presents its own DNSid OIDC token (scope: `dnsid:review`) as Bearer auth; the gateway validates it against DNSid's OIDC discovery endpoint before routing to the Lambda. The runtime calls the gateway via Strands `MCPClient` using the auto-injected `AGENTCORE_GATEWAY_REVIEWGATEWAY_URL` env var.
+**AgentCore Gateway for audit routing.** The `ReviewGateway` (MCP gateway, `authorizerType: CUSTOM_JWT`) exposes a `record_audit` tool backed by a Lambda function. The bot presents its own DNSid OIDC token as Bearer auth; the gateway validates its issuer, `dnsid:review` scope, configured audience, and bot subject before routing to the Lambda. The runtime calls the gateway via Strands `MCPClient` using the auto-injected `AGENTCORE_GATEWAY_REVIEWGATEWAY_URL` env var.
 
 **DNSid identity at attribution.** The bot's DNSid domain is appended to every GitHub review comment as a verifiable footer. Anyone can run `dnsid record verify --domain <your-bot-domain>.dev.dnsid.ai` to confirm the signature.
 
-**DNSid + AgentCore CUSTOM_JWT — what it takes to make it work end-to-end.** The MCP 2025-03-26 protocol layer requires a `scope` claim in the Bearer token in addition to the JWT being valid. DNSid tokens now carry `scope: dnsid:review`; the gateway is configured with `allowedScopes: ["dnsid:review"]`. Without the scope claim, requests that pass JWT auth still get `403 insufficient_scope` from the MCP layer.
+**DNSid + AgentCore CUSTOM_JWT — what it takes to make it work end-to-end.** The MCP 2025-03-26 protocol layer requires a `scope` claim in the Bearer token in addition to the JWT being valid. DNSid tokens now carry `scope: dnsid:review`; the gateway additionally checks the configured audience and `BOT_DOMAIN` subject. Without the scope claim, requests that pass JWT auth still get `403 insufficient_scope` from the MCP layer.
 
 | Request | Response | Meaning |
 |---|---|---|
@@ -135,6 +135,7 @@ Key values:
 | `GITHUB_APP_KEY_PATH` | Path to the downloaded `.pem` private key file |
 | `GITHUB_APP_KEY_SECRET_NAME` | Secrets Manager secret name for deployed runtime private-key access |
 | `BOT_DOMAIN` | Your lab agent domain, e.g. `<your-bot-domain>.dev.dnsid.ai` |
+| `REVIEW_GATEWAY_AUDIENCE` | Unique audience for this gateway deployment (use its MCP URL for an existing gateway); CDK injects the same value into the runtime |
 | `DNSID_CONFIG_DIR` | Server-side directory containing the bot's `config.json` and `private.jwk` |
 | `DNSID_SERVER` | DNSid OIDC server, normally `https://api.dnsid.ai` |
 | `AUDIT_ENDPOINT` | `http://localhost:9090` for local testing (optional) |
@@ -188,6 +189,7 @@ AUDIT_AUDIENCE=http://localhost:9090 \
 export GITHUB_APP_ID=<GITHUB_APP_ID>
 export GITHUB_APP_KEY_SECRET_NAME=github-review-bot/private-key
 export BOT_DOMAIN=<your-bot-domain>.dev.dnsid.ai
+export REVIEW_GATEWAY_AUDIENCE=https://review-gateway.example.com/mcp # choose a unique value for this deployment
 make deploy
 # or directly:
 agentcore deploy --target default -y
@@ -195,9 +197,9 @@ agentcore deploy --target default -y
 
 The CDK stack:
 - Creates the AgentCore Runtime with `PYTHON_3_14` runtime
-- Creates the `ReviewGateway` (MCP gateway, `authorizerType: CUSTOM_JWT`, `allowedScopes: ["dnsid:review"]`) with `AuditBackend` Lambda backend
+- Creates the `ReviewGateway` (MCP gateway, `CUSTOM_JWT`) with scope, audience, and bot-subject checks, backed by the `AuditBackend` Lambda
 - Grants the runtime's IAM role `secretsmanager:GetSecretValue` on the configured GitHub App key secret
-- Injects `GITHUB_APP_ID`, `GITHUB_APP_KEY_SECRET_ARN`, and `BOT_DOMAIN` as env vars
+- Injects `GITHUB_APP_ID`, `GITHUB_APP_KEY_SECRET_ARN`, `BOT_DOMAIN`, and `REVIEW_GATEWAY_AUDIENCE` as env vars
 - Requires the runtime environment to provide the bot's `DNSID_CONFIG_DIR`; this deploy-only recipe does not provision private DNSid key material
 - Auto-injects `AGENTCORE_GATEWAY_REVIEWGATEWAY_URL` and `AGENTCORE_GATEWAY_REVIEWGATEWAY_AUTH_TYPE`
 
@@ -233,10 +235,11 @@ dnsid record verify --domain <your-bot-domain>.dev.dnsid.ai
 
 ### Validate the gateway identity flows
 
-The deployed `ReviewGateway` uses `authorizerType: CUSTOM_JWT` with DNSid's OIDC discovery endpoint and `allowedScopes: ["dnsid:review"]`.
+The deployed `ReviewGateway` requires `dnsid:review` scope, the configured `REVIEW_GATEWAY_AUDIENCE`, and `sub == BOT_DOMAIN`. CDK binds the two placeholders in `agentcore.json` at synthesis; deploying that JSON without the CDK stack fails closed.
 
 ```bash
 GATEWAY=https://<GATEWAY_ID>.gateway.bedrock-agentcore.us-east-1.amazonaws.com/mcp
+AUDIENCE="${REVIEW_GATEWAY_AUDIENCE:?set the deployed gateway audience}"
 
 # 1. No token → 401
 curl -s -o /dev/null -w "%{http_code}" -X POST "$GATEWAY" \
@@ -244,8 +247,8 @@ curl -s -o /dev/null -w "%{http_code}" -X POST "$GATEWAY" \
   -d '{"jsonrpc":"2.0","method":"initialize","id":1}'
 # → 401
 
-# 2. Valid DNSid token with scope → 200
-TOKEN=$(dnsid token --domain <your-bot-domain>.dev.dnsid.ai --audience "$GATEWAY")
+# 2. Bot token with the configured audience and scope → 200
+TOKEN=$(dnsid token --domain <your-bot-domain>.dev.dnsid.ai --audience "$AUDIENCE")
 curl -s -o /dev/null -w "%{http_code}" -X POST "$GATEWAY" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
@@ -285,7 +288,7 @@ def audit_review(pr_url: str, summary: str) -> str:
     # fallback: direct HTTP POST to AUDIT_ENDPOINT
 
 def _audit_via_gateway(gateway_url: str, pr_url: str, summary: str) -> str:
-    token = _get_dnsid_token(audience=gateway_url)
+    token = _get_dnsid_token(audience=os.environ["REVIEW_GATEWAY_AUDIENCE"])
     headers = {"Authorization": f"Bearer {token}"}
     client = MCPClient(lambda: streamablehttp_client(gateway_url, headers=headers))
     with client:
@@ -297,7 +300,7 @@ def _audit_via_gateway(gateway_url: str, pr_url: str, summary: str) -> str:
     return f"Audit recorded via gateway: {result}"
 ```
 
-The bot uses `dnsid-py`'s `OIDCProfile` to mint a DNSid token (scope `dnsid:review`) from its server-side operational key and passes it as Bearer auth. The gateway validates it (CUSTOM_JWT, `allowedScopes: ["dnsid:review"]`) before routing to the Lambda. `AGENTCORE_GATEWAY_REVIEWGATEWAY_URL` is auto-injected by the CDK construct.
+The bot uses `dnsid-py`'s `OIDCProfile` to mint a DNSid token (scope `dnsid:review`) from its server-side operational key and passes it as Bearer auth. The gateway validates its scope, audience, and bot subject before routing to the Lambda. `AGENTCORE_GATEWAY_REVIEWGATEWAY_URL` is auto-injected by the CDK construct.
 
 ### ReviewGateway configuration (`agentcore.json`)
 
@@ -308,7 +311,11 @@ The bot uses `dnsid-py`'s `OIDCProfile` to mint a DNSid token (scope `dnsid:revi
   "authorizerConfiguration": {
     "customJwtAuthorizer": {
       "discoveryUrl": "https://api.dnsid.ai/.well-known/openid-configuration",
-      "allowedScopes": ["dnsid:review"]
+      "allowedScopes": ["dnsid:review"],
+      "allowedAudience": ["UNCONFIGURED_REVIEW_GATEWAY_AUDIENCE"],
+      "customClaims": [{"inboundTokenClaimName": "sub", "inboundTokenClaimValueType": "STRING",
+        "authorizingClaimMatchValue": {"claimMatchOperator": "EQUALS",
+          "claimMatchValue": {"matchValueString": "UNCONFIGURED_BOT_DOMAIN"}}}]
     }
   },
   "targets": [{
@@ -366,7 +373,7 @@ No redeployment, no config changes, no new tokens. `get_repo_installation()` fin
 
 - **AgentCore Runtime** — the managed execution environment that runs your agent code.
 - **AgentCore Gateway (MCP)** — managed MCP proxy in front of tool backends. Exposes tools to agents via MCP protocol. Supports `NONE`, `AWS_IAM`, and `CUSTOM_JWT` inbound auth.
-- **CUSTOM_JWT authorizer** — validates inbound JWT tokens against a configured OIDC discovery URL. The MCP protocol layer also requires a `scope` claim in the token; configure `allowedScopes` in the gateway and ensure the token carries a matching scope.
+- **CUSTOM_JWT authorizer** — validates inbound JWT tokens against a configured OIDC discovery URL. The MCP protocol layer also requires a `scope` claim in the token; configure scope, audience and subject checks in the gateway and mint a matching token.
 - **GitHub App** — GitHub integration that authenticates as itself using private key + installation tokens. Multi-org, no PAT rotation.
 - **JWT Bearer grant (RFC 7523)** — the grant type DNSid uses for OIDC token issuance. The agent signs an assertion with its Ed25519 private key; DNSid verifies the assertion and returns an RS256 token.
 - **OIDC** — OpenID Connect. DNSid implements a standard OIDC issuer; standard OIDC libraries (including AgentCore's CUSTOM_JWT authorizer) validate its tokens.

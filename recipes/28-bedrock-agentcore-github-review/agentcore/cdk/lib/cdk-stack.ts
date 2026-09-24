@@ -56,22 +56,32 @@ export class AgentCoreStack extends Stack {
       const githubAppId = requiredEnv('GITHUB_APP_ID');
       const githubAppKeySecretName = requiredEnv('GITHUB_APP_KEY_SECRET_NAME');
       const botDomain = requiredEnv('BOT_DOMAIN');
-      const githubAppKeySecret = sm.Secret.fromSecretNameV2(
-        this,
-        'GithubAppKeySecret',
-        githubAppKeySecretName,
-      );
+      const gatewayAudience = requiredEnv('REVIEW_GATEWAY_AUDIENCE');
+      const githubAppKeySecret = sm.Secret.fromSecretNameV2(this, 'GithubAppKeySecret', githubAppKeySecretName);
       githubAppKeySecret.grantRead(env.runtime.role);
       env.runtime.addEnvironmentVariable('GITHUB_APP_ID', githubAppId);
-      env.runtime.addEnvironmentVariable(
-        'GITHUB_APP_KEY_SECRET_ARN',
-        githubAppKeySecret.secretArn,
-      );
+      env.runtime.addEnvironmentVariable('GITHUB_APP_KEY_SECRET_ARN', githubAppKeySecret.secretArn);
       env.runtime.addEnvironmentVariable('BOT_DOMAIN', botDomain);
+      env.runtime.addEnvironmentVariable('REVIEW_GATEWAY_AUDIENCE', gatewayAudience);
     }
 
-    // Create AgentCoreMcp if there are gateways configured
+    // The gateway spec has fail-closed placeholders; bind its JWT checks to
+    // the same values used by the runtime before creating the gateway.
     if (mcpSpec?.agentCoreGateways && mcpSpec.agentCoreGateways.length > 0) {
+      const authorizer = mcpSpec.agentCoreGateways.find(g => g.name === 'ReviewGateway')?.authorizerConfiguration
+        ?.customJwtAuthorizer;
+      if (!authorizer) throw new Error('ReviewGateway CUSTOM_JWT authorizer is required');
+      authorizer.allowedAudience = [requiredEnv('REVIEW_GATEWAY_AUDIENCE')];
+      authorizer.customClaims = [
+        {
+          inboundTokenClaimName: 'sub',
+          inboundTokenClaimValueType: 'STRING',
+          authorizingClaimMatchValue: {
+            claimMatchOperator: 'EQUALS',
+            claimMatchValue: { matchValueString: requiredEnv('BOT_DOMAIN') },
+          },
+        },
+      ];
       new AgentCoreMcp(this, 'Mcp', {
         projectName: spec.name,
         mcpSpec,
