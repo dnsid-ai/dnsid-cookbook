@@ -32,7 +32,7 @@ type profile struct {
 
 func loadConfig(profileName string, outputJSON bool) (Config, error) {
 	cfg := Config{
-		DNSIDServer: "https://api.dnsid.dev",
+		DNSIDServer: "https://api.dev.dnsid.ai",
 		DNSIDCLI:    defaultDNSIDCLI(),
 		OutputJSON:  outputJSON || os.Getenv("DNSID_BOARD_OUTPUT") == "json",
 	}

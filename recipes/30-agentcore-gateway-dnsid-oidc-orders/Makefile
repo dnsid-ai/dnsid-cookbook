@@ -3,7 +3,7 @@
 UV ?= uv
 export AWS_REGION ?= us-east-1
 export AGENTCORE_REGION ?= us-east-1
-export DNSID_SERVER ?= https://api.dnsid.dev
+export DNSID_SERVER ?= https://api.dev.dnsid.ai
 
 bootstrap:
 	$(UV) sync --extra dev

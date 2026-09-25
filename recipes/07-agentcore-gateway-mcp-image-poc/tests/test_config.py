@@ -16,7 +16,7 @@ def test_dnsid_settings_allows_missing_agent_domain_when_not_required():
     )
 
     assert settings.cli == "dnsid"
-    assert settings.server == "https://api.dnsid.dev"
+    assert settings.server == "https://api.dev.dnsid.ai"
     assert settings.agent_domain == ""
 
 

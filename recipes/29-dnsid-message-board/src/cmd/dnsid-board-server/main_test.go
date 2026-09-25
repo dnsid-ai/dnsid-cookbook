@@ -62,7 +62,7 @@ func TestLoadServerConfigRejectsInvalidBackend(t *testing.T) {
 func TestLoadServerConfigAWSRequiresDynamoDBAndAVP(t *testing.T) {
 	clearServerConfigEnv(t)
 	t.Setenv("BOARD_BACKEND", "aws")
-	t.Setenv("DNSID_ISSUER", "https://api.dnsid.dev")
+	t.Setenv("DNSID_ISSUER", "https://api.dev.dnsid.ai")
 	t.Setenv("DNSID_ENVIRONMENT", "lab")
 	t.Setenv("BOARD_API_AUDIENCES", "urn:test")
 	t.Setenv("DDB_TABLE_NAME", "table")
@@ -92,7 +92,7 @@ func TestLoadServerConfigAWSRequiresIssuerEnvironmentAudienceAndDynamoDB(t *test
 func TestLoadServerConfigAWSRequiresHTTPSIssuer(t *testing.T) {
 	clearServerConfigEnv(t)
 	setValidAWSConfig(t)
-	t.Setenv("DNSID_ISSUER", "http://api.dnsid.dev")
+	t.Setenv("DNSID_ISSUER", "http://api.dev.dnsid.ai")
 	if _, err := loadServerConfig(); err == nil {
 		t.Fatal("expected aws backend to require HTTPS issuer")
 	}
@@ -114,7 +114,7 @@ func TestLoadServerConfigAWSAllowsOnlyLocalDynamoDBEndpoint(t *testing.T) {
 func setValidAWSConfig(t *testing.T) {
 	t.Helper()
 	t.Setenv("BOARD_BACKEND", "aws")
-	t.Setenv("DNSID_ISSUER", "https://api.dnsid.dev")
+	t.Setenv("DNSID_ISSUER", "https://api.dev.dnsid.ai")
 	t.Setenv("DNSID_ENVIRONMENT", "lab")
 	t.Setenv("BOARD_API_AUDIENCES", "urn:test")
 	t.Setenv("DDB_TABLE_NAME", "table")

@@ -70,7 +70,7 @@ class FailingAuditStore(FakeStore):
 def event(path, payload, headers=None):
     default_headers = {
         "x-dnsid-sub": "agent.example.com",
-        "x-dnsid-iss": "https://api.dnsid.dev",
+        "x-dnsid-iss": "https://api.dev.dnsid.ai",
         "x-dnsid-aud": "https://gateway.example/mcp",
         "x-dnsid-jti": "token-id",
         "x-dnsid-domain": "agent.example.com",
@@ -123,7 +123,7 @@ def test_generate_image_logs_sanitized_success(caplog):
     assert record["event"] == "phase3_generate_success"
     assert record["auth_mode"] == "gateway-dnsid-lab"
     assert record["dnsid_sub"] == "agent.example.com"
-    assert record["dnsid_issuer"] == "https://api.dnsid.dev"
+    assert record["dnsid_issuer"] == "https://api.dev.dnsid.ai"
     assert record["token_jti_present"] is True
     assert record["gateway_request_id"] == "gateway-request"
     assert record["correlation_id"] == body["correlation_id"]

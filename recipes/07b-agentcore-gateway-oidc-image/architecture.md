@@ -121,7 +121,7 @@ rejects any target response that includes identity fields such as
 ## Operational Notes and Limits
 
 - AgentCore defaults to `us-east-1`; Bedrock defaults to `us-west-2`.
-- The default DNSid issuer is `https://oidc.dnsid.dev`, and HTTPS is required.
+- The default DNSid issuer is `https://oidc.dev.dnsid.ai`, and HTTPS is required.
 - State is local and gitignored at `.artifacts/gateway/oidc-image-state.json`.
 - The Lambda returns base64 image data directly through MCP, so this recipe does
   not create or clean up S3 image artifacts.

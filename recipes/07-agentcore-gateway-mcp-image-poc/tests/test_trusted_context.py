@@ -10,7 +10,7 @@ from image_poc.trusted_context import (
 def trusted_headers(**overrides):
     headers = {
         "x-dnsid-sub": "agent.example.com",
-        "x-dnsid-iss": "https://api.dnsid.dev",
+        "x-dnsid-iss": "https://api.dev.dnsid.ai",
         "x-dnsid-aud": "https://gateway.example/mcp",
         "x-dnsid-jti": "token-id",
         "x-dnsid-domain": "agent.example.com",
@@ -30,7 +30,7 @@ def test_parse_trusted_context_accepts_case_insensitive_headers():
     )
 
     assert context.sub == "agent.example.com"
-    assert context.issuer == "https://api.dnsid.dev"
+    assert context.issuer == "https://api.dev.dnsid.ai"
     assert context.audience == "https://gateway.example/mcp"
     assert context.jti == "token-id"
     assert context.gateway_request_id == "gateway-request"

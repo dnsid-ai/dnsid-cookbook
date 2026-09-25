@@ -27,7 +27,7 @@ func TestCLIMintsTokenForEachCommand(t *testing.T) {
 		_ = json.NewEncoder(w).Encode(map[string]any{
 			"ok":                true,
 			"agent":             "agent.example.com",
-			"issuer":            "https://api.dnsid.dev",
+			"issuer":            "https://api.dev.dnsid.ai",
 			"audience":          "urn:test",
 			"environment":       "lab",
 			"token_jti_present": true,
@@ -65,7 +65,7 @@ func TestCLIRetriesOnceWithFreshTokenAfterUnauthorized(t *testing.T) {
 		_ = json.NewEncoder(w).Encode(map[string]any{
 			"ok":                true,
 			"agent":             "agent.example.com",
-			"issuer":            "https://api.dnsid.dev",
+			"issuer":            "https://api.dev.dnsid.ai",
 			"audience":          "urn:test",
 			"environment":       "lab",
 			"token_jti_present": true,
@@ -284,7 +284,7 @@ func setCLIEnv(t *testing.T, api string, dnsidPath string) {
 	t.Helper()
 	t.Setenv("DNSID_BOARD_API", api)
 	t.Setenv("DNSID_BOARD_AUDIENCE", "urn:test")
-	t.Setenv("DNSID_SERVER", "https://api.dnsid.dev")
+	t.Setenv("DNSID_SERVER", "https://api.dev.dnsid.ai")
 	t.Setenv("DNSID_AGENT_DOMAIN", "agent.example.com")
 	t.Setenv("DNSID_CLI", dnsidPath)
 }

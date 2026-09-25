@@ -25,7 +25,7 @@ func (f *fakeAVPClient) IsAuthorized(_ context.Context, input *verifiedpermissio
 func TestAVPAuthorizerBuildsStructuredRequestAndMapsDeny(t *testing.T) {
 	client := &fakeAVPClient{decision: avptypes.DecisionAllow}
 	authorizer := NewAVPAuthorizer(client, "store-id")
-	identity := board.Identity{Agent: "owner.example.com", Issuer: "https://api.dnsid.dev", Environment: "lab"}
+	identity := board.Identity{Agent: "owner.example.com", Issuer: "https://api.dev.dnsid.ai", Environment: "lab"}
 	snapshot := board.AuthSnapshot{
 		Room: board.Room{
 			RoomID:    "room",

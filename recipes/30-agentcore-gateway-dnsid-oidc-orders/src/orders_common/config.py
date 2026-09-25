@@ -21,7 +21,7 @@ class Settings:
 
 
 def load_settings() -> Settings:
-    server = os.environ.get("DNSID_SERVER", "https://api.dnsid.dev").rstrip("/")
+    server = os.environ.get("DNSID_SERVER", "https://api.dev.dnsid.ai").rstrip("/")
     policy_url = os.environ.get("DNSID_LOG_POLICY_URL", "").strip()
     parsed = urlparse(server)
     if parsed.scheme != "https" or not parsed.netloc:

@@ -274,7 +274,7 @@ def gateway_parameters(
     include_subject_claim: bool,
 ) -> dict[str, Any]:
     authorizer: dict[str, Any] = {
-        "discoveryUrl": "https://oidc.dnsid.dev/.well-known/openid-configuration",
+        "discoveryUrl": "https://oidc.dev.dnsid.ai/.well-known/openid-configuration",
         "allowedAudience": [audience],
     }
     if include_subject_claim:
