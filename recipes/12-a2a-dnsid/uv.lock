@@ -416,8 +416,8 @@ wheels = [
 
 [[package]]
 name = "dnsid"
-version = "0.19.1"
-source = { git = "https://github.com/dnsid-ai/dnsid-py?rev=c9ae777cb4b473eace67d2b745b1760032e32738#c9ae777cb4b473eace67d2b745b1760032e32738" }
+version = "0.22.0"
+source = { git = "https://github.com/dnsid-ai/dnsid-py?rev=v0.22.0#a07070a53a9191ce158b43dd17be7e0619a945e7" }
 dependencies = [
     { name = "cryptography" },
     { name = "dnspython" },
@@ -758,7 +758,7 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "a2a-sdk", specifier = "==1.1.2" },
-    { name = "dnsid", git = "https://github.com/dnsid-ai/dnsid-py?rev=c9ae777cb4b473eace67d2b745b1760032e32738" },
+    { name = "dnsid", git = "https://github.com/dnsid-ai/dnsid-py?rev=v0.22.0" },
     { name = "dnspython", specifier = "==2.8.0" },
     { name = "fastapi", specifier = "==0.141.1" },
     { name = "sse-starlette", specifier = "==3.4.8" },

@@ -5,7 +5,7 @@ from dnsid import (
     OIDCConfig,
     OIDCProfile,
     OIDCTokenExchangeOptions,
-    identity_manager_from_cli_directory,
+    identity_manager_from_dnsid,
 )
 
 from orders_common.config import Settings
@@ -13,7 +13,7 @@ from orders_common.config import Settings
 
 class CallerIdentity:
     def __init__(self, settings: Settings) -> None:
-        self.manager = identity_manager_from_cli_directory(settings.dnsid_config_dir or None)
+        self.manager = identity_manager_from_dnsid(settings.dnsid_config_dir or None)
         self.domain = self.manager.local_domain
         self.jose = JoseProfile.from_identity_manager(self.manager)
         self.oidc = OIDCProfile.from_identity_manager(

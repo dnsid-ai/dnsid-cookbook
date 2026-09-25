@@ -4,7 +4,7 @@ from dnsid import (
     OIDCConfig,
     OIDCProfile,
     OIDCTokenExchangeOptions,
-    identity_manager_from_cli_directory,
+    identity_manager_from_dnsid,
 )
 
 
@@ -14,7 +14,7 @@ def mint_dnsid_token(
     server_url: str,
     config_dir: str = "",
 ) -> str:
-    manager = identity_manager_from_cli_directory(config_dir or None)
+    manager = identity_manager_from_dnsid(config_dir or None)
     if manager.local_domain.rstrip(".").casefold() != expected_domain.rstrip(
         "."
     ).casefold():

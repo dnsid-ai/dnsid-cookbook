@@ -7,7 +7,7 @@ import dnsid_identity
 
 class MintDnsidTokenTest(TestCase):
     @patch("dnsid_identity.OIDCProfile.from_identity_manager")
-    @patch("dnsid_identity.identity_manager_from_cli_directory")
+    @patch("dnsid_identity.identity_manager_from_dnsid")
     def test_uses_matching_server_side_identity(self, load_manager, make_profile):
         load_manager.return_value = SimpleNamespace(
             local_domain="bot.example.test"
@@ -24,7 +24,7 @@ class MintDnsidTokenTest(TestCase):
         self.assertEqual(options.audience, "audience")
         self.assertIn("dnsid:review", options.scope)
 
-    @patch("dnsid_identity.identity_manager_from_cli_directory")
+    @patch("dnsid_identity.identity_manager_from_dnsid")
     def test_rejects_wrong_identity(self, load_manager):
         load_manager.return_value = SimpleNamespace(
             local_domain="other.example.test"

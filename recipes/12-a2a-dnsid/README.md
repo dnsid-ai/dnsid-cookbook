@@ -25,7 +25,7 @@ A2A (Google's Agent2Agent protocol) standardizes how agents talk — agent cards
 - [`uv`](https://docs.astral.sh/uv/) 0.12+ (manages Python and the recipe's dependencies; installs a compatible Python 3.11+ automatically)
 - A clone of this repo
 
-Dependency versions this recipe was tested against are pinned in [`pyproject.toml`](pyproject.toml) (dnsid-py v0.19.1, a2a-sdk 1.1.2, Python 3.13).
+Dependency versions this recipe was tested against are pinned in [`pyproject.toml`](pyproject.toml) (dnsid-py v0.22.0, a2a-sdk 1.1.2, Python 3.13).
 
 ## Concepts
 
@@ -85,7 +85,7 @@ def required_log_policy_url(environment: Mapping[str, str]) -> str:
 
 **The policy trust rule:** which transparency logs to trust comes *only* from `DNSID_LOG_POLICY_URL` — configuration you control. It is never derived from `DNSID_LOG_REF`, the log prefix, or anything else the log itself hands you. A log that could name its own trust policy could vouch for itself, and the transparency guarantee would be circular. (See [What goes wrong](#what-goes-wrong) for what this looks like when violated.)
 
-The rest of the module wires the SDK: `config_from_environment` parses the env into a `DnsidConfig` (identity, verification, transport) plus registry config, `LocalKeyProvider.from_cli_directory` loads the provisioned key (its `private.jwk` carries the RFC 7638 thumbprint `kid` the registry requires), and `make_log_registry` fetches the policy file and registers a C2SP log reader for issuance verification.
+The rest of the module wires the SDK: `load_environment` parses the env into loaded identity, verification, transport, and registry settings; `identity_manager_from_environment` constructs the manager with the recipe's explicit dependencies. `LocalKeyProvider.from_cli_directory` loads the provisioned key (its `private.jwk` carries the RFC 7638 thumbprint `kid` the registry requires), and `make_log_registry` fetches the independently trusted policy file and registers a C2SP log reader for issuance verification. `DNSID_AGENT_PORT` and `DNSID_PUBLIC_URL` remain application settings, not SDK configuration.
 
 One local-registry-only wrinkle: the SDK's HTTPS fetcher refuses any host that resolves to a private address (an SSRF guard), and on the local registry *every* name under the governance domain resolves to the loopback proxy. Bob can't list his callers in advance, so `load_identity` allows the whole zone with one leading-dot entry — `private_address_hosts = {"." + governance_id}`. Production verifiers leave that set empty.
 

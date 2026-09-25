@@ -89,7 +89,7 @@ def test_mint_dnsid_token_uses_sdk_and_loaded_identity(monkeypatch):
             assert options.scope == ["openid", "dnsid"]
             return type("Response", (), {"access_token": "header.payload.sig"})()
 
-    monkeypatch.setattr(gateway_mcp, "identity_manager_from_cli_directory", Manager)
+    monkeypatch.setattr(gateway_mcp, "identity_manager_from_dnsid", Manager)
     monkeypatch.setattr(
         gateway_mcp.OIDCProfile,
         "from_identity_manager",
@@ -103,7 +103,7 @@ def test_mint_dnsid_token_rejects_the_wrong_loaded_identity(monkeypatch):
     class Manager:
         local_domain = "other.example.test"
 
-    monkeypatch.setattr(gateway_mcp, "identity_manager_from_cli_directory", Manager)
+    monkeypatch.setattr(gateway_mcp, "identity_manager_from_dnsid", Manager)
 
     with pytest.raises(GatewayMcpError, match="token minting failed"):
         mint_dnsid_token(dnsid(), "audience")

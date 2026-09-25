@@ -14,6 +14,7 @@ import (
 	"time"
 
 	dnsid "github.com/dnsid-ai/dnsid-go"
+	"github.com/dnsid-ai/dnsid-go/config"
 	"github.com/dnsid-ai/dnsid-go/log/c2sptlog"
 )
 
@@ -40,13 +41,17 @@ func LoadIdentity(ctx context.Context) (*dnsid.IdentityManager, *http.Client, er
 	if err != nil {
 		return nil, nil, fmt.Errorf("configure lifecycle log: %w", err)
 	}
-	identity, err := dnsid.NewIdentityManagerFromDnsid(
-		"",
-		// The CA bundle is consumed by the injected fetcher above; the SDK only
-		// needs the DNS server for its own TXT lookups.
-		dnsid.Config{Transport: dnsid.TransportConfig{DNSServer: transport.DNSServer}},
-		dnsid.WithHTTPSFetcher(fetcher),
-		dnsid.WithLogRegistry(registry),
+	loaded, err := config.LoadEnvironment(nil)
+	if err != nil {
+		return nil, nil, err
+	}
+	// The CA bundle is consumed by the injected fetcher; the SDK only needs
+	// the DNS server for TXT lookups. Transport settings for an injected HTTPS
+	// fetcher are rejected by the SDK.
+	loaded.Dnsid.Transport.CABundlePath = ""
+	loaded.Dnsid.Transport.PrivateAddressHosts = nil
+	identity, err := config.Construct(ctx, loaded,
+		config.Dependencies{HTTPSFetcher: fetcher, LogRegistry: registry},
 	)
 	if err != nil {
 		return nil, nil, err

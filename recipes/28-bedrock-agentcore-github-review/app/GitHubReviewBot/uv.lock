@@ -544,8 +544,8 @@ wheels = [
 
 [[package]]
 name = "dnsid"
-version = "0.19.1"
-source = { git = "https://github.com/dnsid-ai/dnsid-py?rev=c9ae777cb4b473eace67d2b745b1760032e32738#c9ae777cb4b473eace67d2b745b1760032e32738" }
+version = "0.22.0"
+source = { git = "https://github.com/dnsid-ai/dnsid-py?rev=v0.22.0#a07070a53a9191ce158b43dd17be7e0619a945e7" }
 dependencies = [
     { name = "cryptography" },
     { name = "dnspython" },
@@ -594,7 +594,7 @@ requires-dist = [
     { name = "bedrock-agentcore", specifier = ">=1.9.1" },
     { name = "boto3", specifier = ">=1.35.0" },
     { name = "botocore", extras = ["crt"], specifier = ">=1.35.0" },
-    { name = "dnsid", git = "https://github.com/dnsid-ai/dnsid-py?rev=c9ae777cb4b473eace67d2b745b1760032e32738" },
+    { name = "dnsid", git = "https://github.com/dnsid-ai/dnsid-py?rev=v0.22.0" },
     { name = "httpx", specifier = ">=0.27.0" },
     { name = "mcp", specifier = ">=1.19.0" },
     { name = "pygithub", specifier = ">=2.0.0" },

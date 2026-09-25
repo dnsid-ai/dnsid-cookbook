@@ -21,12 +21,11 @@ RFC 9421 standardizes how to sign an HTTP request, but a relying party still nee
 
 - Docker 24+ (running)
 - `make`, `dig`, and `curl`
-- Go 1.26.5 or newer
+- Go 1.26.6 or newer
 - The `dnsid` CLI — `brew install dnsid-ai/tap/dnsid`, or download a binary per the [installation docs](https://docs.dnsid.ai/cli-installation) and put it on `PATH`
-- Git credentials that can read the current `dnsid-ai/dnsid-go` repository
 - A clone of this repository
 
-The recipe pins `dnsid-go` v0.33.1 in [`go.mod`](go.mod).
+The recipe pins `dnsid-go` v0.36.0 in [`go.mod`](go.mod).
 
 ## Concepts
 
@@ -56,7 +55,7 @@ make bootstrap
 
 [`Makefile`](Makefile) downloads the Go modules, builds both binaries, starts the local registry, provisions `stripe.dev.dnsid.test` and `writer.dev.dnsid.test`, and issues their transparency-log entries. Provisioning is idempotent, so re-running it keeps the existing identities.
 
-Every recipe process later starts under `dnsid local run`. That command injects its private identity directory, local registry DNS server, local CA bundle, and independently trusted C2SP policy URL as `DNSID_*` environment variables.
+Every recipe process later starts under `dnsid local run`. That command injects its private identity directory, local registry DNS server, local CA bundle, and independently trusted C2SP policy URL as `DNSID_*` environment variables. The Go SDK loads the process identity from these variables, not from the default `~/.dnsid` CLI identity.
 
 [`src/internal/localregistry`](src/internal/localregistry) is local-registry-only harness glue: it teaches the SDK to use the injected private DNS server and local CA. Production applications keep the SDK's public-network protections and do not copy this package. The application integration taught below is the signer, verifier middleware, and authorization check.
 
