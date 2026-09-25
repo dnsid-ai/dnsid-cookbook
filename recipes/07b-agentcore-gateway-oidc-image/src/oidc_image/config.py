@@ -9,7 +9,7 @@ DEFAULT_AGENTCORE_REGION = "us-east-1"
 DEFAULT_BEDROCK_REGION = "us-west-2"
 DEFAULT_BEDROCK_IMAGE_MODEL_ID = "stability.sd3-5-large-v1:0"
 DEFAULT_DNSID_AGENT_DOMAIN = ""
-DEFAULT_DNSID_SERVER = "https://oidc.dnsid.dev"
+DEFAULT_DNSID_SERVER = "https://oidc.dev.dnsid.ai"
 
 
 @dataclass(frozen=True)

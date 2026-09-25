@@ -100,7 +100,7 @@ func (a app) configCommand(args []string) error {
 	fs.SetOutput(a.stderr)
 	api := fs.String("api", "", "")
 	audience := fs.String("audience", "", "")
-	server := fs.String("dnsid-server", "https://api.dnsid.dev", "")
+	server := fs.String("dnsid-server", "https://api.dev.dnsid.ai", "")
 	agent := fs.String("agent", "", "")
 	dnsidCLI := fs.String("dnsid-cli", defaultDNSIDCLI(), "")
 	if err := fs.Parse(args[1:]); err != nil {

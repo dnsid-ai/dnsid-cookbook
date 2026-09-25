@@ -27,7 +27,7 @@ MCP gives agents a standard way to call tools, and AgentCore Gateway gives those
   - Bedrock image generation in `us-west-2`
   - Bedrock AgentCore Gateway, API Gateway, Lambda, IAM, S3, and CloudWatch in `us-east-1`
 - DNSid lab CLI available as `dnsid` on `PATH`, or set `DNSID_CLI=/path/to/dnsid`
-- DNSid server URL. Defaults to `https://api.dnsid.dev`; override with `DNSID_SERVER`
+- DNSid server URL. Defaults to `https://api.dev.dnsid.ai`; override with `DNSID_SERVER`
 - DNSid lab agent domain provided with `DNSID_AGENT_DOMAIN`
 - DNSid lab credentials for the chosen agent in a server-side identity directory containing `config.json` and `private.jwk`; set `DNSID_CONFIG_DIR` when it is not the current CLI identity
 - Browser Console Bridge and Chrome extension if you want to reproduce the UI screenshot checks
@@ -36,7 +36,7 @@ This is a deploy-only recipe: the full verification path creates or updates reci
 
 ## Lab and AWS account PoC limits
 
-This recipe assumes the DNSid lab agent and AWS account you provide in the environment. It targets the DNSid lab issuer at `https://api.dnsid.dev`, Bedrock image generation in `us-west-2`, and AgentCore Gateway resources in your active AWS account in `us-east-1`.
+This recipe assumes the DNSid lab agent and AWS account you provide in the environment. It targets the DNSid development API at `https://api.dev.dnsid.ai`, Bedrock image generation in `us-west-2`, and AgentCore Gateway resources in your active AWS account in `us-east-1`.
 
 You can override `DNSID_CLI`, `DNSID_SERVER`, `DNSID_AGENT_DOMAIN`, and `DNSID_CONFIG_DIR`, but the recipe still expects a ready DNSid agent with local lab credentials and AWS permissions to create recipe-owned Gateway, Lambda, API Gateway, IAM, S3, and CloudWatch resources. It does not automate DNSid identity creation, DNS publication, hosted browser authentication, multi-user authorization, or production revocation policy.
 
@@ -44,7 +44,7 @@ Gateway commands read DNSid configuration from the environment. `DNSID_AGENT_DOM
 
 ```bash
 export DNSID_CLI=dnsid
-export DNSID_SERVER=https://api.dnsid.dev
+export DNSID_SERVER=https://api.dev.dnsid.ai
 export DNSID_AGENT_DOMAIN=<your-agent-domain>
 export DNSID_CONFIG_DIR=/path/to/your/dnsid/identity
 ```
@@ -118,8 +118,8 @@ Expected output includes:
 {
   "account_id": "<AWS_ACCOUNT_ID>",
   "dnsid_oidc": {
-    "issuer": "https://api.dnsid.dev",
-    "jwks_uri": "https://api.dnsid.dev/.well-known/jwks.json"
+    "issuer": "https://api.dev.dnsid.ai",
+    "jwks_uri": "https://api.dev.dnsid.ai/.well-known/jwks.json"
   },
   "dnsid_status": {
     "domain": "<your-agent-domain>",

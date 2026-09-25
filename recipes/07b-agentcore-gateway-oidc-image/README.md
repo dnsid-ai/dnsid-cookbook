@@ -27,7 +27,7 @@ The previous image recipe already used DNSid OIDC through AgentCore Gateway `CUS
 - `make`
 - AWS CLI credentials with permission to create recipe-owned AgentCore Gateway, Lambda, IAM, and CloudWatch resources
 - Bedrock model access for `stability.sd3-5-large-v1:0` in `us-west-2`, or set `BEDROCK_IMAGE_MODEL_ID` and `BEDROCK_REGION`
-- DNSid OIDC issuer. Defaults to `https://oidc.dnsid.dev`; override with `DNSID_SERVER`
+- DNSid OIDC issuer. Defaults to `https://oidc.dev.dnsid.ai`; override with `DNSID_SERVER`
 - DNSid lab agent domain provided with `DNSID_AGENT_DOMAIN`
 - A server-side DNSid identity directory containing `config.json` and `private.jwk`; set `DNSID_CONFIG_DIR` when it is not the current CLI identity
 
@@ -76,8 +76,8 @@ Expected output shape:
 {
   "status": "ok",
   "dnsid_oidc": {
-    "issuer": "https://oidc.dnsid.dev",
-    "jwks_uri": "https://oidc.dnsid.dev/.well-known/jwks.json"
+    "issuer": "https://oidc.dev.dnsid.ai",
+    "jwks_uri": "https://oidc.dev.dnsid.ai/.well-known/jwks.json"
   },
   "token_claims": {
     "sub": "<your-agent-domain>",

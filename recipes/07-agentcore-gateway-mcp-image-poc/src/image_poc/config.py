@@ -7,7 +7,7 @@ from urllib.parse import urlparse
 
 
 DEFAULT_DNSID_AGENT_DOMAIN = ""
-DEFAULT_DNSID_SERVER = "https://api.dnsid.dev"
+DEFAULT_DNSID_SERVER = "https://api.dev.dnsid.ai"
 DEFAULT_DNSID_CLI = "dnsid"
 DEFAULT_GATEWAY_STATE_PATH = ".artifacts/gateway/phase3-state.json"
 LOCAL_TEST_MODE = "local-test"

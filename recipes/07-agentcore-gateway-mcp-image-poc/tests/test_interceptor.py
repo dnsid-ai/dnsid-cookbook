@@ -33,11 +33,11 @@ def request_event(token_claims, headers=None):
 
 def test_request_interceptor_injects_trusted_headers(monkeypatch):
     monkeypatch.setenv("EXPECTED_DNSID_SUB", "agent.example.com")
-    monkeypatch.setenv("EXPECTED_DNSID_ISS", "https://api.dnsid.dev")
+    monkeypatch.setenv("EXPECTED_DNSID_ISS", "https://api.dev.dnsid.ai")
     monkeypatch.setenv("EXPECTED_GATEWAY_AUDIENCE", "https://gateway.example/mcp")
     token_claims = {
         "sub": "agent.example.com",
-        "iss": "https://api.dnsid.dev",
+        "iss": "https://api.dev.dnsid.ai",
         "aud": "https://gateway.example/mcp",
         "jti": "token-id",
         "exp": 4102444800,
@@ -54,11 +54,11 @@ def test_request_interceptor_injects_trusted_headers(monkeypatch):
 
 def test_request_interceptor_denies_wrong_subject(monkeypatch):
     monkeypatch.setenv("EXPECTED_DNSID_SUB", "agent.example.com")
-    monkeypatch.setenv("EXPECTED_DNSID_ISS", "https://api.dnsid.dev")
+    monkeypatch.setenv("EXPECTED_DNSID_ISS", "https://api.dev.dnsid.ai")
     monkeypatch.setenv("EXPECTED_GATEWAY_AUDIENCE", "https://gateway.example/mcp")
     token_claims = {
         "sub": "attacker.example",
-        "iss": "https://api.dnsid.dev",
+        "iss": "https://api.dev.dnsid.ai",
         "aud": "https://gateway.example/mcp",
         "jti": "token-id",
         "exp": 4102444800,
@@ -73,11 +73,11 @@ def test_request_interceptor_denies_wrong_subject(monkeypatch):
 
 def test_request_interceptor_denies_missing_required_configuration(monkeypatch):
     monkeypatch.delenv("EXPECTED_DNSID_SUB", raising=False)
-    monkeypatch.setenv("EXPECTED_DNSID_ISS", "https://api.dnsid.dev")
+    monkeypatch.setenv("EXPECTED_DNSID_ISS", "https://api.dev.dnsid.ai")
     monkeypatch.setenv("EXPECTED_GATEWAY_AUDIENCE", "https://gateway.example/mcp")
     token_claims = {
         "sub": "agent.example.com",
-        "iss": "https://api.dnsid.dev",
+        "iss": "https://api.dev.dnsid.ai",
         "aud": "https://gateway.example/mcp",
         "jti": "token-id",
         "exp": 4102444800,

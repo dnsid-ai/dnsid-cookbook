@@ -146,8 +146,8 @@ directory.
 
 ## Operational Notes and Limits
 
-- Defaults target `DNSID_SERVER=https://api.dnsid.dev` and
-  `DNSID_AGENT_DOMAIN=<your-agent>.lab.dnsid.dev`.
+- Defaults target `DNSID_SERVER=https://api.dev.dnsid.ai` and
+  `DNSID_AGENT_DOMAIN=<your-agent>.sandbox.dev.dnsid.ai`.
 - Gateway mode requires an HTTPS DNSid server and a valid
   `.artifacts/gateway/phase3-state.json`.
 - The local server defaults to `127.0.0.1:8787`; the README examples often use

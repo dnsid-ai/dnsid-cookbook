@@ -21,7 +21,7 @@ type fakeVerifier struct{}
 func (fakeVerifier) VerifyBearer(_ context.Context, token string) (board.Identity, error) {
 	return board.Identity{
 		Agent:        token + ".example.com",
-		Issuer:       "https://api.dnsid.dev",
+		Issuer:       "https://api.dev.dnsid.ai",
 		Audience:     []string{"urn:test"},
 		Environment:  "lab",
 		TokenJTIHash: "sha256:test",

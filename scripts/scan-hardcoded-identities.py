@@ -42,18 +42,18 @@ SKIP_SUFFIXES = {
 ALLOWED_AWS_ACCOUNT_IDS = {"123456789012"}
 ALLOWED_DNSID_HOSTS = {
     "api.dnsid.ai",
-    "api.dnsid.dev",
+    "api.dev.dnsid.ai",
     "app.dnsid.ai",
     "dev.dnsid.ai",
     "docs.dnsid.ai",
-    "lab.dnsid.dev",
+    "oidc.dev.dnsid.ai",
+    "sandbox.dev.dnsid.ai",
     "oidc.dnsid.ai",
-    "oidc.dnsid.dev",
 }
 
 DENYLISTED_IDENTITY_PARTS = {
     "legacy AWS account ID": (("446872", "464738"),),
-    "legacy DNSid lab subject": (("4da8580c9975", ".lab.dnsid.dev"),),
+    "legacy DNSid lab subject": (("4da8580c9975", ".lab.dnsid", ".dev"),),
     "legacy DNSid bot subject": (("e24def51d939", ".dev.dnsid.ai"),),
     "legacy GitHub App ID": (("381", "8219"),),
     "legacy AgentCore Gateway ID": (("githubreviewbot-reviewgateway-", "i1e4rjp8d6"),),

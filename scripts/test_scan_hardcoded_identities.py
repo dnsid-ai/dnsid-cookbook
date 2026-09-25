@@ -23,7 +23,7 @@ def findings_for_text(text: str, path: str = "README.md") -> list[str]:
 class ScanHardcodedIdentitiesTest(unittest.TestCase):
     def test_flags_real_account_and_concrete_dnsid_domain(self) -> None:
         account_id = "446872" + "464738"
-        dnsid_subject = "4da8580c9975" + ".lab.dnsid.dev"
+        dnsid_subject = "4da8580c9975" + ".lab.dnsid" + ".dev"
 
         findings = findings_for_text(f"account {account_id}\nsubject {dnsid_subject}\n")
 
@@ -49,8 +49,8 @@ class ScanHardcodedIdentitiesTest(unittest.TestCase):
             [
                 "account 123456789012",
                 "account <AWS_ACCOUNT_ID>",
-                "issuer https://api.dnsid.dev",
-                "issuer https://oidc.dnsid.dev",
+                "issuer https://api.dev.dnsid.ai",
+                "issuer https://oidc.dev.dnsid.ai",
                 "status https://app.dnsid.ai/v1/status/<your-bot-domain>.dev.dnsid.ai",
                 "domain <your-bot-domain>.dev.dnsid.ai",
             ]
