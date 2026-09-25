@@ -7,7 +7,7 @@ requires-python = ">=3.11"
 # (Python 3.13, 2026-09). Later versions probably work; these are known to.
 dependencies = [
     "dnsid @ git+https://github.com/dnsid-ai/dnsid-py@v0.22.0",
-    "a2a-sdk==1.1.2",
+    "a2a-sdk==1.1.5",
     "langgraph==1.2.11",
     "langchain-core==1.6.0",
     "langchain-anthropic==1.6.1",
