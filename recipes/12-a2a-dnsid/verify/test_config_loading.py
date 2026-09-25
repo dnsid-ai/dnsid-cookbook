@@ -1,4 +1,4 @@
-"""Run from recipe root with the unreleased SDK on PYTHONPATH: .venv/bin/python -m unittest discover -s verify"""
+"""Run from recipe root: uv run python -m unittest discover -s verify"""
 
 import os
 import sys

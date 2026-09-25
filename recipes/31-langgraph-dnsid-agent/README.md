@@ -28,7 +28,7 @@ Agent frameworks like LangGraph standardize the loop — model decides, tools ex
 - A clone of this repo
 - Optional: an `ANTHROPIC_API_KEY`, only if you want a real model in the loop — `make verify` never needs one
 
-Dependency versions this recipe was tested against are pinned in [`pyproject.toml`](pyproject.toml) (dnsid-py v0.19.1, a2a-sdk 1.1.2, LangGraph 1.2.11, Python 3.13).
+Dependency versions this recipe was tested against are pinned in [`pyproject.toml`](pyproject.toml) (dnsid-py v0.22.0, a2a-sdk 1.1.2, LangGraph 1.2.11, Python 3.13).
 
 ## Concepts
 

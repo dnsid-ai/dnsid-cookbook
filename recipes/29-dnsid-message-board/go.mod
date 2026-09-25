@@ -1,6 +1,6 @@
 module github.com/identity-digital/dnsid-cookbook/recipes/29-dnsid-message-board
 
-go 1.26.5
+go 1.26.6
 
 require (
 	github.com/aws/aws-sdk-go-v2 v1.41.12
@@ -10,7 +10,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.57.9
 	github.com/aws/aws-sdk-go-v2/service/verifiedpermissions v1.34.4
 	github.com/aws/smithy-go v1.27.1
-	github.com/dnsid-ai/dnsid-go v0.33.1
+	github.com/dnsid-ai/dnsid-go v0.36.0
 	github.com/oklog/ulid/v2 v2.1.1
 	golang.org/x/net v0.58.0
 	golang.org/x/text v0.41.0
@@ -41,7 +41,7 @@ require (
 	github.com/transparency-dev/formats v0.1.1 // indirect
 	github.com/transparency-dev/merkle v0.0.2 // indirect
 	github.com/valyala/fastjson v1.6.10 // indirect
-	golang.org/x/crypto v0.55.0 // indirect
-	golang.org/x/mod v0.38.0 // indirect
+	golang.org/x/crypto v0.56.0 // indirect
+	golang.org/x/mod v0.41.0 // indirect
 	golang.org/x/sys v0.47.0 // indirect
 )

@@ -28,7 +28,7 @@ TARGET_NAME = "OrderTarget"
 API_NAME = f"{PREFIX}-api"
 STAGE = "orders"
 PROVISIONAL_AUDIENCE = "urn:amazon:bedrock-agentcore:gateway:dnsid-order-proof"
-DNSID_DEPENDENCY = "dnsid @ git+https://github.com/dnsid-ai/dnsid-py@v0.19.1"
+DNSID_DEPENDENCY = "dnsid @ git+https://github.com/dnsid-ai/dnsid-py@v0.22.0"
 
 
 def aws(settings: Settings, service: str, *, region: str | None = None) -> Any:

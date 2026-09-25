@@ -25,7 +25,7 @@ A2A (Google's Agent2Agent protocol) standardizes how agents talk — agent cards
 - [`uv`](https://docs.astral.sh/uv/) 0.12+ (manages Python and the recipe's dependencies; installs a compatible Python 3.11+ automatically)
 - A clone of this repo
 
-Dependency versions this recipe was tested against are pinned in [`pyproject.toml`](pyproject.toml) (dnsid-py v0.19.1, a2a-sdk 1.1.2, Python 3.13).
+Dependency versions this recipe was tested against are pinned in [`pyproject.toml`](pyproject.toml) (dnsid-py v0.22.0, a2a-sdk 1.1.2, Python 3.13).
 
 ## Concepts
 
