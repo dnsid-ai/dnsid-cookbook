@@ -9,7 +9,7 @@ description = "Minimal DNSid action verification for Amazon Bedrock AgentCore Ga
 requires-python = ">=3.11"
 # Versions tested with Python 3.13.
 dependencies = [
-    "boto3==1.43.81",
+    "boto3==1.43.99",
     "dnsid @ git+https://github.com/dnsid-ai/dnsid-py@v0.22.0",
 ]
 
