@@ -9,7 +9,7 @@ dependencies = [
     "dnsid @ git+https://github.com/dnsid-ai/dnsid-py@v0.22.0",
     "a2a-sdk==1.1.2",
     "langgraph==1.2.11",
-    "langchain-core==1.6.0",
+    "langchain-core==1.6.4",
     "langchain-anthropic==1.6.1",
     "fastapi==0.141.1",
     "uvicorn==0.52.4",
