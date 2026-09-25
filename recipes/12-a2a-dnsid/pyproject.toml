@@ -9,7 +9,7 @@ dependencies = [
     "dnsid @ git+https://github.com/dnsid-ai/dnsid-py@v0.22.0",
     "a2a-sdk==1.1.2",
     "fastapi==0.141.1",
-    "uvicorn==0.52.4",
+    "uvicorn==0.53.0",
     "dnspython==2.8.0",
     "sse-starlette==3.4.8",
 ]
