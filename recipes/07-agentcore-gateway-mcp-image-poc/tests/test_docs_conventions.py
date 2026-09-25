@@ -29,7 +29,7 @@ def test_readme_uses_deploy_only_status_and_step_heading_style():
 
     assert "**Status:** deploy-only" in readme
     assert "`DNSID_AGENT_DOMAIN` is required" in limits
-    assert "https://api.dev.dnsid.ai" in limits
+    assert "`https://api.dev.dnsid.ai`" in limits
     assert "your active AWS account" in limits
     assert "us-east-1" in limits
     assert "us-west-2" in limits
