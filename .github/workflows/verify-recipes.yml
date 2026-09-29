@@ -77,7 +77,7 @@ jobs:
       - name: Install dnsid CLI
         run: |
           set -euo pipefail
-          base=https://dnsid-prod-cli-binaries.s3.us-east-1.amazonaws.com/cli
+          base=https://downloads.dnsid.ai/cli
           version=$(curl -fsSL "$base/latest")
           test -n "$version"
           cd "$RUNNER_TEMP"
