@@ -1,0 +1,32 @@
+{
+  "description": "Same recent rotation, read-only request",
+  "facts": {
+    "counterparty": {
+      "agent_name": "billing-bot.northwind.example",
+      "accountable_entity": "northwind.example",
+      "relationship": "hosted: the agent's name is a subdomain of its accountable entity's domain",
+      "dnssec": "VALID"
+    },
+    "agent_history": {
+      "identity_age_days": 500.0,
+      "identity_age": "long-standing: issued more than a year ago",
+      "current_key": "introduced by key rotation 0.3 days ago (recent: within 7 days)",
+      "key_rotations": 1,
+      "lifecycle_events": 2
+    },
+    "accountable_entity_history": "unknown: no entity-level history index is available yet",
+    "interaction": {
+      "direction": "inbound",
+      "operation": "read the public product catalog",
+      "impact": "none"
+    }
+  },
+  "expected": {
+    "clauses": {
+      "impersonation": false,
+      "unproven": false,
+      "takeover_risk": false
+    },
+    "tier": "trusted"
+  }
+}

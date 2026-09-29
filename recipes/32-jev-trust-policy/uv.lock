@@ -207,8 +207,8 @@ wheels = [
 
 [[package]]
 name = "dnsid"
-version = "0.22.0"
-source = { git = "https://github.com/dnsid-ai/dnsid-py?rev=v0.22.0#a07070a53a9191ce158b43dd17be7e0619a945e7" }
+version = "0.23.1"
+source = { git = "https://github.com/dnsid-ai/dnsid-py?rev=v0.23.1#514e890d7a5e50a41d17e3b1ebfcd091f1afc36a" }
 dependencies = [
     { name = "cryptography" },
     { name = "dnspython" },
@@ -428,18 +428,20 @@ wheels = [
 
 [[package]]
 name = "recipe-32-jev-trust-policy"
-version = "0.1.0"
+version = "0.2.0"
 source = { virtual = "." }
 dependencies = [
     { name = "dnsid" },
     { name = "fastapi" },
+    { name = "httpx" },
     { name = "uvicorn" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "dnsid", git = "https://github.com/dnsid-ai/dnsid-py?rev=v0.22.0" },
+    { name = "dnsid", git = "https://github.com/dnsid-ai/dnsid-py?rev=v0.23.1" },
     { name = "fastapi", specifier = "==0.141.1" },
+    { name = "httpx", specifier = "==0.28.1" },
     { name = "uvicorn", specifier = "==0.52.4" },
 ]
 

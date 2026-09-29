@@ -1,74 +1,80 @@
-# Recipe 32 — Evaluate counterparty trust with DNSid and a written policy
+# Recipe 32 — Decide how far to trust an agent you have never met
 
-> Verify a request's counterparty with DNSid first; only then ask a Jev-compatible model if the verified evidence and request context satisfy your trust policy.
+> Open a service to any DNSid-verified agent, then use a written trust policy to decide how far to trust it; use the same policy before your agent calls an unfamiliar service.
 
 **Spec version:** `dnsid-draft-01`  
-**Status:** runnable (fixture decision server for `make verify`; real model optional)  
+**Status:** runnable (fixture for `make verify`; real decision model required for semantic evaluation)
 **Standards used:** RFC 9421 (HTTP Message Signatures), RFC 7517 (JWKS), DNSid C2SP lifecycle log  
-**Estimated time:** ~20 minutes, plus model setup for real semantic decisions
+**Estimated time:** ~20 minutes, plus model setup for `make eval`
 
 ---
 
 ## What you'll build
 
-A generic `/evaluate` gate for an incoming signed request. The `dnsid-py` SDK establishes **who sent it** and checks the identity record, operational key, lifecycle log, live status and request signature. The application then sends only verified identity evidence, caller-provided request context, and an operator-written [`policy.txt`](policy.txt) to a separate Jev-compatible decision endpoint. The result is `proceed` or a denial; this example does **not** perform the requested operation.
+A Python API that verifies signed requests before allowing a catalog read, quote request or demonstration refund, and a client that checks a service's identity before sending data to it. [`src/facts.py`](src/facts.py) turns verified DNSid evidence into a fact sheet; [`policy.toml`](policy.toml) supplies human-written clauses to a Jev-compatible decision server; [`src/trust.py`](src/trust.py) combines its answers into `trusted`, `limited` or `untrusted`. Each operation sets its own minimum tier in code. The fixture server exercises the wiring, **not** the accuracy of a real model.
 
 ## Why this matters
 
-DNSid says who is accountable for an agent, not whether you should trust that agent for a particular interaction. Signing the HTTP request additionally proves this caller holds the identity's operational key. Only after those checks pass can the relying party consider its own policy and the request's purpose; a verified but unrecognized counterparty may still be denied without confusing authentication with trust.
+DNSid can prove *who* controls an agent's operational key and which domain is accountable (`gi`); RFC 9421 proves that key signed this HTTP request. Neither tells you whether to share customer data with a newly encountered agent. Here a service can authenticate unfamiliar callers without a shared secret or partner allowlist, then limit what each one may do. The same check can stop an outbound agent from sending data to an impersonator.
 
 ## Prerequisites
 
-- Docker 24+ running, `make`, and the [`dnsid` CLI](https://docs.dnsid.ai/cli-installation) with `dnsid local` support
-- [`uv`](https://docs.astral.sh/uv/) and Python 3.11+
-- For *real semantic decisions*: a separate Jev-compatible `/v1/systemone` decision server. No model/API key is needed for the fixture-only wiring check.
-
-`pyproject.toml` pins dnsid-py v0.22.0, FastAPI 0.141.1 and uvicorn 0.52.4 (tested with Python 3.14.7).
+- Docker 24+ running, `make`, and the [`dnsid` CLI](https://docs.dnsid.ai/cli-installation) with `dnsid local` support.
+- [`uv`](https://docs.astral.sh/uv/) and Python 3.11+. Tested with Python 3.14.7, dnsid-py 0.23.1, FastAPI 0.141.1, httpx 0.28.1 and uvicorn 0.52.4; versions are pinned in [`pyproject.toml`](pyproject.toml).
+- A clone of this repository. For `make eval` only: a separately running Jev-compatible `/v1/systemone` model endpoint. No model or API key is needed for `make verify`.
 
 ## Concepts
 
-- **DNSid** — an identity publishes a signed `_dnsid.<domain>` DNS TXT record pointing at public keys (a JWKS, or JSON Web Key Set), live status and lifecycle log. `dnsid-py` verifies these; the recipe does not implement its own parser, cryptography or DNS fetcher.
-- **HTTP Message Signatures (RFC 9421)** — headers prove possession of the operational key and cover the method, URL and request-body digest. DNSid verification alone would not prove that the current HTTP caller is that agent. RFC 9421 is an optional application profile layered on top of DNSid.
-- **C2SP log** — an append-only lifecycle log that binds the published key to issuance and supports a fresh non-revocation check. Its trust policy location comes only from independently supplied `DNSID_LOG_POLICY_URL`, never the incoming record.
-- **Jev-style decision** — a model service returns probabilities for yes/no questions about the written policy, verified evidence and caller-provided context. These are fallible estimates, not cryptographic proofs; uncertain or unavailable answers fail closed.
-- **Local registry** — `dnsid local` runs disposable DNS, registry, log and TLS services in Docker, and supplies DNS, TLS, keys and trusted log-policy configuration via `dnsid local run`.
+- **DNSid binding** — a signed `_dnsid.<domain>` DNS TXT record linking an identity to an accountable entity (`gi`), a public-key URL (`ku=`), status (`su=`) and a lifecycle log reference. The verifier uses the keys in a JWKS (JSON Web Key Set, [RFC 7517](https://datatracker.ietf.org/doc/html/rfc7517)) at `/.well-known/jwks.json`.
+- **HTTP Message Signatures ([RFC 9421](https://datatracker.ietf.org/doc/html/rfc9421))** — request headers signed with the identity's operational key. Covered components are the method, authority, target URI and, for a body, its content digest. This proves possession of the key on this particular request.
+- **C2SP lifecycle log** — the append-only record of issuance, rotation and revocation used by DNSid verification. Its trust policy URL comes **only** from independently supplied `DNSID_LOG_POLICY_URL`, never `DNSID_LOG_REF` or data supplied by a log.
+- **Trust tier** — an application-level limit, not a cryptographic verdict. A Jev-style decision server estimates the probability that each written clause applies; code combines those estimates, and model failure denies access.
+- **Local registry** — `dnsid local` starts disposable DNS, registry, log and TLS services in Docker and injects DNS routing, keys, CA and log-policy configuration into `dnsid local run` processes.
 
 ## Running system
 
 | Process | Where | Role |
 |---|---|---|
-| DNS, registry, log and TLS proxy | CLI-managed local containers | Issue and serve `.dev.dnsid.test` identities |
-| Trust gate | host `:3120` behind `https://api.dev.dnsid.test` | Verify each caller before asking the decision server |
-| Decision server | host `127.0.0.1:8791` | A fixture for the smoke test, or your own local model |
-| Peer and outsider | short-lived clients | Send SDK-signed requests with different contexts |
+| DNS server | local registry, `127.0.0.1:7753` | Serves live `_dnsid` TXT records |
+| Registry and log | local registry, `127.0.0.1:7755` | Issues identities and records lifecycle events |
+| TLS proxy | local registry, `:443` | Routes `https://*.dev.dnsid.test` to local upstreams |
+| API | host `127.0.0.1:3120` | Verifies inbound signatures and gates operations |
+| Decision endpoint | host `127.0.0.1:8791` for the fixture | Answers policy questions; replace with a real model for evaluation |
+| Client | short-lived process | Signs inbound calls or gates outbound calls |
 
-## Step 1 — Provision the counterparty identities
+## Step 1 — Provision identities and inspect their records
 
 ```bash
 make bootstrap
-dig @127.0.0.1 -p 7753 _dnsid.peer.dev.dnsid.test TXT +short
+dig @127.0.0.1 -p 7753 _dnsid.acme-billing.dev.dnsid.test TXT +short
+curl --resolve acme-billing.dev.dnsid.test:443:127.0.0.1 \
+  --cacert ~/.dnsid-local/certs/root-ca.pem \
+  https://acme-billing.dev.dnsid.test/.well-known/jwks.json
 ```
 
-The Makefile uses `dnsid local agent ensure ... -- dnsid log issue` to provision `api`, `peer` and `outsider`. Both counterparties have real, verifiable local DNSid records. In this example policy, only `peer` may ask for a routine read-only health check; `outsider` remains **authenticated but not trusted**. The example names can be changed in `policy.txt`; they are not coded into the gate.
+`make bootstrap` uses `dnsid local agent ensure ... -- dnsid log issue` for `api`, `acme-billing` and `paypal-refunds`. The latter has a valid identity but its accountable entity is the local registry, **not** PayPal. The TXT record has one semicolon-separated value starting with `v=`, including `ku=` and `su=`. `--resolve` routes the host-only curl through the local TLS proxy; if using `--state`, use the CA path supplied by `DNSID_CA_BUNDLE` under `dnsid local run` instead.
 
-## Step 2 — Verify before asking the model
+## Step 2 — Verify identity before asking about trust
 
-[`src/app.py`](src/app.py) builds an SDK `HttpRequest` from the bounded inbound body and a server-configured public URL (not a caller-controlled forwarded-host header):
+[`src/app.py`](src/app.py) bounds the request body, builds an `HttpRequest` using a deployment-configured public URL (never a forwarded-host header), and verifies it before calling the decision endpoint:
 
 ```python
-verified = await asyncio.to_thread(profile.verify_signed_http_request, signed, VERIFY)
-log_state = await asyncio.to_thread(manager.verify_log_evidence, verified)
+verified = await asyncio.to_thread(
+    profile.verify_signed_http_request, signed, HttpVerificationOptions(required_components=components))
+await asyncio.to_thread(manager.verify_log_evidence, verified)
 ```
 
-`verify_signed_http_request` calls the SDK's `verify_domain` internally: DNS TXT record, signed key binding, log issuance, current status and signature/digest are all verified before returning. The second call obtains fresh operation-level non-revocation evidence. A bad or missing signature, invalid domain evidence, or unavailable status/log stops here: **Jev is never called**. Verification is synchronous in the SDK, so the async web server calls it on a worker thread.
+The SDK checks the binding, key, live status, lifecycle log and signed request; the second call asks for fresh non-revocation evidence. DNSid verification runs off the async server thread. A bad signature or unavailable verification stops here: the model cannot waive it. For a bodyless GET, the SDK receives `body=None` rather than an empty body, since the signing client does not cover `content-digest` on GET.
 
-The server constructs an `evidence` object only from this SDK result: verified domain, accountable entity (`gi`), DNSSEC state, status, DNSid flags, log state and freshness, and proof of possession. The signed JSON body is still *untrusted context*, even when its signature checks out: a caller can sign lies about its intent.
+The outbound [`src/client.py`](src/client.py) calls `verify_domain` and `verify_log_evidence` before evaluating an unfamiliar service with the **same** trust policy. No model decision is reused as authentication.
 
-## Step 3 — Evaluate the human trust policy
+## Step 3 — Apply the written policy
 
-[`src/policy.py`](src/policy.py) submits `{policy, evidence, context}` to the decision endpoint. It asks whether to trust **this verified counterparty for this particular request**, plus a separate question about attempted instruction/policy injection. Proceed requires a permit probability ≥0.85 and injection probability <0.5. Uncertain or malformed replies deny; endpoint errors return 503. The model cannot create identity evidence or waive failed SDK checks. A real model can still make mistakes; tune thresholds with labelled requests and keep consequential actions behind additional deterministic or human controls.
+[`policy.toml`](policy.toml) asks whether a verified identity impersonates another organization, lacks a track record, or recently rotated its key before a sensitive interaction. The model sees only code-built facts: the verified name and `gi`, how they relate, DNSSEC state, lifecycle age and rotation summary, plus an operation description from our own table. It never sees customer payloads or counterparty-authored descriptions.
 
-By default the API calls `http://127.0.0.1:8791/v1/systemone`. For a compatible local model, see the [Open-Jev server instructions](https://github.com/Zefan-Cai/Open-Jev); model weights are not included here. Override `JEV_ENDPOINT` and optionally `JEV_MODEL` / `JEV_API_KEY` for other backends. **Hosted endpoints receive the trust policy, verified evidence and the caller's request context**: choose one only if that disclosure is acceptable.
+[`src/trust.py`](src/trust.py) starts at `trusted`. A clause above its threshold applies its own effect (`limit` or `deny`); the most restrictive wins. If lifecycle history cannot be read, code caps trust at `limited`. Missing, malformed or unreachable model answers fail closed. Decisions are cached briefly by identity, entity, policy version, operation and lifecycle fingerprint; change the policy version when changing clauses.
+
+The demo refund endpoint does **not** move money. Real side effects need replay and idempotency protection beyond RFC 9421 freshness. The SDK's default checkpoint store is in-memory; for a long-running verifier, use a durable checkpoint store so log rollback protection survives restarts.
 
 ## Run it
 
@@ -76,21 +82,7 @@ By default the API calls `http://127.0.0.1:8791/v1/systemone`. For a compatible 
 make run
 ```
 
-The run script starts [`src/mock_jev.py`](src/mock_jev.py), a **fixture** that returns preselected probabilities based on the test domain and context. It exercises the request flow but does **not** understand natural language or establish that the policy is effective. Never use it for real trust decisions.
-
-To try a real local model, start its decision server separately, then run the API after `make bootstrap`:
-
-```bash
-DNSID_PUBLIC_URL=https://api.dev.dnsid.test \
-JEV_ENDPOINT=http://127.0.0.1:8791/v1/systemone \
-dnsid local run api --upstream http://localhost:3120 -- \
-  uv run uvicorn app:app --app-dir src --host 127.0.0.1 --port 3120
-# From another terminal:
-dnsid local run peer --upstream http://localhost:3121 -- \
-  uv run python src/client.py routine 200
-```
-
-The client signs `POST /evaluate` with its provisioned key. The returned `proceed` means only that the gate approved this particular signed request; an application must bind the decision to that same request before doing anything else. RFC 9421 freshness checks do not themselves make requests one-time: add shared replay/idempotency enforcement for side-effecting operations.
+This runs the same flow as verification without making transcript assertions. It starts a hard-coded fixture at `:8791`, serves the API behind the local registry's TLS proxy, and exercises both inbound and outbound gates. The fixture's simplistic substring rules are deliberately **not** a trust model.
 
 ## Verify
 
@@ -98,10 +90,18 @@ The client signs `POST /evaluate` with its provisioned key. The returned `procee
 make verify
 ```
 
-Expected: unsigned → 401 **without calling the model**; signed routine peer → 200; signed sensitive/injected peer and signed outsider → 403; signed peer with the model offline → 503. The fixture asserts it received SDK-verified evidence and that only the four authenticated requests reached it. `verify passed (stub only; real model not evaluated)` confirms **wiring and fail-closed behavior**, not Jev accuracy.
+Expected: unsigned catalog read → 401 without contacting the decision server; signed `acme-billing` catalog read → 200 (`limited`); its refund → 403; signed `paypal-refunds` catalog read → 403; outbound lookup of `api` → allow, sharing customer data with it → refuse; outbound lookup of `paypal-refunds` → refuse; with the fixture stopped, a signed quote request → 503. `verify passed` checks the fixture plumbing and fail-closed behavior, **not** real-world trust accuracy.
+
+To measure a real model rather than the fixture:
+
+```bash
+JEV_ENDPOINT=http://127.0.0.1:8080/v1/systemone make eval
+```
+
+[`cases/`](cases/) contains 16 labelled fact sheets, including an internationalized-name homoglyph, delegated contractor, partner mention, rotations and entity-history examples. The included fixture gets only 11/16 tiers right, so `--strict` against it must fail. Use a real [OpenJev](https://github.com/razorback16/openjev) or compatible `/v1/systemone` server; `JEV_MODEL` defaults to `jev-latest`, and `JEV_API_KEY` is optional. OpenJev's larger model needs significant GPU memory; test any smaller model against the cases before relying on it. Hosted endpoints receive identity facts and your operation descriptions. The live registry has no entity-level history index yet, so that field is `unknown` live; two cases demonstrate what future entity history might enable. Model accuracy, thresholds and false positives need independent calibration before deployment.
 
 ## What to try next
 
-- Edit [`policy.txt`](policy.txt) for your actual counterparties and contexts, then benchmark a real decision model on labelled cases. An agent's domain or `gi` is evidence of accountability, not automatic permission.
-- See [Recipe 12](../12-a2a-dnsid/) for a fully signed agent-to-agent request flow.
-- `make clean` stops the CLI-managed local registry.
+- Edit a clause in `policy.toml`, bump `version`, add a labelled case, and rerun `make eval` against a real model. Code, not the model, owns operation tiers.
+- Run `make clean` to stop the local registry. Use `dnsid local reset --hard && make verify` to watch first-time provisioning again.
+- See [Recipe 12](../12-a2a-dnsid/) for another signed agent-to-agent request flow.

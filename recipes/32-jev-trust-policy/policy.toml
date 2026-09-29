@@ -1,0 +1,58 @@
+# Counterparty trust policy for Recipe 32.
+#
+# Every clause becomes one yes/no question for the decision model: "do these
+# facts show the counterparty violates this clause?" The model only sees the
+# fact sheet built by src/facts.py. Code combines the answers: a clause whose
+# probability is at or above its threshold applies its effect, and the most
+# restrictive effect wins.
+#
+#   deny  -> untrusted: refuse every operation
+#   limit -> limited: allow only operations that need no more than "limited"
+#
+# Bump `version` whenever a clause changes; cached decisions are keyed on it.
+
+version = "counterparty-trust/1"
+
+# Code turns raw ages into the words the clauses use, so the model never has
+# to compare numbers.
+[facts]
+new_agent_days = 30
+recent_rotation_days = 7
+
+[clauses.impersonation]
+effect = "deny"
+threshold = 0.3
+text = """\
+The counterparty's name suggests it is operated by, or acts on behalf of, a \
+specific real-world company, brand or government body, but its accountable \
+entity is not that organization's own domain. A name that only mentions a \
+product or partner the accountable entity plausibly works with, or an opaque \
+name, is not impersonation.\
+"""
+
+[clauses.unproven]
+effect = "limit"
+threshold = 0.5
+text = """\
+The counterparty has no track record: its agent identity is new, and there is \
+no evidence that its accountable entity has an established history of its own.\
+"""
+
+[clauses.takeover_risk]
+effect = "deny"
+threshold = 0.5
+text = """\
+The agent's current key was introduced by a recent key rotation rather than \
+at issuance, and this interaction moves money, exposes credentials or shares \
+personal data.\
+"""
+
+# Enable once entity-level lifecycle history is available (see README).
+#
+# [clauses.bad_neighborhood]
+# effect = "limit"
+# threshold = 0.5
+# text = """\
+# The accountable entity has had other agents revoked for policy violation or \
+# key compromise recently, and this agent has little history of its own.\
+# """

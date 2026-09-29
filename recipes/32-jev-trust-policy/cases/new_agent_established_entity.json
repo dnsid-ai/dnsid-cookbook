@@ -1,0 +1,36 @@
+{
+  "description": "Brand-new agent under a long-standing entity (needs entity index)",
+  "facts": {
+    "counterparty": {
+      "agent_name": "quotes-v2.northwind.example",
+      "accountable_entity": "northwind.example",
+      "relationship": "hosted: the agent's name is a subdomain of its accountable entity's domain",
+      "dnssec": "VALID"
+    },
+    "agent_history": {
+      "identity_age_days": 1.0,
+      "identity_age": "new: issued less than 30 days ago",
+      "current_key": "unchanged since issuance",
+      "key_rotations": 0,
+      "lifecycle_events": 1
+    },
+    "accountable_entity_history": {
+      "first_issuance_days_ago": 1500,
+      "agents_issued": 300,
+      "revocations_last_90_days": {}
+    },
+    "interaction": {
+      "direction": "inbound",
+      "operation": "read the public product catalog",
+      "impact": "none"
+    }
+  },
+  "expected": {
+    "clauses": {
+      "impersonation": false,
+      "unproven": false,
+      "takeover_risk": false
+    },
+    "tier": "trusted"
+  }
+}

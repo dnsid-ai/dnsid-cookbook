@@ -1,0 +1,36 @@
+{
+  "description": "Brand-new agent under a brand-new entity (needs entity index)",
+  "facts": {
+    "counterparty": {
+      "agent_name": "helper.freshco.example",
+      "accountable_entity": "freshco.example",
+      "relationship": "hosted: the agent's name is a subdomain of its accountable entity's domain",
+      "dnssec": "VALID"
+    },
+    "agent_history": {
+      "identity_age_days": 1.0,
+      "identity_age": "new: issued less than 30 days ago",
+      "current_key": "unchanged since issuance",
+      "key_rotations": 0,
+      "lifecycle_events": 1
+    },
+    "accountable_entity_history": {
+      "first_issuance_days_ago": 1,
+      "agents_issued": 1,
+      "revocations_last_90_days": {}
+    },
+    "interaction": {
+      "direction": "inbound",
+      "operation": "read the public product catalog",
+      "impact": "none"
+    }
+  },
+  "expected": {
+    "clauses": {
+      "impersonation": false,
+      "unproven": true,
+      "takeover_risk": false
+    },
+    "tier": "limited"
+  }
+}

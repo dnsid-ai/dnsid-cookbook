@@ -1,0 +1,32 @@
+{
+  "description": "Contractor-run agent delegated to its client",
+  "facts": {
+    "counterparty": {
+      "agent_name": "payroll.contractor.example",
+      "accountable_entity": "acme-corp.example",
+      "relationship": "delegated: a separate organization is accountable, bound by a bilateral ISSUANCE event",
+      "dnssec": "VALID"
+    },
+    "agent_history": {
+      "identity_age_days": 200.0,
+      "identity_age": "established: issued more than 30 days but less than a year ago",
+      "current_key": "unchanged since issuance",
+      "key_rotations": 0,
+      "lifecycle_events": 1
+    },
+    "accountable_entity_history": "unknown: no entity-level history index is available yet",
+    "interaction": {
+      "direction": "inbound",
+      "operation": "read the public product catalog",
+      "impact": "none"
+    }
+  },
+  "expected": {
+    "clauses": {
+      "impersonation": false,
+      "unproven": false,
+      "takeover_risk": false
+    },
+    "tier": "trusted"
+  }
+}

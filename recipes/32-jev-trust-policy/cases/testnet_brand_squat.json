@@ -1,0 +1,32 @@
+{
+  "description": "Brand name on the DNSid local registry",
+  "facts": {
+    "counterparty": {
+      "agent_name": "google-calendar-sync.dev.dnsid.test",
+      "accountable_entity": "dnsid.test",
+      "relationship": "hosted: the agent's name is a subdomain of its accountable entity's domain",
+      "dnssec": "VALID"
+    },
+    "agent_history": {
+      "identity_age_days": 0.1,
+      "identity_age": "new: issued less than 30 days ago",
+      "current_key": "unchanged since issuance",
+      "key_rotations": 0,
+      "lifecycle_events": 1
+    },
+    "accountable_entity_history": "unknown: no entity-level history index is available yet",
+    "interaction": {
+      "direction": "inbound",
+      "operation": "read the public product catalog",
+      "impact": "none"
+    }
+  },
+  "expected": {
+    "clauses": {
+      "impersonation": true,
+      "unproven": true,
+      "takeover_risk": false
+    },
+    "tier": "untrusted"
+  }
+}
