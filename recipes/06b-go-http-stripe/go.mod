@@ -2,7 +2,7 @@ module github.com/identity-digital/dnsid-cookbook/recipes/06b-go-http-stripe
 
 go 1.26.6
 
-require github.com/dnsid-ai/dnsid-go v0.36.0
+require github.com/dnsid-ai/dnsid-go v0.36.1
 
 require (
 	filippo.io/mldsa v0.0.0-20260215214346-43d0283efc3e // indirect
