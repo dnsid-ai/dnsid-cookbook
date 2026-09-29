@@ -46,6 +46,7 @@ ALLOWED_DNSID_HOSTS = {
     "app.dnsid.ai",
     "dev.dnsid.ai",
     "docs.dnsid.ai",
+    "downloads.dnsid.ai",
     "oidc.dev.dnsid.ai",
     "sandbox.dev.dnsid.ai",
     "oidc.dnsid.ai",
