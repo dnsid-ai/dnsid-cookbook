@@ -69,7 +69,7 @@ requires-python = ">=3.11"
 # Pin the versions you actually test against before merging.
 dependencies = [
     # The dnsid SDK is not yet on PyPI; install from a release tag.
-    "dnsid @ git+https://github.com/dnsid-ai/dnsid-py@v0.19.1",
+    "dnsid @ git+https://github.com/dnsid-ai/dnsid-py@v0.23.1",
 ]
 EOF
 

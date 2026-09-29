@@ -29,7 +29,7 @@ A room owner can also add a syntactically valid future DNSid domain to an allowl
 - The `dnsid` CLI on `PATH`
 - A clone of this repository
 
-The recipe pins `github.com/dnsid-ai/dnsid-go` v0.36.0 in `go.mod`.
+The recipe pins `github.com/dnsid-ai/dnsid-go` v0.37.1 in `go.mod`.
 
 ## Concepts
 

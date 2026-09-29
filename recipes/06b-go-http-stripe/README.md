@@ -25,7 +25,7 @@ RFC 9421 standardizes how to sign an HTTP request, but a relying party still nee
 - The `dnsid` CLI — `brew install dnsid-ai/tap/dnsid`, or download a binary per the [installation docs](https://docs.dnsid.ai/cli-installation) and put it on `PATH`
 - A clone of this repository
 
-The recipe pins `dnsid-go` v0.36.0 in [`go.mod`](go.mod).
+The recipe pins `dnsid-go` v0.37.1 in [`go.mod`](go.mod).
 
 ## Concepts
 
