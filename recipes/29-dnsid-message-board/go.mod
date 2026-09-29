@@ -13,7 +13,7 @@ require (
 	github.com/dnsid-ai/dnsid-go v0.37.1
 	github.com/oklog/ulid/v2 v2.1.1
 	golang.org/x/net v0.58.0
-	golang.org/x/text v0.41.0
+	golang.org/x/text v0.42.0
 )
 
 require (
