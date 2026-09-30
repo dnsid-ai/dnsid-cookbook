@@ -115,8 +115,8 @@ An A2A agent card tells callers what an agent can do and what it requires. [`src
 ext = card.capabilities.extensions.add()
 ext.uri = DNSID_A2A_EXTENSION_URI
 ext.description = (
-    "Requires DNSid validation, RFC 9421 HTTP Message Signatures, "
-    "and mTLS for inbound requests."
+    "Requires DNSid validation and RFC 9421 HTTP Message Signatures "
+    "for inbound requests."
 )
 ext.required = True
 ```

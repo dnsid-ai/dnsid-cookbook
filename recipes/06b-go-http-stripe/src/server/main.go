@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"log"
+	"math"
 	"net/http"
 	"os"
 	"strings"
@@ -27,11 +28,14 @@ func (l *ledger) get(account string) int64 {
 	return l.balances[account]
 }
 
-func (l *ledger) credit(account string, amount int64) int64 {
+func (l *ledger) credit(account string, amount int64) (int64, bool) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
+	if l.balances[account] > math.MaxInt64-amount {
+		return 0, false
+	}
 	l.balances[account] += amount
-	return l.balances[account]
+	return l.balances[account], true
 }
 
 type callerContextKey struct{}
@@ -75,7 +79,11 @@ func main() {
 			http.Error(w, "account and a positive amount are required", http.StatusBadRequest)
 			return
 		}
-		balance := book.credit(body.Account, body.Amount)
+		balance, ok := book.credit(body.Account, body.Amount)
+		if !ok {
+			http.Error(w, "credit would overflow balance", http.StatusBadRequest)
+			return
+		}
 		log.Printf("verified POST /v1/balance/credit from %s", caller.Domain())
 		writeJSON(w, http.StatusOK, map[string]any{
 			"account":     body.Account,

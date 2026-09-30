@@ -10,7 +10,7 @@ managed entirely by the `dnsid` CLI — the recipe owns no containers.
 The recipe demonstrates publication and inspection, not request signing:
 `make bootstrap` runs the provisioning lifecycle, `src/serve.py` answers the
 record's `ku=` URL, and `verify/verify.sh` walks the record the way a
-verifier would (TXT → `ku=` JWKS → kid match → `su=` status).
+verifier would (TXT → `ku=` JWKS → public JWK match → `su=` status).
 
 ## Components
 
@@ -19,7 +19,7 @@ verifier would (TXT → `ku=` JWKS → kid match → `su=` status).
 | Make targets | `Makefile` | Wrap local registry lifecycle, identity provisioning, the JWKS server, and verification. |
 | Local registry | managed by `dnsid local up/down` | DNS on `127.0.0.1:7753`, registry + transparency log on `127.0.0.1:7755`, TLS proxy on `127.0.0.1:443`. |
 | JWKS server | `src/serve.py` | Serves `DNSID_CONFIG_DIR/public.jwk` as `/.well-known/jwks.json` on the identity's upstream port. |
-| Verifier walk | `verify/verify.sh` | Runs under `dnsid local run`; resolves the TXT binding, follows `ku=` and `su=`, matches the served kid to the local keypair. |
+| Verifier walk | `verify/verify.sh` | Runs under `dnsid local run`; resolves the TXT binding, follows `ku=` and `su=`, matches the served public JWK to the local `public.jwk`. |
 
 ```mermaid
 flowchart LR
@@ -42,5 +42,5 @@ flowchart LR
    publish`, which injects `DNSID_CONFIG_DIR` (the keypair), `DNSID_DNS_SERVER`,
    and `DNSID_CA_BUNDLE`.
 3. Verification resolves `_dnsid.publish.test` TXT from the local registry
-   DNS, fetches the `ku=` JWKS through the TLS proxy, asserts the served `kid`
-   equals the local `public.jwk`'s, and asserts `su=` reports `ACTIVE`.
+   DNS, fetches the `ku=` JWKS through the TLS proxy, asserts the complete served
+   public JWK equals the local `public.jwk`, and asserts `su=` reports `ACTIVE`.
