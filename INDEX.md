@@ -53,9 +53,6 @@ Provision a domain identity on the local DNSid registry — Ed25519 keypair (RFC
 ### 2. Per-agent domains
 `corp-billing.test`, `corp-mail.test`, each with its own key. Independent revocation scope, least-privilege blast radius.
 
-### 3. Dev-tier under `*.dev.dnsid.ai`
-Fast provisioning, KMS-isolated signing key. Verifiers reject by default; opt in with `AllowDevTier: true`. For prototypes and CI.
-
 ### 4. Key rotation playbook
 JWKS multi-key overlap, TXT TTL ordering, cache invalidation. Rotate without downtime.
 
@@ -191,9 +188,6 @@ Different trust anchor (domain owner key, not CA). Not for HTTPS PKI. Complement
 
 ### A4. DNSid without revocation plan
 A signed binding with no revocation strategy is a long-lived credential waiting to be stolen. Recipe 5 is not optional.
-
-### A5. Dev-tier in production
-`*.dev.dnsid.ai` bindings in a prod verifier path means anyone with a dev account can spoof. Default reject; opt in only for prototypes.
 
 ### A6. Treating DNSid as a W3C DID method
 DID resolution and DNSid resolution serve overlapping needs but aren't the same. DNSid is not a registered DID method and doesn't aim to be — the trust root is DNS ownership, not a self-asserted controller document. Use DID for identifier portability across resolution networks; use DNSid when DNS ownership is the trust signal you actually want. Don't shim one as the other.
