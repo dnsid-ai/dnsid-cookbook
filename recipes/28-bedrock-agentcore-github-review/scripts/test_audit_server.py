@@ -16,7 +16,7 @@ class AuditAuthTest(unittest.TestCase):
     def test_rejects_untrusted_token_and_discovery(self):
         issuer = "https://issuer.example.test"
         audience = "http://localhost:9090"
-        subject = "bot.example.test"
+        subject = "bot.test"
         key = rsa.generate_private_key(public_exponent=65537, key_size=2048)
         jwk = json.loads(jwt.algorithms.RSAAlgorithm.to_jwk(key.public_key()))
         jwk.update(kid="test-key", use="sig", alg="RS256")

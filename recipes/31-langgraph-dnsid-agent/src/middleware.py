@@ -37,13 +37,13 @@ from agent_card import (
     REQUIRED_SIG_COMPONENTS,
 )
 
-# Verification contract for the A2A ingress (graph.dev.dnsid.test).
+# Verification contract for the A2A ingress (graph.test).
 A2A_VERIFY_OPTS = HttpVerificationOptions(
     required_components=REQUIRED_SIG_COMPONENTS,
     required_tag=DNSID_A2A_SIGNATURE_TAG,
 )
 
-# Verification contract for the plain-HTTP tools ingress (tools.dev.dnsid.test).
+# Verification contract for the plain-HTTP tools ingress (tools.test).
 # No A2A headers here — but content-digest stays required: the tool server
 # must know the body it acts on is the body the caller signed.
 TOOLS_SIGNATURE_TAG = "dnsid-tools-http-sig-v1"

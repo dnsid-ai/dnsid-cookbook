@@ -59,7 +59,7 @@ grants the runtime role `secretsmanager:GetSecretValue`, and injects:
 
 - `GITHUB_APP_ID=<your-app-id>`
 - `GITHUB_APP_KEY_SECRET_ARN=<secret arn>`
-- `BOT_DOMAIN=<your-bot-domain>.dev.dnsid.ai`
+- `BOT_DOMAIN=<your-bot-domain>`
 - `REVIEW_GATEWAY_AUDIENCE=<unique gateway audience>`
 
 Audit routing is selected at runtime. If `AGENTCORE_GATEWAY_REVIEWGATEWAY_URL`
@@ -150,7 +150,7 @@ to loopback only and verifies the token against the trusted issuer's JWKS.
 - The README documents resources deployed in your own AWS account and
   `us-east-1`; check current AgentCore state before assuming previously
   recorded ARNs are still live.
-- The CDK stack hard-codes the dnsid-ai App ID and `BOT_DOMAIN` used by the
-  deployed sample.
+- The CDK stack requires the GitHub App ID and full `BOT_DOMAIN` from your
+  environment; the bot domain must match the server-side DNSid identity.
 - The bot truncates PR diff context to 32 KB before review.
 - The system prompt tells the bot to comment, not approve PRs.

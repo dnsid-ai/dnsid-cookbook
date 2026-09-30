@@ -19,12 +19,12 @@ def test_load_dnsid_settings_trims_server_and_env_values():
     settings = load_dnsid_settings(
         environ={
             "DNSID_SERVER": " https://issuer.example.test/ ",
-            "DNSID_AGENT_DOMAIN": " agent.example.test ",
+            "DNSID_AGENT_DOMAIN": " agent.test ",
         }
     )
 
     assert settings.server == "https://issuer.example.test"
-    assert settings.agent_domain == "agent.example.test"
+    assert settings.agent_domain == "agent.test"
 
 
 def test_load_dnsid_settings_requires_https_by_default():
@@ -32,7 +32,7 @@ def test_load_dnsid_settings_requires_https_by_default():
         load_dnsid_settings(
             environ={
                 "DNSID_SERVER": "http://issuer.example.test",
-                "DNSID_AGENT_DOMAIN": "agent.example.com",
+                "DNSID_AGENT_DOMAIN": "agent.test",
             }
         )
 
@@ -41,7 +41,7 @@ def test_load_dnsid_settings_can_skip_https_requirement():
     settings = load_dnsid_settings(
         environ={
             "DNSID_SERVER": "http://issuer.example.test",
-            "DNSID_AGENT_DOMAIN": "agent.example.com",
+            "DNSID_AGENT_DOMAIN": "agent.test",
         },
         require_https=False,
     )

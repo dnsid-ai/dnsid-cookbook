@@ -23,9 +23,9 @@ func LoadIdentity(ctx context.Context) (*dnsid.IdentityManager, error) {
 		DNSServer:    os.Getenv("DNSID_DNS_SERVER"),
 		CABundlePath: os.Getenv("DNSID_CA_BUNDLE"),
 	}
-	governanceDomain := os.Getenv("DNSID_GOVERNANCE_ID")
+	zone := os.Getenv("DNSID_TESTNET_ZONE")
 	policyURL := os.Getenv("DNSID_LOG_POLICY_URL")
-	if transport.DNSServer == "" || transport.CABundlePath == "" || governanceDomain == "" || policyURL == "" {
+	if transport.DNSServer == "" || transport.CABundlePath == "" || zone == "" || policyURL == "" {
 		return nil, fmt.Errorf("DNSid local registry environment is required; run with `dnsid local run`")
 	}
 
@@ -33,7 +33,7 @@ func LoadIdentity(ctx context.Context) (*dnsid.IdentityManager, error) {
 	if err != nil {
 		return nil, err
 	}
-	fetcher := &localRegistryFetcher{client: client, suffix: governanceDomain}
+	fetcher := &localRegistryFetcher{client: client, suffix: zone}
 	registry, err := c2sptlog.NewVerificationRegistry(ctx, c2sptlog.VerificationRegistryConfig{
 		PolicyURL:       policyURL,
 		ResourceFetcher: fetcher,

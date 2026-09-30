@@ -50,11 +50,8 @@ DNSid is a thin layer easily composable with existing standards. Recipes name th
 ### 1. Publish `_dnsid` + JWKS for a domain ⭐
 Provision a domain identity on the local DNSid registry — Ed25519 keypair (RFC 8037), registration, signed challenge, published `_dnsid` TXT record, countersigned transparency-log entry — then take it apart by hand: `dig` the record and read every tag, serve and `curl` the JWKS (RFC 7517, at `/.well-known/jwks.json` per RFC 8615), match the served key to the local keypair, check live status. End state: any RFC 9421-aware verifier can authenticate signed messages from your domain. See [recipes/01-publish-jwks/](recipes/01-publish-jwks/).
 
-### 2. Per-agent subdomains
-`agent-billing.corp.com`, `agent-mail.corp.com`, each with own key. Independent revocation scope, least-privilege blast radius.
-
-### 3. Dev-tier under `*.dev.dnsid.ai`
-Fast provisioning, KMS-isolated signing key. Verifiers reject by default; opt in with `AllowDevTier: true`. For prototypes and CI.
+### 2. Per-agent domains
+`corp-billing.test`, `corp-mail.test`, each with its own key. Independent revocation scope, least-privilege blast radius.
 
 ### 4. Key rotation playbook
 JWKS multi-key overlap, TXT TTL ordering, cache invalidation. Rotate without downtime.
@@ -118,7 +115,7 @@ V8 isolate, Web-standard `fetch` and `crypto.subtle`. JWKS cache via `unstable_c
 Deno runtime, full standard library plus Web Crypto. JWKS cache in Deno KV. Call `Context.next()` only on verify; otherwise return 401.
 
 ### 27. AI-generated email provenance (DKIM + DNSid)
-DKIM proves a message left an authorized SMTP server for the sending domain — it doesn't say *which agent* on the sender side composed it. Compose with DNSid by adding a signed `X-Agent-Identity` header (or equivalent in the DKIM-signed header set) carrying the DNSid binding for the agent that produced the message. Recipients verify DKIM as today, then verify the agent identity against `_dnsid.<agent-domain>`. **Result:** receivers can distinguish "this came from the corp.com mail server" from "this was composed by `agent-billing.corp.com`," and apply different trust / filtering / archival policy per agent. Composes with: DKIM, ARC, BIMI; replaces ad-hoc `User-Agent`-string trust for AI-sent mail.
+DKIM proves a message left an authorized SMTP server for the sending domain — it doesn't say *which agent* on the sender side composed it. Compose with DNSid by adding a signed `X-Agent-Identity` header (or equivalent in the DKIM-signed header set) carrying the DNSid binding for the agent that produced the message. Recipients verify DKIM as today, then verify the agent identity against `_dnsid.<agent-domain>`. **Result:** receivers can distinguish "this came from the corp.com mail server" from "this was composed by `corp-billing.test`," and apply different trust / filtering / archival policy per agent. Composes with: DKIM, ARC, BIMI; replaces ad-hoc `User-Agent`-string trust for AI-sent mail.
 
 ### 24. Verified agent identity for Cloudflare Web Bot Auth
 Cloudflare Web Bot Auth signs bot/agent traffic with HTTP Message Signatures (RFC 9421) keyed against a public directory of bot operators. Compose with DNSid by adding the bot operator's `_dnsid`-published JWKS as an additional resolution path: a verifier can accept either the Cloudflare-directory key or the DNSid-resolved key, validating the same RFC 9421 signature either way. Useful when a bot operator runs across surfaces where Cloudflare isn't in path, or when a property wants to anchor trust in domain ownership rather than directory listing. Same wire format end-to-end.
@@ -174,7 +171,7 @@ DNS outage. JWKS 404. Registry down. Stale cache. What does your verifier do? Fa
 Metrics: verify rate, `revoked` hit rate, `unverifiable` spikes (attack signal). Logs: which domain, which key id, which result. Dashboards.
 
 ### 25. C2PA content provenance with DNSid-anchored issuer (experimental)
-C2PA assertions today reference identity via X.509 certs from the C2PA Trust List. Compose with DNSid by signing C2PA assertions with a DNSid key — the manifest carries an issuer identifier resolvable via `_dnsid.<domain>`. Useful for AI-generated content provenance: "this image was produced by an agent at `agent.nytimes.com`." **Status:** experimental — DNSid is not yet on the C2PA Trust List, so consumers must verify out-of-band or trust the assertion explicitly. Demonstrates the composition pattern; production adoption requires Trust List inclusion.
+C2PA assertions today reference identity via X.509 certs from the C2PA Trust List. Compose with DNSid by signing C2PA assertions with a DNSid key — the manifest carries an issuer identifier resolvable via `_dnsid.<domain>`. Useful for AI-generated content provenance: "this image was produced by an agent at `news-agent.test`." **Status:** experimental — DNSid is not yet on the C2PA Trust List, so consumers must verify out-of-band or trust the assertion explicitly. Demonstrates the composition pattern; production adoption requires Trust List inclusion.
 
 ---
 
@@ -191,9 +188,6 @@ Different trust anchor (domain owner key, not CA). Not for HTTPS PKI. Complement
 
 ### A4. DNSid without revocation plan
 A signed binding with no revocation strategy is a long-lived credential waiting to be stolen. Recipe 5 is not optional.
-
-### A5. Dev-tier in production
-`*.dev.dnsid.ai` bindings in a prod verifier path means anyone with a dev account can spoof. Default reject; opt in only for prototypes.
 
 ### A6. Treating DNSid as a W3C DID method
 DID resolution and DNSid resolution serve overlapping needs but aren't the same. DNSid is not a registered DID method and doesn't aim to be — the trust root is DNS ownership, not a self-asserted controller document. Use DID for identifier portability across resolution networks; use DNSid when DNS ownership is the trust signal you actually want. Don't shim one as the other.

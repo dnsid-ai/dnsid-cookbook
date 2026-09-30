@@ -33,7 +33,7 @@ test('ReviewGateway authorizer binds the deployed bot subject and audience', () 
   gateway.targets = []; // No backend packaging needed to check the gateway policy.
   const previousDomain = process.env.BOT_DOMAIN;
   const previousAudience = process.env.REVIEW_GATEWAY_AUDIENCE;
-  process.env.BOT_DOMAIN = 'reviewer.example.com';
+  process.env.BOT_DOMAIN = 'reviewer.test';
   process.env.REVIEW_GATEWAY_AUDIENCE = 'https://review.example.com/mcp';
   try {
     const stack = new AgentCoreStack(new cdk.App(), 'GatewayTest', {
@@ -63,7 +63,7 @@ test('ReviewGateway authorizer binds the deployed bot subject and audience', () 
               InboundTokenClaimName: 'sub',
               AuthorizingClaimMatchValue: {
                 ClaimMatchOperator: 'EQUALS',
-                ClaimMatchValue: { MatchValueString: 'reviewer.example.com' },
+                ClaimMatchValue: { MatchValueString: 'reviewer.test' },
               },
             },
           ],

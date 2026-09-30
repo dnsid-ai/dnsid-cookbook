@@ -20,7 +20,7 @@ import (
 )
 
 func TestDynamoDBStoreSetNicknameSendsReservationTransaction(t *testing.T) {
-	actor := board.Identity{Agent: "agent.example.com"}
+	actor := board.Identity{Agent: "agent.test"}
 	server, transactions := newDynamoDBTestServer(t, []map[string]any{
 		ddbMembershipItem("room", "room", actor.Agent, board.RolePoster, "old", "old", 3),
 	})
@@ -52,8 +52,8 @@ func TestDynamoDBStoreSetNicknameSendsReservationTransaction(t *testing.T) {
 }
 
 func TestDynamoDBStoreRevokeAllowlistReleasesNicknameReservation(t *testing.T) {
-	owner := board.Identity{Agent: "owner.example.com"}
-	target := "agent.example.com"
+	owner := board.Identity{Agent: "owner.test"}
+	target := "agent.test"
 	server, transactions := newDynamoDBTestServer(t, []map[string]any{
 		ddbRoomItem("room", "room", owner.Agent, 8),
 		ddbMembershipItem("room", "room", target, board.RolePoster, "Wolfgang", "wolfgang", 5),
@@ -87,8 +87,8 @@ func TestDynamoDBStoreRevokeAllowlistReleasesNicknameReservation(t *testing.T) {
 
 func TestDynamoDBStoreClassifiesPostConditionConflicts(t *testing.T) {
 	ctx := context.Background()
-	actor := board.Identity{Agent: "agent.example.com"}
-	archivedRoom := ddbRoomItem("room", "room", "owner.example.com", 8)
+	actor := board.Identity{Agent: "agent.test"}
+	archivedRoom := ddbRoomItem("room", "room", "owner.test", 8)
 	archivedRoom["archived"] = ddbBool(true)
 
 	tests := []struct {
@@ -109,24 +109,24 @@ func TestDynamoDBStoreClassifiesPostConditionConflicts(t *testing.T) {
 		},
 		{
 			name:     "missing actor membership is concealed as denied",
-			getItems: []map[string]any{ddbRoomItem("room", "room", "owner.example.com", 8), {}},
+			getItems: []map[string]any{ddbRoomItem("room", "room", "owner.test", 8), {}},
 			wantErr:  board.ErrDenied,
 		},
 		{
 			name:               "stale actor membership version remains a conflict",
-			getItems:           []map[string]any{ddbRoomItem("room", "room", "owner.example.com", 8), ddbMembershipItem("room", "room", actor.Agent, board.RolePoster, "", "", 5)},
+			getItems:           []map[string]any{ddbRoomItem("room", "room", "owner.test", 8), ddbMembershipItem("room", "room", actor.Agent, board.RolePoster, "", "", 5)},
 			actorMemberVersion: 4,
 			wantErr:            board.ErrConflict,
 		},
 		{
 			name:               "actor without post permission is concealed as denied",
-			getItems:           []map[string]any{ddbRoomItem("room", "room", "owner.example.com", 8), ddbMembershipItem("room", "room", actor.Agent, board.RoleReader, "", "", 5)},
+			getItems:           []map[string]any{ddbRoomItem("room", "room", "owner.test", 8), ddbMembershipItem("room", "room", actor.Agent, board.RoleReader, "", "", 5)},
 			actorMemberVersion: 5,
 			wantErr:            board.ErrDenied,
 		},
 		{
 			name:               "authorized actor leaves the transaction failure as a conflict",
-			getItems:           []map[string]any{ddbRoomItem("room", "room", "owner.example.com", 8), ddbMembershipItem("room", "room", actor.Agent, board.RolePoster, "", "", 5)},
+			getItems:           []map[string]any{ddbRoomItem("room", "room", "owner.test", 8), ddbMembershipItem("room", "room", actor.Agent, board.RolePoster, "", "", 5)},
 			actorMemberVersion: 5,
 			wantErr:            board.ErrConflict,
 		},
@@ -148,7 +148,7 @@ func TestDynamoDBStoreClassifiesPostConditionConflicts(t *testing.T) {
 
 func TestDynamoDBStoreReplayPostClassifiesAuthorizationConflict(t *testing.T) {
 	ctx := context.Background()
-	actor := board.Identity{Agent: "agent.example.com"}
+	actor := board.Identity{Agent: "agent.test"}
 	idem := ddbItem{MessageID: "msg_1", RequestHash: "hash-1"}
 
 	tests := []struct {
@@ -159,19 +159,19 @@ func TestDynamoDBStoreReplayPostClassifiesAuthorizationConflict(t *testing.T) {
 	}{
 		{
 			name:               "revoked actor is concealed as denied",
-			getItems:           []map[string]any{ddbRoomItem("room", "room", "owner.example.com", 8), {}},
+			getItems:           []map[string]any{ddbRoomItem("room", "room", "owner.test", 8), {}},
 			actorMemberVersion: 5,
 			wantErr:            board.ErrDenied,
 		},
 		{
 			name:               "reader actor is concealed as denied",
-			getItems:           []map[string]any{ddbRoomItem("room", "room", "owner.example.com", 8), ddbMembershipItem("room", "room", actor.Agent, board.RoleReader, "", "", 5)},
+			getItems:           []map[string]any{ddbRoomItem("room", "room", "owner.test", 8), ddbMembershipItem("room", "room", actor.Agent, board.RoleReader, "", "", 5)},
 			actorMemberVersion: 5,
 			wantErr:            board.ErrDenied,
 		},
 		{
 			name:               "stale actor version remains conflict",
-			getItems:           []map[string]any{ddbRoomItem("room", "room", "owner.example.com", 8), ddbMembershipItem("room", "room", actor.Agent, board.RolePoster, "", "", 5)},
+			getItems:           []map[string]any{ddbRoomItem("room", "room", "owner.test", 8), ddbMembershipItem("room", "room", actor.Agent, board.RolePoster, "", "", 5)},
 			actorMemberVersion: 4,
 			wantErr:            board.ErrConflict,
 		},

@@ -18,7 +18,7 @@ DIR="recipes/${N}-${SLUG}"
 # The agent's short name (also its local registry identity name). Derived from the
 # slug; override by editing the generated Makefile.
 AGENT=$(printf '%s' "$SLUG" | cut -d- -f1)
-DOMAIN="${AGENT}.dev.dnsid.test"
+DOMAIN="${AGENT}.test"
 PORT=3301
 
 if [ -d "$DIR" ]; then
@@ -34,7 +34,7 @@ cat > "${DIR}/Makefile" <<EOF
 .PHONY: bootstrap run verify clean
 
 DNSID_CLI ?= dnsid
-ZONE ?= dev.dnsid.test
+ZONE ?= test
 AGENT := ${AGENT}
 DOMAIN := \$(AGENT).\$(ZONE)
 PORT ?= ${PORT}
@@ -42,7 +42,7 @@ PORT ?= ${PORT}
 # Start the local registry and provision the identity. Idempotent: \`agent ensure\`
 # and \`log issue\` are safe to re-run for existing identities.
 bootstrap:
-	\$(DNSID_CLI) local up
+	\$(DNSID_CLI) local up --zone \$(ZONE)
 	\$(DNSID_CLI) local agent ensure \$(AGENT) --upstream http://localhost:\$(PORT) -- \\
 		\$(DNSID_CLI) log issue --domain \$(DOMAIN)
 	uv sync
@@ -112,7 +112,7 @@ set -euo pipefail
 cd "\$(dirname "\$0")/.."
 
 DNSID_CLI="\${DNSID_CLI:-dnsid}"
-ZONE="\${ZONE:-dev.dnsid.test}"
+ZONE="\${ZONE:-test}"
 PORT="\${PORT:-${PORT}}"
 ASSERT="\${DNSID_RECIPE_ASSERT:-1}"
 
@@ -193,9 +193,9 @@ cat > "${DIR}/README.md" <<EOF
 
 | Process | Where | Role |
 |---|---|---|
-| DNS server | local registry container, \`127.0.0.1:7753\` | Serves live \`_dnsid.*.dev.dnsid.test\` TXT records |
+| DNS server | local registry container, \`127.0.0.1:7753\` | Serves live \`_dnsid.<agent>.test\` TXT records |
 | Registry + transparency log | local registry container, \`127.0.0.1:7755\` | Registration, challenge verification, publication, C2SP log |
-| TLS proxy | local registry container | Terminates \`https://*.dev.dnsid.test\` with a local CA |
+| TLS proxy | local registry container | Terminates \`https://<agent>.test\` with a local CA |
 | ${AGENT} | host process, \`:${PORT}\` | … |
 
 ## Step 1 — …

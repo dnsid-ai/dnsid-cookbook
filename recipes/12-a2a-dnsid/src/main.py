@@ -14,7 +14,7 @@ Usage:
         uv run python src/main.py
 
     dnsid local run alice --upstream http://localhost:3001 -- \
-        uv run python src/main.py bob.dev.dnsid.test
+        uv run python src/main.py bob.test
 
 All DNSID_* variables must be present in the process environment before
 startup — `dnsid local run` injects them. DNS routing and TLS trust are

@@ -69,11 +69,11 @@ class FailingAuditStore(FakeStore):
 
 def event(path, payload, headers=None):
     default_headers = {
-        "x-dnsid-sub": "agent.example.com",
+        "x-dnsid-sub": "agent.test",
         "x-dnsid-iss": "https://api.dev.dnsid.ai",
         "x-dnsid-aud": "https://gateway.example/mcp",
         "x-dnsid-jti": "token-id",
-        "x-dnsid-domain": "agent.example.com",
+        "x-dnsid-domain": "agent.test",
         "x-dnsid-auth-mode": "gateway-dnsid-lab",
         "x-dnsid-verified-at": "2026-05-28T02:00:00Z",
         "x-gateway-request-id": "gateway-request",
@@ -100,7 +100,7 @@ def decode(response):
 
 def test_generate_image_returns_artifact_and_trusted_identity():
     store = FakeStore()
-    handler = make_handler(FakeGenerator(), store, expected_sub="agent.example.com")
+    handler = make_handler(FakeGenerator(), store, expected_sub="agent.test")
 
     status, body = decode(handler(event("/generate-image", {"prompt": "a bright robot"}), None))
 
@@ -108,13 +108,13 @@ def test_generate_image_returns_artifact_and_trusted_identity():
     assert body["ok"] is True
     assert body["artifact_id"] == "artifact-id"
     assert "audit_s3_uri" not in body
-    assert body["dnsid_context"]["sub"] == "agent.example.com"
+    assert body["dnsid_context"]["sub"] == "agent.test"
     assert store.audit_events[0]["trusted_identity"]["jti"] == "token-id"
 
 
 def test_generate_image_logs_sanitized_success(caplog):
     caplog.set_level(logging.INFO, logger="image_poc.aws_handler")
-    handler = make_handler(FakeGenerator(), FakeStore(), expected_sub="agent.example.com")
+    handler = make_handler(FakeGenerator(), FakeStore(), expected_sub="agent.test")
 
     status, body = decode(handler(event("/generate-image", {"prompt": "secret prompt"}), None))
 
@@ -122,7 +122,7 @@ def test_generate_image_logs_sanitized_success(caplog):
     record = success_log_record(caplog)
     assert record["event"] == "phase3_generate_success"
     assert record["auth_mode"] == "gateway-dnsid-lab"
-    assert record["dnsid_sub"] == "agent.example.com"
+    assert record["dnsid_sub"] == "agent.test"
     assert record["dnsid_issuer"] == "https://api.dev.dnsid.ai"
     assert record["token_jti_present"] is True
     assert record["gateway_request_id"] == "gateway-request"
@@ -134,19 +134,19 @@ def test_generate_image_logs_sanitized_success(caplog):
 
 
 def test_whoami_returns_phase3_fields():
-    handler = make_handler(FakeGenerator(), FakeStore(), expected_sub="agent.example.com")
+    handler = make_handler(FakeGenerator(), FakeStore(), expected_sub="agent.test")
 
     status, body = decode(handler(event("/whoami-dnsid", {}), None))
 
     assert status == 200
-    assert body["sub"] == "agent.example.com"
-    assert body["accountable_entity"] == "agent.example.com"
+    assert body["sub"] == "agent.test"
+    assert body["accountable_entity"] == "agent.test"
     assert body["dnsid_status"] == "not_checked_phase3"
     assert body["gateway_request_id"] == "gateway-request"
 
 
 def test_generate_image_rejects_missing_trusted_context():
-    handler = make_handler(FakeGenerator(), FakeStore(), expected_sub="agent.example.com")
+    handler = make_handler(FakeGenerator(), FakeStore(), expected_sub="agent.test")
 
     status, body = decode(handler(event("/generate-image", {"prompt": "hello"}, headers={"x-dnsid-jti": ""}), None))
 
@@ -156,7 +156,7 @@ def test_generate_image_rejects_missing_trusted_context():
 
 def test_generate_image_ignores_identity_like_body_fields():
     store = FakeStore()
-    handler = make_handler(FakeGenerator(), store, expected_sub="agent.example.com")
+    handler = make_handler(FakeGenerator(), store, expected_sub="agent.test")
 
     status, body = decode(
         handler(
@@ -169,7 +169,7 @@ def test_generate_image_ignores_identity_like_body_fields():
     )
 
     assert status == 200
-    assert body["dnsid_context"]["sub"] == "agent.example.com"
+    assert body["dnsid_context"]["sub"] == "agent.test"
     assert body["ignored_identity_args"] == ["identity", "identity.sub"]
 
 
@@ -177,7 +177,7 @@ def test_generate_image_redacts_model_error_details():
     handler = make_handler(
         FailingGenerator(),
         FakeStore(),
-        expected_sub="agent.example.com",
+        expected_sub="agent.test",
     )
 
     status, body = decode(handler(event("/generate-image", {"prompt": "hello"}), None))
@@ -193,7 +193,7 @@ def test_generate_image_logs_sanitized_model_failure(caplog):
     handler = make_handler(
         FailingGenerator(),
         FakeStore(),
-        expected_sub="agent.example.com",
+        expected_sub="agent.test",
     )
 
     status, body = decode(handler(event("/generate-image", {"prompt": "secret prompt"}), None))
@@ -206,7 +206,7 @@ def test_generate_image_logs_sanitized_model_failure(caplog):
     assert record["model_region"] == "us-west-2"
     assert record["gateway_request_id"] == "gateway-request"
     assert record["api_request_id"] == "api-request"
-    assert record["trusted_identity"]["sub"] == "agent.example.com"
+    assert record["trusted_identity"]["sub"] == "agent.test"
     assert record["token_jti"] == "token-id"
     assert record["correlation_id"] == body["correlation_id"]
     assert record["prompt_hash"].startswith("sha256:")
@@ -219,7 +219,7 @@ def test_generate_image_logs_sanitized_target_failure(caplog):
     handler = make_handler(
         FakeGenerator(),
         FailingWriteStore(),
-        expected_sub="agent.example.com",
+        expected_sub="agent.test",
     )
 
     status, body = decode(handler(event("/generate-image", {"prompt": "secret prompt"}), None))
@@ -239,7 +239,7 @@ def test_generate_image_logs_artifact_context_when_audit_write_fails(caplog):
     handler = make_handler(
         FakeGenerator(),
         FailingAuditStore(),
-        expected_sub="agent.example.com",
+        expected_sub="agent.test",
     )
 
     status, body = decode(handler(event("/generate-image", {"prompt": "secret prompt"}), None))

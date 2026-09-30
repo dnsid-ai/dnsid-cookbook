@@ -148,11 +148,8 @@ def load_identity() -> AgentIdentity:
         raise SystemExit("DNSID_AGENT_PORT must be a positive integer") from None
     policy_url = required_log_policy_url(env)
 
-    # The CLI local registry resolves every name under the governance domain (this
-    # agent's endpoints and every peer's) to the host's loopback proxy, which
-    # the SDK's SSRF guard would otherwise block. A leading-dot entry allows
-    # that zone only; production verifiers keep this empty.
-    transport_config.private_address_hosts = frozenset({"." + protocol_config.governance_id})
+    # load_environment reads DNSID_PRIVATE_HOSTS from the local registry.
+    # Its DNS zone includes peers and the log, not just this agent's gi.
 
     # Registry mutation calls (register/verify/publish) require a session
     # credential. `dnsid local run` injects DNSID_API_KEY; DNSID_REGISTRY_API_KEY

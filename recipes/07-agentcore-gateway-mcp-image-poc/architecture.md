@@ -146,8 +146,9 @@ directory.
 
 ## Operational Notes and Limits
 
-- Defaults target `DNSID_SERVER=https://api.dev.dnsid.ai` and
-  `DNSID_AGENT_DOMAIN=<your-agent>.sandbox.dev.dnsid.ai`.
+- `DNSID_SERVER` defaults to `https://api.dev.dnsid.ai`.
+  Set `DNSID_AGENT_DOMAIN` to your already-provisioned identity's full domain;
+  there is no default agent domain.
 - Gateway mode requires an HTTPS DNSid server and a valid
   `.artifacts/gateway/phase3-state.json`.
 - The local server defaults to `127.0.0.1:8787`; the README examples often use

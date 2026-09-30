@@ -105,7 +105,7 @@ def test_local_generate_result_log_is_sanitized(capsys):
         {
             "ok": True,
             "auth_mode": "gateway-dnsid",
-            "dnsid_sub": "agent.example.test",
+            "dnsid_sub": "agent.test",
             "dnsid_issuer": "https://api.dev.dnsid.ai",
             "gateway_request_id": "gateway-request",
             "correlation_id": "correlation-id",
@@ -123,7 +123,7 @@ def test_local_generate_result_log_is_sanitized(capsys):
         "status": 200,
         "ok": True,
         "auth_mode": "gateway-dnsid",
-        "dnsid_sub": "agent.example.test",
+        "dnsid_sub": "agent.test",
         "dnsid_issuer": "https://api.dev.dnsid.ai",
         "gateway_request_id": "gateway-request",
         "correlation_id": "correlation-id",
@@ -171,7 +171,7 @@ def test_server_rejects_cross_origin_generation(tmp_path):
 
 def test_gateway_mode_missing_state_returns_sanitized_503(monkeypatch, tmp_path):
     monkeypatch.setenv("IMAGE_POC_MODE", "gateway")
-    monkeypatch.setenv("DNSID_AGENT_DOMAIN", "agent.example.com")
+    monkeypatch.setenv("DNSID_AGENT_DOMAIN", "agent.test")
     monkeypatch.setenv("GATEWAY_STATE_PATH", str(tmp_path / "missing-state.json"))
     monkeypatch.setenv("ARTIFACT_DIR", str(tmp_path / "images"))
     monkeypatch.setenv("AUDIT_PATH", str(tmp_path / "audit.jsonl"))

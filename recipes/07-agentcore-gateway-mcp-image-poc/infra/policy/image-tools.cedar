@@ -7,7 +7,7 @@ permit(
   resource
 )
 when {
-  principal.sub == "agent.example.com" &&
+  principal.sub == "agent.test" &&
   [
     "generate_image",
     "whoami_dnsid"

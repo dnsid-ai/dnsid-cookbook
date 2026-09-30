@@ -4,8 +4,8 @@
 Roles (each process runs under `dnsid local run <name>`, which injects the
 DNSID_* environment for that identity):
 
-    tools                     the plain-HTTP tools API (tools.dev.dnsid.test)
-    graph                     the LangGraph A2A agent (graph.dev.dnsid.test)
+    tools                     the plain-HTTP tools API (tools.test)
+    graph                     the LangGraph A2A agent (graph.test)
     send <graph-fqdn> <text>  verify the graph agent, send one signed A2A
                               message as the current identity, print the reply
 
@@ -17,7 +17,7 @@ Usage:
         uv run python -u src/main.py graph
 
     dnsid local run peer --upstream http://localhost:3102 -- \
-        uv run python -u src/main.py send graph.dev.dnsid.test "Please order 3 widgets"
+        uv run python -u src/main.py send graph.test "Please order 3 widgets"
 """
 
 from __future__ import annotations
@@ -49,7 +49,7 @@ from server import A2AAgentServer, A2AServerOptions
 from tools_server import build_tools_app
 from wellknown import UvicornRunner, add_wellknown_routes
 
-TOOLS_FQDN = os.environ.get("DNSID_RECIPE_TOOLS_FQDN", "tools.dev.dnsid.test")
+TOOLS_FQDN = os.environ.get("DNSID_RECIPE_TOOLS_FQDN", "tools.test")
 
 
 async def wait_for_shutdown() -> None:

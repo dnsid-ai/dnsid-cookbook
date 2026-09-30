@@ -23,14 +23,14 @@ from gateway_resources import (  # noqa: E402
 def test_dnsid_gateway_configuration_is_env_overridable(monkeypatch):
     monkeypatch.setenv("DNSID_CLI", "/opt/dnsid/bin/dnsid")
     monkeypatch.setenv("DNSID_SERVER", "https://dnsid.example.test/")
-    monkeypatch.setenv("DNSID_AGENT_DOMAIN", "agent.example.test")
+    monkeypatch.setenv("DNSID_AGENT_DOMAIN", "agent.test")
     reloaded = importlib.reload(gateway_resources)
     try:
         assert reloaded.DNSID_CLI == "/opt/dnsid/bin/dnsid"
         assert reloaded.DNSID_SERVER == "https://dnsid.example.test"
         assert reloaded.DNSID_ISSUER == "https://dnsid.example.test"
-        assert reloaded.DNSID_AGENT_DOMAIN == "agent.example.test"
-        assert reloaded.EXPECTED_DNSID_SUB == "agent.example.test"
+        assert reloaded.DNSID_AGENT_DOMAIN == "agent.test"
+        assert reloaded.EXPECTED_DNSID_SUB == "agent.test"
 
         authorizer = reloaded.gateway_authorizer_config("gateway-audience")
         custom_jwt = authorizer["customJWTAuthorizer"]
@@ -42,7 +42,7 @@ def test_dnsid_gateway_configuration_is_env_overridable(monkeypatch):
             custom_jwt["customClaims"][0]["authorizingClaimMatchValue"]["claimMatchValue"][
                 "matchValueString"
             ]
-            == "agent.example.test"
+            == "agent.test"
         )
     finally:
         monkeypatch.delenv("DNSID_CLI", raising=False)

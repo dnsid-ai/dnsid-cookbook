@@ -32,11 +32,11 @@ def request_event(token_claims, headers=None):
 
 
 def test_request_interceptor_injects_trusted_headers(monkeypatch):
-    monkeypatch.setenv("EXPECTED_DNSID_SUB", "agent.example.com")
+    monkeypatch.setenv("EXPECTED_DNSID_SUB", "agent.test")
     monkeypatch.setenv("EXPECTED_DNSID_ISS", "https://api.dev.dnsid.ai")
     monkeypatch.setenv("EXPECTED_GATEWAY_AUDIENCE", "https://gateway.example/mcp")
     token_claims = {
-        "sub": "agent.example.com",
+        "sub": "agent.test",
         "iss": "https://api.dev.dnsid.ai",
         "aud": "https://gateway.example/mcp",
         "jti": "token-id",
@@ -47,13 +47,13 @@ def test_request_interceptor_injects_trusted_headers(monkeypatch):
 
     transformed = response["mcp"]["transformedGatewayRequest"]
     assert transformed["body"]["method"] == "tools/list"
-    assert transformed["headers"]["x-dnsid-sub"] == "agent.example.com"
+    assert transformed["headers"]["x-dnsid-sub"] == "agent.test"
     assert transformed["headers"]["x-dnsid-jti"] == "token-id"
     assert "Authorization" not in transformed["headers"]
 
 
 def test_request_interceptor_denies_wrong_subject(monkeypatch):
-    monkeypatch.setenv("EXPECTED_DNSID_SUB", "agent.example.com")
+    monkeypatch.setenv("EXPECTED_DNSID_SUB", "agent.test")
     monkeypatch.setenv("EXPECTED_DNSID_ISS", "https://api.dev.dnsid.ai")
     monkeypatch.setenv("EXPECTED_GATEWAY_AUDIENCE", "https://gateway.example/mcp")
     token_claims = {
@@ -76,7 +76,7 @@ def test_request_interceptor_denies_missing_required_configuration(monkeypatch):
     monkeypatch.setenv("EXPECTED_DNSID_ISS", "https://api.dev.dnsid.ai")
     monkeypatch.setenv("EXPECTED_GATEWAY_AUDIENCE", "https://gateway.example/mcp")
     token_claims = {
-        "sub": "agent.example.com",
+        "sub": "agent.test",
         "iss": "https://api.dev.dnsid.ai",
         "aud": "https://gateway.example/mcp",
         "jti": "token-id",

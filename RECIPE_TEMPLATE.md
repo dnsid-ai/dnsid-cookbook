@@ -64,9 +64,9 @@ If a concept is non-obvious or contested, say so honestly. Don't fake confidence
 
 | Process | Where | Role |
 |---|---|---|
-| DNS server | local registry container, `127.0.0.1:7753` | Serves live `_dnsid.*.dev.dnsid.test` TXT records |
+| DNS server | local registry container, `127.0.0.1:7753` | Serves live `_dnsid.<agent>.test` TXT records |
 | Registry + transparency log | local registry container, `127.0.0.1:7755` | Registration, challenge verification, publication, C2SP log |
-| TLS proxy | local registry container | Terminates `https://*.dev.dnsid.test` with a local CA, routes to agent upstreams |
+| TLS proxy | local registry container | Terminates `https://<agent>.test` with a local CA, routes to agent upstreams |
 | *your-process* | host process, `:PORT` | *what it does* |
 
 ## Step 1 — *Short imperative title*
@@ -143,7 +143,7 @@ For deploy-only recipes: how to confirm the recipe is working in the vendor's ed
 - **One harness: the DNSid local registry.** Every runnable recipe runs against the real DNSid local registry (`dnsid local`), driven by the `dnsid` CLI (from `dnsid-ai/dnsid`). `dnsid testnet` is the deprecated former name of the same command — don't write it. Do not add CoreDNS zone files, docker-compose DNS services, or mock registries — that earlier convention is retired. The local registry pulls `ghcr.io/identity-digital/dnsid-local-registry:main` (anonymously pullable; override with `DNSID_LOCAL_IMAGE`).
 
 - **The harness contract.** Follow it exactly — recipe 12 (`recipes/12-a2a-dnsid/`) is the reference implementation:
-  1. `dnsid local up` / `down` / `reset --hard` own the local registry lifecycle. Recipes own no DNS or registry containers.
+  1. `dnsid local up --zone test` / `down` / `reset --hard` own the local registry lifecycle. Recipes own no DNS or registry containers.
   2. Identities are provisioned idempotently with `dnsid local agent ensure <name> --upstream <url> -- dnsid log issue --domain <fqdn>`.
   3. Recipe processes launch under `dnsid local run <name> -- <cmd>`, which injects the full `DNSID_*` environment: DNS routing (`DNSID_DNS_SERVER`), TLS trust (`DNSID_CA_BUNDLE`), the registry credential (`DNSID_API_KEY`), the identity directory (`DNSID_CONFIG_DIR`), and the independently trusted policy location (`DNSID_LOG_POLICY_URL`). Application code reads config from that environment; it never hardcodes local registry endpoints.
 
@@ -155,7 +155,7 @@ For deploy-only recipes: how to confirm the recipe is working in the vendor's ed
 
 - **Scaffolding.** `make new N=<number> SLUG=<slug>` scaffolds the local-registry layout: Makefile (`bootstrap`/`run`/`verify`/`clean`), `pyproject.toml`, `src/`, `verify/verify.sh`, and a README skeleton. Recipes 12 and 31 are the reference implementations to crib from.
 
-- **Use `.test`, not `.local`.** Local registry identities live under `*.dev.dnsid.test`. `.local` is reserved for Multicast DNS (RFC 6762); RFC 2606 reserves `.test` for testing, and it will never resolve in public DNS. `python3 scripts/scan-hardcoded-identities.py` must pass.
+- **Use `.test`, not `.local`.** Use distinct second-level identities such as `alice.test` and `bob.test` in the local registry's `test` zone. `_dnsid.alice.test` is the TXT owner name, not an agent identity; delegated service hosts such as `dnsid.alice.test` are also separate from the identity. `.local` is reserved for Multicast DNS (RFC 6762); RFC 2606 reserves `.test` for testing, and it will never resolve in public DNS. `python3 scripts/scan-hardcoded-identities.py` must pass.
 - **Use the canonical TXT shape.** One semicolon-separated `_dnsid` TXT value with `v` first, `ku=` for the JWKS endpoint, and `su=` for status. Do not emit the legacy space-separated `kid` / `jwks` / `registry` shape. (The local registry emits the canonical shape; this rule mainly constrains prose and hand-written examples.)
 
 - **Python recipes:** Python 3.11+, managed with `uv`. Pin dependencies in the recipe's own `pyproject.toml` and record the versions actually tested against. Launch with `uv run python -u …` — the `-u` matters, because verify scripts grep the process output and Python buffers stdout when piped.

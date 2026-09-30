@@ -9,7 +9,7 @@ import (
 
 func TestLocalAuthorizerPolicyMatrix(t *testing.T) {
 	authorizer := NewLocalAuthorizer()
-	identity := board.Identity{Agent: "agent.example.com"}
+	identity := board.Identity{Agent: "agent.test"}
 	actions := []board.Action{
 		board.ActionConnectRoom,
 		board.ActionReadMessages,
@@ -28,7 +28,7 @@ func TestLocalAuthorizerPolicyMatrix(t *testing.T) {
 	for role, expected := range tests {
 		caps, _ := board.CapabilitiesForRole(role)
 		snapshot := board.AuthSnapshot{
-			Room: board.Room{Owner: "owner.example.com"},
+			Room: board.Room{Owner: "owner.test"},
 			Membership: &board.Membership{
 				Agent:        identity.Agent,
 				Role:         role,
@@ -52,11 +52,11 @@ func TestLocalAuthorizerPolicyMatrix(t *testing.T) {
 
 func TestLocalAuthorizerOwnerProtection(t *testing.T) {
 	authorizer := NewLocalAuthorizer()
-	identity := board.Identity{Agent: "owner.example.com"}
+	identity := board.Identity{Agent: "owner.test"}
 	snapshot := board.AuthSnapshot{Room: board.Room{Owner: identity.Agent}}
 	for _, ctx := range []board.AuthContext{
 		{Operation: "grant", TargetAgent: identity.Agent, NewRole: board.RoleAdmin},
-		{Operation: "grant", TargetAgent: "other.example.com", NewRole: board.RoleOwner},
+		{Operation: "grant", TargetAgent: "other.test", NewRole: board.RoleOwner},
 	} {
 		if err := authorizer.Authorize(context.Background(), identity, board.ActionUpdateAllowList, snapshot, ctx); err == nil {
 			t.Fatalf("expected owner-protection deny for %+v", ctx)

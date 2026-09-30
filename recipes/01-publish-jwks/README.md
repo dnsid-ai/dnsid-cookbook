@@ -11,7 +11,7 @@
 
 ## What you'll build
 
-A published DNSid identity for `publish.dev.dnsid.test` on a local DNSid registry, with your own process serving its public keys. One `make bootstrap` runs the whole provisioning lifecycle — keypair generation, registration, a signed challenge, publication to DNS, and a countersigned transparency-log entry. Then you take it apart by hand: `dig` the `_dnsid` TXT record and read every tag, `curl` the JWKS the record points at, watch that the key served over HTTPS is byte-for-byte the keypair on your disk, and hit the live status endpoint. At the end, any DNSid verifier can authenticate messages signed by this domain — and you'll know exactly which three lookups make that possible.
+A published DNSid identity for `publish.test` on a local DNSid registry, with your own process serving its public keys. One `make bootstrap` runs the whole provisioning lifecycle — keypair generation, registration, a signed challenge, publication to DNS, and a countersigned transparency-log entry. Then you take it apart by hand: `dig` the `_dnsid` TXT record and read every tag, `curl` the JWKS the record points at, watch that the key served over HTTPS is byte-for-byte the keypair on your disk, and hit the live status endpoint. At the end, any DNSid verifier can authenticate messages signed by this domain — and you'll know exactly which three lookups make that possible.
 
 ## Why this matters
 
@@ -40,9 +40,9 @@ Every other recipe in this cookbook depends on a published identity; this is the
 
 | Process | Where | Role |
 |---|---|---|
-| DNS server | local registry container, `127.0.0.1:7753` | Serves the live `_dnsid.publish.dev.dnsid.test` TXT record you'll dig |
+| DNS server | local registry container, `127.0.0.1:7753` | Serves the live `_dnsid.publish.test` TXT record you'll dig |
 | Registry + transparency log | local registry container, `127.0.0.1:7755` | Registration, challenge verification, publication, C2SP log, live status |
-| TLS proxy | local registry container, `127.0.0.1:443` | Terminates `https://*.dev.dnsid.test` with a local CA and routes to your upstream |
+| TLS proxy | local registry container, `127.0.0.1:443` | Terminates `https://publish.test` with a local CA and routes to your upstream |
 | JWKS server (this recipe) | host process, `:3201` | `src/serve.py` — answers the record's `ku=` URL with the public key |
 
 ## Step 1 — Provision and publish the identity
@@ -51,7 +51,7 @@ Every other recipe in this cookbook depends on a published identity; this is the
 make bootstrap
 ```
 
-Two idempotent commands ([`Makefile`](Makefile)): `dnsid local up` starts the containers, and `dnsid local agent ensure publish ... -- dnsid log issue --domain publish.dev.dnsid.test` does everything an identity needs to exist: it generates an Ed25519 keypair (kept in a local identity directory — the private key never goes anywhere), registers the domain with the registry, answers the registry's challenge by signing a nonce (proving key possession — anyone can *claim* a domain name), publishes the `_dnsid` record to DNS, and submits the countersigned ISSUANCE entry to the transparency log.
+Two idempotent commands ([`Makefile`](Makefile)): `dnsid local up --zone test` starts the containers, and `dnsid local agent ensure publish ... -- dnsid log issue --domain publish.test` does everything an identity needs to exist: it generates an Ed25519 keypair (kept in a local identity directory — the private key never goes anywhere), registers the domain with the registry, answers the registry's challenge by signing a nonce (proving key possession — anyone can *claim* a domain name), publishes the `_dnsid` record to DNS, and submits the countersigned ISSUANCE entry to the transparency log.
 
 That's the entire lifecycle the rest of this recipe inspects. Nothing below creates anything — it's all reading back what this step published.
 
@@ -60,11 +60,11 @@ That's the entire lifecycle the rest of this recipe inspects. Nothing below crea
 The local registry's DNS server is a real DNS server on `127.0.0.1:7753`, so the record is one `dig` away:
 
 ```bash
-dig @127.0.0.1 -p 7753 _dnsid.publish.dev.dnsid.test TXT +short
+dig @127.0.0.1 -p 7753 _dnsid.publish.test TXT +short
 ```
 
 ```
-"v=dnsid-draft-01;ek=https://dnsid.dnsid.test/.well-known/dnsid-ek.json;gi=dnsid.test;ku=https://publish.dev.dnsid.test/.well-known/jwks.json;lr=c2sp-tlog:testnet:https://registry.dev.dnsid.test#ag-...;sg=...;su=https://registry.dev.dnsid.test/v1/status/publish.dev.dnsid.test"
+"v=dnsid-draft-01;ek=https://dnsid.publish.test/.well-known/dnsid-ek.json;gi=publish.test;ku=https://publish.test/.well-known/jwks.json;lr=c2sp-tlog:testnet:https://registry.test#<stream-id>;sg=...;su=https://registry.test/v1/status/publish.test"
 ```
 
 One semicolon-separated value — this is the identity's entire public anchor. Tag by tag:
@@ -76,14 +76,14 @@ One semicolon-separated value — this is the identity's entire public anchor. T
 | `su=` | Status URL — live standing (ACTIVE, revoked, …). Checked per verification, so revocation takes effect without touching DNS consumers. |
 | `lr=` | Log reference — which transparency log carries this identity's ISSUANCE entry. |
 | `sg=` | A signature over the record itself, so tampering with any tag is detectable. |
-| `gi=` | Governance id — the namespace operator this identity is provisioned under. |
-| `ek=` | The governance operator's endorsement key location. |
+| `gi=` | Governance id — the accountable entity; in this local zone, `publish.test` itself. |
+| `ek=` | The accountable entity's record-signing key location, separate from the operational key. |
 
 Everything a verifier needs, in one DNS answer.
 
 ## Step 3 — Serve the keys
 
-The record's `ku=` points at `https://publish.dev.dnsid.test/.well-known/jwks.json`, and answering that URL is *your* job — the domain owner hosts its own keys. [`src/serve.py`](src/serve.py) is the smallest honest version: a standard-library HTTP server that reads the provisioned public key and serves it as a JWKS:
+The record's `ku=` points at `https://publish.test/.well-known/jwks.json`, and answering that URL is *your* job — the domain owner hosts its own keys. [`src/serve.py`](src/serve.py) is the smallest honest version: a standard-library HTTP server that reads the provisioned public key and serves it as a JWKS:
 
 ```python
 def load_jwks() -> dict:
@@ -93,7 +93,7 @@ def load_jwks() -> dict:
     return {"keys": [public_jwk]}
 ```
 
-It runs under `dnsid local run publish -- ...`, which injects `DNSID_CONFIG_DIR` (the identity directory from step 1). Serving any other key here would break verification — the record's `sg=` signature and the challenge from step 1 bind this domain to exactly this keypair. The local registry's TLS proxy terminates `https://publish.dev.dnsid.test` and forwards to this server's port, exactly the role your web server or CDN plays in production.
+It runs under `dnsid local run publish -- ...`, which injects `DNSID_CONFIG_DIR` (the identity directory from step 1). Serving any other key here would break verification — the record's `sg=` signature and the challenge from step 1 bind this domain to exactly this keypair. The local registry's TLS proxy terminates `https://publish.test` and forwards to this server's port, exactly the role your web server or CDN plays in production.
 
 Start it (foreground; leave it running and inspect from a second terminal):
 
@@ -107,8 +107,8 @@ With the server up, do what any verifier does on first contact: resolve the doma
 
 ```bash
 curl --cacert ~/.dnsid-local/certs/root-ca.pem \
-     --resolve publish.dev.dnsid.test:443:127.0.0.1 \
-     https://publish.dev.dnsid.test/.well-known/jwks.json
+     --resolve publish.test:443:127.0.0.1 \
+     https://publish.test/.well-known/jwks.json
 ```
 
 ```json
@@ -121,8 +121,8 @@ The record's `su=` tag completes the picture — live status from the registry:
 
 ```bash
 curl --cacert ~/.dnsid-local/certs/root-ca.pem \
-     --resolve registry.dev.dnsid.test:443:127.0.0.1 \
-     https://registry.dev.dnsid.test/v1/status/publish.dev.dnsid.test
+     --resolve registry.test:443:127.0.0.1 \
+     https://registry.test/v1/status/publish.test
 ```
 
 ```json
@@ -155,15 +155,15 @@ Expected output (abridged):
 
 ```
 --- TXT record ---
-v=dnsid-draft-01;...;ku=https://publish.dev.dnsid.test/.well-known/jwks.json;...
+v=dnsid-draft-01;...;ku=https://publish.test/.well-known/jwks.json;...
 
---- JWKS (from https://publish.dev.dnsid.test/.well-known/jwks.json) ---
+--- JWKS (from https://publish.test/.well-known/jwks.json) ---
 {
     "keys": [ { "kty": "OKP", "crv": "Ed25519", "kid": "L6rgyZ...", ... } ]
 }
 
 ✓ binding resolved
-✓ JWKS reachable at https://publish.dev.dnsid.test/.well-known/jwks.json
+✓ JWKS reachable at https://publish.test/.well-known/jwks.json
 ✓ kid matches local keypair: L6rgyZbQpknTUv-yOwqoXTEhOIhpUjeJaKHw5aQagC4
 ✓ status: ACTIVE
 ```
@@ -174,14 +174,14 @@ v=dnsid-draft-01;...;ku=https://publish.dev.dnsid.test/.well-known/jwks.json;...
 
 **Stop the JWKS server and the identity goes dark.** Kill `make run` and re-try step 4's first `curl`: the record still resolves in DNS, but the `ku=` fetch fails — and with it, every verification of this domain. The record is a pointer; *you* keep the keys reachable. In production this means your JWKS endpoint deserves the same availability as the service it authenticates.
 
-**`.test` domains don't resolve in normal DNS — by design.** `dig _dnsid.publish.dev.dnsid.test TXT` without `@127.0.0.1 -p 7753` returns nothing: RFC 2606 reserves `.test` so it can never resolve publicly, which is exactly why the local registry uses it. Real deployments publish under real domains and step 2 becomes a plain `dig`.
+**`.test` domains don't resolve in normal DNS — by design.** `dig _dnsid.publish.test TXT` without `@127.0.0.1 -p 7753` returns nothing: RFC 2606 reserves `.test` so it can never resolve publicly, which is exactly why the local registry uses it. Real deployments publish under real domains and step 2 becomes a plain `dig`.
 
 ## What to try next
 
 - **Recipe 12 — A2A protocol + DNSid** — two agents use identities exactly like this one to trust each other on first contact and exchange signed messages.
 - **Recipe 31 — LangGraph agent with a DNSid identity** — an agent framework's tool calls made attributable to a domain published this same way.
-- **Watch the transparency log** — the local registry serves a stream explorer at `http://127.0.0.1:7755/streams/publish.dev.dnsid.test` showing this identity's countersigned ISSUANCE entry.
-- **Provision a second identity** — `dnsid local agent ensure second --upstream http://localhost:3202 -- dnsid log issue --domain second.dev.dnsid.test`, then dig its record. Per-agent subdomains with independent keys and revocation scope is the pattern recipes build on.
+- **Watch the transparency log** — the local registry serves a stream explorer at `http://127.0.0.1:7755/streams/publish.test` showing this identity's countersigned ISSUANCE entry.
+- **Provision a second identity** — `dnsid local agent ensure second --upstream http://localhost:3202 -- dnsid log issue --domain second.test`, then dig its record. Per-agent domains with independent keys and revocation scope is the pattern recipes build on.
 
 ## Glossary
 

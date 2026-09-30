@@ -14,7 +14,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 DNSID_CLI="${DNSID_CLI:-dnsid}"
-ZONE="${ZONE:-dev.dnsid.test}"
+ZONE="${ZONE:-test}"
 ALICE_PORT="${ALICE_PORT:-3001}"
 BOB_PORT="${BOB_PORT:-3002}"
 ASSERT="${DNSID_RECIPE_ASSERT:-1}"

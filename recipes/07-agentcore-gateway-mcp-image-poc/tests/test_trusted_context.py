@@ -9,11 +9,11 @@ from image_poc.trusted_context import (
 
 def trusted_headers(**overrides):
     headers = {
-        "x-dnsid-sub": "agent.example.com",
+        "x-dnsid-sub": "agent.test",
         "x-dnsid-iss": "https://api.dev.dnsid.ai",
         "x-dnsid-aud": "https://gateway.example/mcp",
         "x-dnsid-jti": "token-id",
-        "x-dnsid-domain": "agent.example.com",
+        "x-dnsid-domain": "agent.test",
         "x-dnsid-auth-mode": "gateway-dnsid-lab",
         "x-dnsid-verified-at": "2026-05-28T02:00:00Z",
         "x-gateway-request-id": "gateway-request",
@@ -26,15 +26,15 @@ def trusted_headers(**overrides):
 def test_parse_trusted_context_accepts_case_insensitive_headers():
     context = parse_trusted_context(
         {key.title(): value for key, value in trusted_headers().items()},
-        expected_sub="agent.example.com",
+        expected_sub="agent.test",
     )
 
-    assert context.sub == "agent.example.com"
+    assert context.sub == "agent.test"
     assert context.issuer == "https://api.dev.dnsid.ai"
     assert context.audience == "https://gateway.example/mcp"
     assert context.jti == "token-id"
     assert context.gateway_request_id == "gateway-request"
-    assert context.to_public_dict()["accountable_entity"] == "agent.example.com"
+    assert context.to_public_dict()["accountable_entity"] == "agent.test"
 
 
 def test_parse_trusted_context_rejects_missing_required_header():

@@ -23,7 +23,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 DNSID_CLI="${DNSID_CLI:-dnsid}"
-ZONE="${ZONE:-dev.dnsid.test}"
+ZONE="${ZONE:-test}"
 GRAPH_PORT="${GRAPH_PORT:-3101}"
 PEER_PORT="${PEER_PORT:-3102}"
 TOOLS_PORT="${TOOLS_PORT:-3103}"
