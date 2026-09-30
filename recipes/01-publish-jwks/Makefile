@@ -1,14 +1,14 @@
 .PHONY: bootstrap run verify clean
 
 DNSID_CLI ?= dnsid
-ZONE ?= dev.dnsid.test
+ZONE ?= test
 DOMAIN := publish.$(ZONE)
 PORT ?= 3201
 
 # Start the local registry and provision the identity: keypair, registration,
 # challenge, published `_dnsid` record, countersigned log entry. Idempotent.
 bootstrap:
-	$(DNSID_CLI) local up
+	$(DNSID_CLI) local up --zone $(ZONE)
 	$(DNSID_CLI) local agent ensure publish --upstream http://localhost:$(PORT) -- \
 		$(DNSID_CLI) log issue --domain $(DOMAIN)
 

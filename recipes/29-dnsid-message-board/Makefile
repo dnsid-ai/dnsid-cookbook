@@ -2,7 +2,7 @@
 
 DNSID_CLI ?= dnsid
 GO ?= go
-ZONE ?= dev.dnsid.test
+ZONE ?= test
 STATE ?= $(CURDIR)/.dnsid-local
 REGISTRY_PORT ?= 7955
 DNS_PORT ?= 7753
@@ -30,7 +30,7 @@ $(STATE)/config.yml:
 		'agents: {}' > $@
 
 bootstrap: build $(STATE)/config.yml
-	$(LOCAL) up --state $(STATE)
+	$(LOCAL) up --state $(STATE) --zone $(ZONE)
 	$(LOCAL) agent ensure board --state $(STATE) --upstream http://localhost:$(BOARD_PORT) -- \
 		$(DNSID_CLI) log issue --domain $(BOARD_DOMAIN)
 	$(LOCAL) agent ensure owner --state $(STATE) --upstream http://localhost:$(OWNER_PORT) -- \

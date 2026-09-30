@@ -1,7 +1,7 @@
 .PHONY: bootstrap run verify clean
 
 DNSID_CLI ?= dnsid
-ZONE ?= dev.dnsid.test
+ZONE ?= test
 ALICE_PORT ?= 3001
 BOB_PORT ?= 3002
 
@@ -11,7 +11,7 @@ BOB_CU := https://bob.$(ZONE)/.well-known/agent-card.json
 # Start the local registry and provision both identities. Idempotent: `agent ensure`
 # and `log issue` are safe to re-run for existing identities.
 bootstrap:
-	$(DNSID_CLI) local up
+	$(DNSID_CLI) local up --zone $(ZONE)
 	$(DNSID_CLI) local agent ensure bob --upstream http://localhost:$(BOB_PORT) --cu "$(BOB_CU)" -- \
 		$(DNSID_CLI) log issue --domain bob.$(ZONE)
 	$(DNSID_CLI) local agent ensure alice --upstream http://localhost:$(ALICE_PORT) --cu "$(ALICE_CU)" -- \

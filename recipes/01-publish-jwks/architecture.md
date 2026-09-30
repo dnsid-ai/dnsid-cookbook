@@ -2,7 +2,7 @@
 
 ## Overview
 
-This recipe publishes a DNSid identity for `publish.dev.dnsid.test` on the
+This recipe publishes a DNSid identity for `publish.test` on the
 local DNSid registry and serves its JWKS from a minimal standard-library HTTP
 server. The local registry (DNS server, registry, transparency log, TLS proxy) is
 managed entirely by the `dnsid` CLI — the recipe owns no containers.
@@ -35,12 +35,12 @@ flowchart LR
 
 ## Flow
 
-1. `make bootstrap`: `dnsid local up`, then `dnsid local agent ensure
+1. `make bootstrap`: `dnsid local up --zone test`, then `dnsid local agent ensure
    publish ... -- dnsid log issue` — keypair, registration, signed challenge,
    published `_dnsid` record, countersigned ISSUANCE entry. Idempotent.
 2. `make run` / `make verify`: launch `src/serve.py` under `dnsid local run
    publish`, which injects `DNSID_CONFIG_DIR` (the keypair), `DNSID_DNS_SERVER`,
    and `DNSID_CA_BUNDLE`.
-3. Verification resolves `_dnsid.publish.dev.dnsid.test` TXT from the local registry
+3. Verification resolves `_dnsid.publish.test` TXT from the local registry
    DNS, fetches the `ku=` JWKS through the TLS proxy, asserts the served `kid`
    equals the local `public.jwk`'s, and asserts `su=` reports `ACTIVE`.

@@ -189,7 +189,7 @@ AUDIT_AUDIENCE=http://localhost:9090 \
 export GITHUB_APP_ID=<GITHUB_APP_ID>
 export GITHUB_APP_KEY_SECRET_NAME=github-review-bot/private-key
 export BOT_DOMAIN=<your-bot-domain>.dev.dnsid.ai
-export REVIEW_GATEWAY_AUDIENCE=https://review-gateway.example.com/mcp # choose a unique value for this deployment
+export REVIEW_GATEWAY_AUDIENCE=https://review-gateway.example/mcp # choose a unique value for this deployment
 make deploy
 # or directly:
 agentcore deploy --target default -y

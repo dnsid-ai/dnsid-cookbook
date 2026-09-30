@@ -2,7 +2,7 @@
 
 DNSID_CLI ?= dnsid
 GO ?= go
-ZONE ?= dev.dnsid.test
+ZONE ?= test
 STRIPE_PORT ?= 3301
 WRITER_PORT ?= 3302
 ACCOUNT ?= acct_demo
@@ -14,7 +14,7 @@ GOPRIVATE ?= github.com/Identity-Digital/*
 export GOPRIVATE
 
 bootstrap: build
-	$(DNSID_CLI) local up
+	$(DNSID_CLI) local up --zone $(ZONE)
 	$(DNSID_CLI) local agent ensure stripe --upstream http://localhost:$(STRIPE_PORT) -- \
 		$(DNSID_CLI) log issue --domain $(STRIPE_DOMAIN)
 	$(DNSID_CLI) local agent ensure writer --upstream http://localhost:$(WRITER_PORT) -- \

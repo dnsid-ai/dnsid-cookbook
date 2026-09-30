@@ -20,7 +20,7 @@ cd "$(dirname "$0")/.."
 : "${DNSID_CA_BUNDLE:?run via 'make verify' (dnsid local run injects DNSID_CA_BUNDLE)}"
 : "${DNSID_CONFIG_DIR:?run via 'make verify' (dnsid local run injects DNSID_CONFIG_DIR)}"
 
-DOMAIN="${DNSID_DOMAIN:-publish.dev.dnsid.test}"
+DOMAIN="${DNSID_DOMAIN:-publish.test}"
 DNS_HOST="${DNSID_DNS_SERVER%:*}"
 DNS_PORT="${DNSID_DNS_SERVER#*:}"
 PORT="${DNSID_AGENT_UPSTREAM##*:}"

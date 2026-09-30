@@ -41,9 +41,9 @@ The recipe owns no Docker Compose file; the CLI manages the local registry conta
 
 | Process | Where | Role |
 |---|---|---|
-| DNS server | local registry container, `127.0.0.1:7753` | Serves `_dnsid.stripe.dev.dnsid.test` and `_dnsid.writer.dev.dnsid.test` |
+| DNS server | local registry container, `127.0.0.1:7753` | Serves `_dnsid.stripe.test` and `_dnsid.writer.test` |
 | Registry + C2SP log | local registry container, `127.0.0.1:7755` | Provisions identities, serves status, and records lifecycle events |
-| TLS proxy | local registry container, `127.0.0.1:443` | Routes each `https://*.dev.dnsid.test` name to its local process |
+| TLS proxy | local registry container, `127.0.0.1:443` | Routes each `https://<agent>.test` name to its local process |
 | fake-Stripe server | host process, `:3301` | Verifies signed requests and maintains an in-memory balance |
 | writer agent | host process, `:3302` | Serves its JWKS and sends the signed read-credit-read flow |
 
@@ -53,7 +53,7 @@ The recipe owns no Docker Compose file; the CLI manages the local registry conta
 make bootstrap
 ```
 
-[`Makefile`](Makefile) downloads the Go modules, builds both binaries, starts the local registry, provisions `stripe.dev.dnsid.test` and `writer.dev.dnsid.test`, and issues their transparency-log entries. Provisioning is idempotent, so re-running it keeps the existing identities.
+[`Makefile`](Makefile) downloads the Go modules, builds both binaries, starts the local registry, provisions `stripe.test` and `writer.test` in the `test` zone, and issues their transparency-log entries. Provisioning is idempotent, so re-running it keeps the existing identities.
 
 Every recipe process later starts under `dnsid local run`. That command injects its private identity directory, local registry DNS server, local CA bundle, and independently trusted C2SP policy URL as `DNSID_*` environment variables. The Go SDK loads the process identity from these variables, not from the default `~/.dnsid` CLI identity.
 
@@ -73,11 +73,11 @@ In a second terminal, inspect the TXT binding and follow its `ku=` endpoint with
 dnsid local run stripe -- sh -c '
   host=${DNSID_DNS_SERVER%:*}
   port=${DNSID_DNS_SERVER##*:}
-  dig @"$host" -p "$port" _dnsid.writer.dev.dnsid.test TXT +short
+  dig @"$host" -p "$port" _dnsid.writer.test TXT +short
   curl --fail --silent --show-error \
-    --resolve writer.dev.dnsid.test:443:127.0.0.1 \
+    --resolve writer.test:443:127.0.0.1 \
     --cacert "$DNSID_CA_BUNDLE" \
-    https://writer.dev.dnsid.test/.well-known/jwks.json
+    https://writer.test/.well-known/jwks.json
 '
 ```
 
@@ -115,11 +115,11 @@ signed, err := profile.CreateSignedHTTPRequest(req, httpsig.SigningOptions{
 
 For the credit POST, the SDK reads the body, adds `Content-Digest`, covers that digest, and restores the body before sending. It also adds a creation time, expiry, random nonce, algorithm, and `<domain>#<kid>` key identifier.
 
-The worker runs a small JWKS endpoint while making its calls. The fake-Stripe verifier follows the live `ku=https://writer.dev.dnsid.test/.well-known/jwks.json` URL through the local registry TLS proxy to that endpoint.
+The worker runs a small JWKS endpoint while making its calls. The fake-Stripe verifier follows the live `ku=https://writer.test/.well-known/jwks.json` URL through the local registry TLS proxy to that endpoint.
 
 ## Step 4 — Authorize the verified domain
 
-Authentication proves the caller is `writer.dev.dnsid.test`; it does not grant permission by itself. The credit handler separately checks the verified domain against `WRITER_DOMAINS` before changing the ledger:
+Authentication proves the caller is `writer.test`; it does not grant permission by itself. The credit handler separately checks the verified domain against `WRITER_DOMAINS` before changing the ledger:
 
 ```go
 caller := r.Context().Value(callerContextKey{}).(*dnsid.VerifiedDomain)
@@ -154,12 +154,12 @@ The one-shot check provisions both identities, starts both binaries under `dnsid
 Expected output:
 
 ```
-verified identity: writer.dev.dnsid.test
+verified identity: writer.test
 unsigned GET -> 401 Unauthorized
 tampered POST -> 401 Unauthorized
-GET balance -> 1000 (verified as writer.dev.dnsid.test)
-POST credit -> 1250 (verified as writer.dev.dnsid.test)
-GET balance -> 1250 (verified as writer.dev.dnsid.test)
+GET balance -> 1000 (verified as writer.test)
+POST credit -> 1250 (verified as writer.test)
+GET balance -> 1250 (verified as writer.test)
 ✓ verify passed
 ```
 

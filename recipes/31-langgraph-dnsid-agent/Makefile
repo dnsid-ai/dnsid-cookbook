@@ -1,7 +1,7 @@
 .PHONY: bootstrap run verify clean
 
 DNSID_CLI ?= dnsid
-ZONE ?= dev.dnsid.test
+ZONE ?= test
 GRAPH_PORT ?= 3101
 PEER_PORT ?= 3102
 TOOLS_PORT ?= 3103
@@ -12,7 +12,7 @@ GRAPH_CU := https://graph.$(ZONE)/.well-known/agent-card.json
 # Start the local registry and provision all four identities. Idempotent: `agent
 # ensure` and `log issue` are safe to re-run for existing identities.
 bootstrap:
-	$(DNSID_CLI) local up
+	$(DNSID_CLI) local up --zone $(ZONE)
 	$(DNSID_CLI) local agent ensure graph --upstream http://localhost:$(GRAPH_PORT) --cu "$(GRAPH_CU)" -- \
 		$(DNSID_CLI) log issue --domain graph.$(ZONE)
 	$(DNSID_CLI) local agent ensure tools --upstream http://localhost:$(TOOLS_PORT) -- \

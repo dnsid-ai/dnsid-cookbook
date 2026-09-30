@@ -48,7 +48,7 @@ DEFAULT_ANTHROPIC_MODEL = "claude-opus-5"
 
 # Callers allowed to see (not just call) the sensitive place_order tool.
 # Authorization is code and config, never model output.
-PLACE_ORDER_ALLOWLIST = {"peer.dev.dnsid.test"}
+PLACE_ORDER_ALLOWLIST = {"peer.test"}
 
 
 # ---------------------------------------------------------------------------

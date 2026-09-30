@@ -42,9 +42,9 @@ Dependency versions this recipe was tested against are pinned in [`pyproject.tom
 
 | Process | Where | Role |
 |---|---|---|
-| DNS server | local registry container, `127.0.0.1:7753` | Serves live `_dnsid.*.dev.dnsid.test` TXT records — the records your agents publish |
+| DNS server | local registry container, `127.0.0.1:7753` | Serves live `_dnsid.<agent>.test` TXT records — the records your agents publish |
 | Registry + transparency log | local registry container, `127.0.0.1:7755` | Registration, challenge verification, record publication, C2SP log |
-| TLS proxy | local registry container | Terminates `https://*.dev.dnsid.test` with a local CA and routes to each agent's upstream port |
+| TLS proxy | local registry container | Terminates `https://<agent>.test` with a local CA and routes to each agent's upstream port |
 | Bob (this recipe) | host process, `:3002` | A2A echo agent — stays running, verifies every inbound request |
 | Alice (this recipe) | host process, `:3001` | A2A agent — sends Bob one signed message, then exits |
 
@@ -54,16 +54,16 @@ Dependency versions this recipe was tested against are pinned in [`pyproject.tom
 make bootstrap
 ```
 
-This runs three idempotent things (see [`Makefile`](Makefile)): `dnsid local up` starts the containers; `dnsid local agent ensure <name>` provisions each agent — a keypair on disk, a registered upstream, a published `_dnsid` record; and `dnsid log issue` submits each identity's countersigned ISSUANCE entry to the transparency log. Safe to re-run at any time.
+This runs three idempotent things (see [`Makefile`](Makefile)): `dnsid local up --zone test` starts the containers; `dnsid local agent ensure <name>` provisions each agent — a keypair on disk, a registered upstream, a published `_dnsid` record; and `dnsid log issue` submits each identity's countersigned ISSUANCE entry to the transparency log. Safe to re-run at any time.
 
 Because this is a real DNS server, you can inspect what was just published — this TXT record is the entire public anchor of Bob's identity:
 
 ```bash
-dig @127.0.0.1 -p 7753 _dnsid.bob.dev.dnsid.test TXT +short
+dig @127.0.0.1 -p 7753 _dnsid.bob.test TXT +short
 ```
 
 ```
-"v=dnsid-draft-01;cu=https://bob.dev.dnsid.test/.well-known/agent-card.json;...;ku=https://bob.dev.dnsid.test/.well-known/jwks.json;lr=c2sp-tlog:testnet:...;sg=...;su=https://registry.dev.dnsid.test/v1/status/bob.dev.dnsid.test"
+"v=dnsid-draft-01;cu=https://bob.test/.well-known/agent-card.json;...;ku=https://bob.test/.well-known/jwks.json;lr=c2sp-tlog:testnet:...;sg=...;su=https://registry.test/v1/status/bob.test"
 ```
 
 One semicolon-separated value: `v` (spec version) first, then `cu=` pointing at the agent card, `ku=` at the key set, `lr=` naming the transparency log, `sg=` a signature over the record, and `su=` the live status endpoint. A verifier that resolves this record has everything it needs to fetch Bob's keys and check he's in good standing — and once Bob's agent is running, `curl http://localhost:3002/.well-known/jwks.json` shows the Ed25519 public key the `ku=` URL serves.
@@ -87,7 +87,7 @@ def required_log_policy_url(environment: Mapping[str, str]) -> str:
 
 The rest of the module wires the SDK: `load_environment` parses the env into loaded identity, verification, transport, and registry settings; `identity_manager_from_environment` constructs the manager with the recipe's explicit dependencies. `LocalKeyProvider.from_cli_directory` loads the provisioned key (its `private.jwk` carries the RFC 7638 thumbprint `kid` the registry requires), and `make_log_registry` fetches the independently trusted policy file and registers a C2SP log reader for issuance verification. `DNSID_AGENT_PORT` and `DNSID_PUBLIC_URL` remain application settings, not SDK configuration.
 
-One local-registry-only wrinkle: the SDK's HTTPS fetcher refuses any host that resolves to a private address (an SSRF guard), and on the local registry *every* name under the governance domain resolves to the loopback proxy. Bob can't list his callers in advance, so `load_identity` allows the whole zone with one leading-dot entry — `private_address_hosts = {"." + governance_id}`. Production verifiers leave that set empty.
+One local-registry-only wrinkle: the SDK's HTTPS fetcher refuses hosts that resolve to private addresses (an SSRF guard). `load_environment` reads the CLI-injected `DNSID_PRIVATE_HOSTS=.test` to permit local peers and services through the loopback proxy. This uses the DNS zone, not `gi`: Alice and Bob are separate second-level identities, each its own accountable entity. Production verifiers leave this local override unset.
 
 ## Step 3 — Register, prove key possession, publish
 
@@ -184,17 +184,17 @@ Bob starts under `dnsid local run` and publishes; Alice then verifies him, sends
 ==> starting Bob on :3002
     waiting for Bob to publish his identity.. done
 ==> starting Alice on :3001 — sending hello to Bob
-alice -> https://alice.dev.dnsid.test
-alice.dev.dnsid.test already published (READY)
-verified: alice.dev.dnsid.test -> bob.dev.dnsid.test
+alice -> https://alice.test
+alice.test already published (READY)
+verified: alice.test -> bob.test
 
-reply: "[from: bob.dev.dnsid.test; verified sender: alice.dev.dnsid.test] hello from alice.dev.dnsid.test"
+reply: "[from: bob.test; verified sender: alice.test] hello from alice.test"
 
 --- Bob transcript ---
-bob -> https://bob.dev.dnsid.test
-bob.dev.dnsid.test already published (READY)
-[bob.dev.dnsid.test] verified signed POST / from alice.dev.dnsid.test
-[bob.dev.dnsid.test] handling message from verified sender alice.dev.dnsid.test: "hello from alice.dev.dnsid.test"
+bob -> https://bob.test
+bob.test already published (READY)
+[bob.test] verified signed POST / from alice.test
+[bob.test] handling message from verified sender alice.test: "hello from alice.test"
 ```
 
 Both identities appear in the reply, and both were established cryptographically: Alice's by her request signature, Bob's by the DNS record Alice verified before sending.
@@ -244,7 +244,7 @@ The request never reached the A2A handlers — identity is enforced before proto
 
 - **Cross-language interop** — the same agents exist in TypeScript ([dnsid-ts/examples/a2a](https://github.com/dnsid-ai/dnsid-ts/tree/main/examples/a2a)). Run TypeScript Bob against this recipe's Python Alice (or vice versa): the wire format is standard RFC 9421 + A2A, so nothing changes.
 - **Watch a true first run** — `dnsid local reset --hard && make verify` wipes all state, so you see fresh registration and challenge-signing instead of the idempotent path.
-- **Inspect the transparency log** — the local registry serves a stream explorer at `http://127.0.0.1:7755/streams/bob.dev.dnsid.test` showing Bob's countersigned ISSUANCE entry.
+- **Inspect the transparency log** — the local registry serves a stream explorer at `http://127.0.0.1:7755/streams/bob.test` showing Bob's countersigned ISSUANCE entry.
 - **Recipe 1 — Publish `_dnsid` + JWKS** — the anatomy of the record and key set this recipe's agents published automatically.
 - **Recipes 7 / 7b / 8** — DNSid composed with MCP instead of A2A, for tool-calling rather than agent-messaging trust.
 

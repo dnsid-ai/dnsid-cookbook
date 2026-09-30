@@ -11,7 +11,7 @@
 
 ## What you'll build
 
-You will run a Go HTTP API and CLI for a private agent message board. The `owner.dev.dnsid.test` agent creates a room and grants `poster.dev.dnsid.test` access. Every CLI command asks the real DNSid local registry issuer for a short-lived OIDC token. The server verifies that token with `dnsid-go/oidc`, then verifies the token subject's signed DNS record, keys, active status, and transparency-log lifecycle before using the subject as the room principal.
+You will run a Go HTTP API and CLI for a private agent message board. The `owner.test` agent creates a room and grants `poster.test` access. Every CLI command asks the real DNSid local registry issuer for a short-lived OIDC token. The server verifies that token with `dnsid-go/oidc`, then verifies the token subject's signed DNS record, keys, active status, and transparency-log lifecycle before using the subject as the room principal.
 
 The local flow uses an in-memory store and Go authorization rules. The source also contains optional DynamoDB and AWS Verified Permissions adapters, but no AWS account is needed for the runnable recipe.
 
@@ -43,7 +43,7 @@ The recipe pins `github.com/dnsid-ai/dnsid-go` v0.37.1 in `go.mod`.
 
 | Process | Where | Role |
 |---|---|---|
-| DNS server | local registry container, `127.0.0.1:7753` | Serves live `_dnsid.*.dev.dnsid.test` records |
+| DNS server | local registry container, `127.0.0.1:7753` | Serves live `_dnsid.<agent>.test` records |
 | Registry, OIDC issuer, and transparency log | local registry container, `http://localhost:7955` | Provisions agents and exchanges signed assertions for OIDC tokens |
 | TLS proxy | local registry container, `127.0.0.1:443` | Serves agent JWKS, status, and lifecycle resources with the local registry CA |
 | `dnsid-board-server` | host process, `:3401` | Verifies tokens and DNSid subjects, then serves the board API |
@@ -60,7 +60,7 @@ cd recipes/29-dnsid-message-board
 make bootstrap
 ```
 
-The Makefile starts the CLI-owned local registry and provisions three independently keyed identities:
+The Makefile starts the CLI-owned local registry with `--zone test` and provisions three independently keyed second-level identities:
 
 ```make
 $(LOCAL) agent ensure board --state $(STATE) --upstream http://localhost:$(BOARD_PORT) -- \
@@ -74,10 +74,10 @@ $(LOCAL) agent ensure poster --state $(STATE) --upstream http://localhost:$(POST
 Inspect a real record and operational JWKS:
 
 ```bash
-dig @127.0.0.1 -p 7753 _dnsid.owner.dev.dnsid.test TXT +short
+dig @127.0.0.1 -p 7753 _dnsid.owner.test TXT +short
 curl --cacert .dnsid-local/certs/root-ca.pem \
-  --resolve owner.dev.dnsid.test:443:127.0.0.1 \
-  https://owner.dev.dnsid.test/.well-known/jwks.json
+  --resolve owner.test:443:127.0.0.1 \
+  https://owner.test/.well-known/jwks.json
 ```
 
 The `_dnsid` value is emitted by the local registry; the recipe does not maintain a zone fixture.
@@ -155,7 +155,7 @@ The API listens on `http://127.0.0.1:3401`. In another terminal, run commands un
 dnsid local run owner --state .dnsid-local --upstream http://localhost:3402 -- \
   env DNSID_BOARD_API=http://127.0.0.1:3401 \
       DNSID_BOARD_AUDIENCE=urn:dnsid-message-board:testnet \
-      DNSID_AGENT_DOMAIN=owner.dev.dnsid.test \
+      DNSID_AGENT_DOMAIN=owner.test \
       ./bin/dnsid-board whoami
 ```
 
@@ -186,7 +186,7 @@ ok arbitrary room ID, allowlist, nickname, post, read, and bounded watch
 
 - Set `DNSID_BOARD_AUDIENCE` to another value and confirm `whoami` returns `401`.
 - Grant `reader`, then confirm reads succeed while posting returns concealed `404`.
-- Add an unprovisioned `future.dev.dnsid.test` allowlist row, then provision it and retry under that identity.
+- Add an unprovisioned `future.test` allowlist row, then provision it and retry under that identity.
 - Run `dnsid local reset --hard --state .dnsid-local && make verify` to watch first-run provisioning again.
 - Compare with Recipe 06b for DNSid-bound HTTP Message Signatures instead of bearer tokens.
 

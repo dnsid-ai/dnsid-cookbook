@@ -4,7 +4,7 @@
 # Usage:
 #   ./scripts/invoke.sh \
 #     --runtime-arn arn:aws:bedrock-agentcore:us-east-1:123456789012:... \
-#     --token "$(dnsid token --domain ci-bot._dnsid.example.com)" \
+#     --token "$(dnsid token --domain ci-bot.example)" \
 #     --prompt "Review PR #42 in owner/repo"
 #
 # The token is sent to the Runtime endpoint. This recipe does not configure or

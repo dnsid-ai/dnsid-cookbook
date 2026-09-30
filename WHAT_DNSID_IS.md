@@ -12,10 +12,10 @@ An agent does not need to be publicly discoverable or host a public application 
 
 ## What gets published
 
-For an agent such as `alice.dev.dnsid.test`, the accountable entity publishes exactly one TXT record at `_dnsid.alice.dev.dnsid.test`. The current DNSid local registry emits this shape:
+For an agent such as `alice.test`, the accountable entity publishes exactly one TXT record at `_dnsid.alice.test`. In the local registry's `test` zone, each agent is its own accountable entity (`gi=alice.test`). The registry emits this shape:
 
 ```txt
-v=dnsid-draft-01;ek=https://dnsid.dnsid.test/.well-known/dnsid-ek.json;gi=dnsid.test;ku=https://alice.dev.dnsid.test/.well-known/jwks.json;lr=c2sp-tlog:testnet:https://registry.dev.dnsid.test#<stream-id>;sg=<base64url-signature>;su=https://registry.dev.dnsid.test/v1/status/alice.dev.dnsid.test
+v=dnsid-draft-01;ek=https://dnsid.alice.test/.well-known/dnsid-ek.json;gi=alice.test;ku=https://alice.test/.well-known/jwks.json;lr=c2sp-tlog:testnet:https://registry.test#<stream-id>;sg=<base64url-signature>;su=https://registry.test/v1/status/alice.test
 ```
 
 The exact URLs, stream identifier, and signature vary by identity. The protocol does not require the example `.well-known` paths; the complete endpoint URLs are carried in the record.

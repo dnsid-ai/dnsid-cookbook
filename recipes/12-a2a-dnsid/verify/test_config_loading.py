@@ -11,16 +11,17 @@ import identity
 
 
 ENV = {
-    "DNSID_DOMAIN": "alice.dev.dnsid.test",
-    "DNSID_GOVERNANCE_ID": "dnsid.test",
-    "DNSID_LOG_REF": "c2sp-tlog:testnet:https://registry.dev.dnsid.test#alice.dev.dnsid.test",
-    "DNSID_STATUS_URL": "https://alice.dev.dnsid.test/status",
-    "DNSID_LOG_POLICY_URL": "https://registry.dev.dnsid.test/policy",
-    "DNSID_REGISTRY_URL": "https://registry.dev.dnsid.test",
+    "DNSID_DOMAIN": "alice.test",
+    "DNSID_GOVERNANCE_ID": "alice.test",
+    "DNSID_PRIVATE_HOSTS": ".test",
+    "DNSID_LOG_REF": "c2sp-tlog:testnet:https://registry.test#alice.test",
+    "DNSID_STATUS_URL": "https://registry.test/v1/status/alice.test",
+    "DNSID_LOG_POLICY_URL": "https://registry.test/policy",
+    "DNSID_REGISTRY_URL": "https://registry.test",
     "DNSID_API_KEY": "secret",
     "DNSID_CONFIG_DIR": "/provisioned/identity",
     "DNSID_AGENT_PORT": "8080",
-    "DNSID_PUBLIC_URL": "https://alice.dev.dnsid.test",
+    "DNSID_PUBLIC_URL": "https://alice.test",
 }
 
 
@@ -39,8 +40,9 @@ class ConfigLoadingTest(unittest.TestCase):
 
         load_key.assert_called_once_with("/provisioned/identity")
         config = build.call_args.kwargs["overlay"]
-        self.assertEqual(config.identity.capabilities_url, "https://alice.dev.dnsid.test/.well-known/agent-card.json")
-        self.assertEqual(config.transport.private_address_hosts, frozenset({".dnsid.test"}))
+        self.assertEqual(config.identity.capabilities_url, "https://alice.test/.well-known/agent-card.json")
+        self.assertEqual(config.identity.governance_id, "alice.test")
+        self.assertEqual(config.transport.private_address_hosts, frozenset({".test"}))
         self.assertEqual(build.call_args.kwargs["deps"].log_registry, registry)
         self.assertEqual(build.call_args.kwargs["key_provider"], key)
         make_client.assert_called_once_with(ENV["DNSID_REGISTRY_URL"], api_key="secret")

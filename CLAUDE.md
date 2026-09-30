@@ -47,7 +47,9 @@ The harness contract every runnable recipe follows:
   on a clean clone.
 - **Code lives in `src/`**, not only in README fences. The README quotes from source
   files so the code compiles and the tutorial can't silently drift.
-- **Domains:** use `.test` names (typically `*.dev.dnsid.test`), never `.local`.
+- **Domains:** use distinct second-level `.test` identities (e.g. `alice.test`,
+  `bob.test`), never `.local`. Bootstrap with `dnsid local up --zone test`.
+  `_dnsid.<identity>` TXT owners and service hosts are not agent identities.
   `python3 scripts/scan-hardcoded-identities.py` must pass.
 - **TXT shape:** one semicolon-separated `_dnsid` value with `v` first, `ku=` for the
   JWKS endpoint, `su=` for status. Never emit the legacy space-separated shape.

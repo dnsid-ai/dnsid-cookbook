@@ -1,4 +1,4 @@
-"""The tools API for tools.dev.dnsid.test: a plain HTTP service that verifies callers.
+"""The tools API for tools.test: a plain HTTP service that verifies callers.
 
 This is deliberately NOT an agent and NOT A2A — it's the kind of ordinary
 internal HTTP API an agent's tools call. Its whole security story is the same
