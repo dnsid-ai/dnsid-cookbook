@@ -11,7 +11,7 @@ from orders_interceptor.replay import MemoryReplayStore
 
 def payload(now: int) -> ActionPayload:
     return ActionPayload(
-        subject="agent.bank-a.example",
+        subject="bank-a-agent.test",
         audience="https://gateway.example/mcp",
         token_jti_hash="jti-hash",
         tool_name="place_order",

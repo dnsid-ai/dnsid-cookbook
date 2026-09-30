@@ -30,8 +30,10 @@ on a clean clone and be in the CI verify matrix.
 Recipes are examples for the DNSid SDKs, not production deployments. Every runnable recipe targets the
 local `dnsid` CLI local registry with distinct second-level identities such as `alice.test` and
 `bob.test`; nothing here contains real identities, keys, or credentials.
-Bootstrap selects `--zone test`. If you have older local registry state, use a fresh `--state`
-directory, or run `dnsid local reset --hard` to discard its identities before reprovisioning. Report problems per [SECURITY.md](SECURITY.md). For what the SDKs themselves do on the
+Bootstrap selects `--zone test`. The CLI must include [second-level local identity support](https://github.com/dnsid-ai/dnsid/pull/2578);
+`2026.09.29-07dd440` predates that change and fails provisioning with `invalid DNS name`.
+If you have older local registry state, use a fresh `--state` directory, or run
+`dnsid local reset --hard` to discard its identities before reprovisioning. Report problems per [SECURITY.md](SECURITY.md). For what the SDKs themselves do on the
 network and why software is not identity, see the "Security & trust" section in each SDK README
 ([go](https://github.com/dnsid-ai/dnsid-go), [ts](https://github.com/dnsid-ai/dnsid-ts), [py](https://github.com/dnsid-ai/dnsid-py)).
 

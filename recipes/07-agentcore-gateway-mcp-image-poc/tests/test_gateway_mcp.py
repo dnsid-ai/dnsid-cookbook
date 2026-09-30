@@ -37,7 +37,7 @@ def dnsid():
     return DnsidSettings(
         cli="/opt/dnsid/bin/dnsid",
         server="https://dnsid.example.test",
-        agent_domain="agent.example.test",
+        agent_domain="agent.test",
     )
 
 
@@ -81,7 +81,7 @@ def test_load_gateway_state_rejects_non_agentcore_urls(tmp_path):
 
 def test_mint_dnsid_token_uses_sdk_and_loaded_identity(monkeypatch):
     class Manager:
-        local_domain = "agent.example.test"
+        local_domain = "agent.test"
 
     class Profile:
         def mint_oidc_token(self, options):
@@ -101,7 +101,7 @@ def test_mint_dnsid_token_uses_sdk_and_loaded_identity(monkeypatch):
 
 def test_mint_dnsid_token_rejects_the_wrong_loaded_identity(monkeypatch):
     class Manager:
-        local_domain = "other.example.test"
+        local_domain = "other.test"
 
     monkeypatch.setattr(gateway_mcp, "identity_manager_from_dnsid", Manager)
 
@@ -142,7 +142,7 @@ def test_gateway_client_calls_whoami_before_generate_and_sanitizes_flow():
                     "body": {
                         "result": {
                             "structuredContent": {
-                                "sub": "agent.example.test",
+                                "sub": "agent.test",
                                 "iss": "https://dnsid.example.test",
                             }
                         }
@@ -174,7 +174,7 @@ def test_gateway_client_calls_whoami_before_generate_and_sanitizes_flow():
                             "audit_id": "audit",
                             "auth_mode": "gateway-dnsid-lab",
                             "dnsid_context": {
-                                "sub": "agent.example.test",
+                                "sub": "agent.test",
                                 "iss": "https://dnsid.example.test",
                             },
                             "ignored_identity_args": [],
@@ -235,7 +235,7 @@ def test_gateway_client_rejects_unexpected_whoami_subject():
         return {
             "http_status": 200,
             "headers": {},
-            "body": {"result": {"structuredContent": {"sub": "other.example.test"}}},
+            "body": {"result": {"structuredContent": {"sub": "other.test"}}},
         }
 
     client = GatewayMcpClient(

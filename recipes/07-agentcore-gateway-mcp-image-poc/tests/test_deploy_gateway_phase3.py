@@ -18,7 +18,7 @@ from deploy_gateway_phase3 import (  # noqa: E402
 
 @pytest.fixture(autouse=True)
 def dnsid_agent_domain(monkeypatch):
-    monkeypatch.setenv("DNSID_AGENT_DOMAIN", "agent.example.com")
+    monkeypatch.setenv("DNSID_AGENT_DOMAIN", "agent.test")
 
 
 def actions(policy):

@@ -323,7 +323,7 @@ def invoke(payload: dict) -> dict:
     Expected payload:
         {
             "prompt": "Review PR #42 in owner/repo",
-            "caller_domain": "ci-bot._dnsid.example.com"  # optional, for logging
+            "caller_domain": "ci-bot.test"  # optional, for logging
         }
 
     ``caller_domain`` is untrusted logging metadata. This recipe does not

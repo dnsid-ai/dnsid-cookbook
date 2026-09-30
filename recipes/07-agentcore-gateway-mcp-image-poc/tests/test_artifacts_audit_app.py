@@ -60,9 +60,9 @@ class FakeGatewayClient:
             audit_id="remote-audit",
             auth_mode="gateway-dnsid-lab",
             dnsid_context={
-                "sub": "agent.example.test",
-                "dnsid": "agent.example.test",
-                "accountable_entity": "agent.example.test",
+                "sub": "agent.test",
+                "dnsid": "agent.test",
+                "accountable_entity": "agent.test",
                 "iss": "https://dnsid.example.test",
                 "aud": "https://gateway.example/mcp",
                 "jti": "token-jti",
@@ -215,7 +215,7 @@ def test_gateway_image_app_success_sanitizes_browser_response(tmp_path):
     assert response["artifact_id"] != response["remote_artifact_id"]
     assert response["remote_artifact_id"] == "remote-artifact"
     assert response["audit_id"] == "remote-audit"
-    assert response["dnsid_sub"] == "agent.example.test"
+    assert response["dnsid_sub"] == "agent.test"
     assert response["dnsid_issuer"] == "https://dnsid.example.test"
     assert response["gateway_request_id"] == "gateway-request"
     assert "artifact_s3_uri" not in response

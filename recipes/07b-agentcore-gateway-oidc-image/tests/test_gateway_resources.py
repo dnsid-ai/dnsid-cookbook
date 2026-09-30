@@ -27,12 +27,12 @@ from gateway_resources import (  # noqa: E402
 
 @pytest.fixture(autouse=True)
 def dnsid_agent_domain(monkeypatch):
-    monkeypatch.setenv("DNSID_AGENT_DOMAIN", "agent.example.com")
+    monkeypatch.setenv("DNSID_AGENT_DOMAIN", "agent.test")
 
 
 def test_gateway_configuration_is_env_overridable(monkeypatch):
     monkeypatch.setenv("DNSID_SERVER", "https://issuer.example.test/")
-    monkeypatch.setenv("DNSID_AGENT_DOMAIN", "agent.example.test")
+    monkeypatch.setenv("DNSID_AGENT_DOMAIN", "agent.test")
     monkeypatch.setenv("AGENTCORE_REGION", "us-west-2")
     monkeypatch.setenv("BEDROCK_REGION", "eu-central-1")
     monkeypatch.setenv("BEDROCK_IMAGE_MODEL_ID", "test-model")
@@ -42,7 +42,7 @@ def test_gateway_configuration_is_env_overridable(monkeypatch):
         assert reloaded.BEDROCK_REGION == "eu-central-1"
         assert reloaded.BEDROCK_IMAGE_MODEL_ID == "test-model"
         assert reloaded.DNSID_ISSUER == "https://issuer.example.test"
-        assert reloaded.EXPECTED_DNSID_SUB == "agent.example.test"
+        assert reloaded.EXPECTED_DNSID_SUB == "agent.test"
 
         authorizer = reloaded.gateway_authorizer_config("gateway-audience")
         custom_jwt = authorizer["customJWTAuthorizer"]
@@ -55,7 +55,7 @@ def test_gateway_configuration_is_env_overridable(monkeypatch):
             custom_jwt["customClaims"][0]["authorizingClaimMatchValue"]["claimMatchValue"][
                 "matchValueString"
             ]
-            == "agent.example.test"
+            == "agent.test"
         )
     finally:
         for name in [

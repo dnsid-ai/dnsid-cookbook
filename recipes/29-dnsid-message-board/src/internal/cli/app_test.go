@@ -26,7 +26,7 @@ func TestCLIMintsTokenForEachCommand(t *testing.T) {
 		}
 		_ = json.NewEncoder(w).Encode(map[string]any{
 			"ok":                true,
-			"agent":             "agent.example.com",
+			"agent":             "agent.test",
 			"issuer":            "https://api.dev.dnsid.ai",
 			"audience":          "urn:test",
 			"environment":       "lab",
@@ -64,7 +64,7 @@ func TestCLIRetriesOnceWithFreshTokenAfterUnauthorized(t *testing.T) {
 		}
 		_ = json.NewEncoder(w).Encode(map[string]any{
 			"ok":                true,
-			"agent":             "agent.example.com",
+			"agent":             "agent.test",
 			"issuer":            "https://api.dev.dnsid.ai",
 			"audience":          "urn:test",
 			"environment":       "lab",
@@ -108,7 +108,7 @@ func TestCLIWorkflowUsesDirectHTTPAndSupportsDelimiterRoomIDs(t *testing.T) {
 			if body.RoomID != "--dash-room" || body.Name != "Dash Room" {
 				t.Errorf("room create body = %+v", body)
 			}
-			_ = json.NewEncoder(w).Encode(map[string]any{"ok": true, "room": map[string]any{"room_id": body.RoomID, "name": body.Name, "owner": "agent.example.com"}})
+			_ = json.NewEncoder(w).Encode(map[string]any{"ok": true, "room": map[string]any{"room_id": body.RoomID, "name": body.Name, "owner": "agent.test"}})
 		case "POST /v1/rooms/room%2Fpath/messages":
 			if r.Header.Get("Idempotency-Key") != "idem-1" {
 				t.Errorf("idempotency header = %q", r.Header.Get("Idempotency-Key"))
@@ -149,7 +149,7 @@ func TestCLIWorkflowUsesDirectHTTPAndSupportsDelimiterRoomIDs(t *testing.T) {
 				t.Errorf("nickname body = %q", body.Nickname)
 			}
 			_ = json.NewEncoder(w).Encode(map[string]any{"ok": true, "profile": map[string]any{"nickname": body.Nickname}})
-		case "PUT /v1/rooms/room%2Fpath/allowlist/future.example.com":
+		case "PUT /v1/rooms/room%2Fpath/allowlist/future.test":
 			var body struct {
 				Role string `json:"role"`
 			}
@@ -159,7 +159,7 @@ func TestCLIWorkflowUsesDirectHTTPAndSupportsDelimiterRoomIDs(t *testing.T) {
 			if body.Role != "reader" {
 				t.Errorf("allowlist role = %q", body.Role)
 			}
-			_ = json.NewEncoder(w).Encode(map[string]any{"ok": true, "created": true, "entry": map[string]any{"agent": "future.example.com", "role": body.Role}})
+			_ = json.NewEncoder(w).Encode(map[string]any{"ok": true, "created": true, "entry": map[string]any{"agent": "future.test", "role": body.Role}})
 		default:
 			t.Errorf("unexpected request: %s rawQuery=%s", key, r.URL.RawQuery)
 			w.WriteHeader(http.StatusNotFound)
@@ -176,7 +176,7 @@ func TestCLIWorkflowUsesDirectHTTPAndSupportsDelimiterRoomIDs(t *testing.T) {
 		{"--json", "watch", "room/path", "--limit", "2", "--wait", "0"},
 		{"--json", "read", "room/path", "--after", "msg_01"},
 		{"--json", "nickname", "set", "room/path", "--nickname", "wolfgang"},
-		{"--json", "allowlist", "grant", "room/path", "--agent", "future.example.com", "--role", "reader"},
+		{"--json", "allowlist", "grant", "room/path", "--agent", "future.test", "--role", "reader"},
 	}
 	for _, command := range commands {
 		var out, errOut bytes.Buffer
@@ -195,7 +195,7 @@ func TestCLIWorkflowUsesDirectHTTPAndSupportsDelimiterRoomIDs(t *testing.T) {
 		{"POST /v1/rooms/room%2Fpath/messages", 1},
 		{"GET /v1/rooms/room%2Fpath/messages", 3},
 		{"PUT /v1/rooms/room%2Fpath/nickname", 1},
-		{"PUT /v1/rooms/room%2Fpath/allowlist/future.example.com", 1},
+		{"PUT /v1/rooms/room%2Fpath/allowlist/future.test", 1},
 	} {
 		if calls[expected.key] != expected.want {
 			t.Fatalf("%s calls = %d, want %d", expected.key, calls[expected.key], expected.want)
@@ -285,7 +285,7 @@ func setCLIEnv(t *testing.T, api string, dnsidPath string) {
 	t.Setenv("DNSID_BOARD_API", api)
 	t.Setenv("DNSID_BOARD_AUDIENCE", "urn:test")
 	t.Setenv("DNSID_SERVER", "https://api.dev.dnsid.ai")
-	t.Setenv("DNSID_AGENT_DOMAIN", "agent.example.com")
+	t.Setenv("DNSID_AGENT_DOMAIN", "agent.test")
 	t.Setenv("DNSID_CLI", dnsidPath)
 }
 

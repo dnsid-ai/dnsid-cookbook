@@ -22,7 +22,7 @@ from invoke_gateway_mcp import (  # noqa: E402
 
 @pytest.fixture(autouse=True)
 def dnsid_subject(monkeypatch):
-    monkeypatch.setattr(invoke_gateway_mcp, "EXPECTED_DNSID_SUB", "agent.example.com")
+    monkeypatch.setattr(invoke_gateway_mcp, "EXPECTED_DNSID_SUB", "agent.test")
 
 
 def generated_body(**overrides):
@@ -70,7 +70,7 @@ def test_assert_audit_contract_requires_deployed_audit_fields():
         "request_id": "bedrock-request",
         "correlation_id": "correlation-id",
         "token_jti": "token-id",
-        "trusted_identity": {"sub": "agent.example.com"},
+        "trusted_identity": {"sub": "agent.test"},
         "prompt_hash": "sha256:abc",
         "recorded_at": "2026-05-28T00:00:00+00:00",
     }
@@ -111,10 +111,10 @@ def test_assert_json_rpc_error_accepts_structured_error():
 
 
 def test_unsigned_jwt_from_claims_has_no_signature():
-    token = unsigned_jwt_from_claims({"sub": "agent.example.com", "aud": "audience"})
+    token = unsigned_jwt_from_claims({"sub": "agent.test", "aud": "audience"})
 
     assert token.endswith(".")
-    assert decode_claims(token)["sub"] == "agent.example.com"
+    assert decode_claims(token)["sub"] == "agent.test"
 
 
 def test_assert_auth_denied_requires_gateway_auth_status():

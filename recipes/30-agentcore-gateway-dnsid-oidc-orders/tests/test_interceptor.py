@@ -20,7 +20,7 @@ def event(proof: str, arguments: dict) -> dict:
         "mcp": {
             "gatewayRequest": {
                 "headers": {
-                    "authorization": f"Bearer {token({'sub': 'agent.bank-a.example', 'aud': 'https://gateway.example/mcp', 'jti': 'token-1'})}",
+                    "authorization": f"Bearer {token({'sub': 'bank-a-agent.test', 'aud': 'https://gateway.example/mcp', 'jti': 'token-1'})}",
                     "mcp-session-id": "session-1",
                     "x-action-proof": proof,
                     "x-dnsid-sub": "attacker.example",
@@ -43,7 +43,7 @@ def test_interceptor_injects_trust_only_after_dnsid_verification(jose_profiles) 
     proof = signer.create_jws(
         encode_payload(
             ActionPayload(
-                subject="agent.bank-a.example",
+                subject="bank-a-agent.test",
                 audience="https://gateway.example/mcp",
                 token_jti_hash=sha256("token-1"),
                 tool_name="place_order",
@@ -56,9 +56,9 @@ def test_interceptor_injects_trust_only_after_dnsid_verification(jose_profiles) 
     )
     verifier = ProofVerifier(profile, MemoryReplayStore())
 
-    accepted = transform_request(event(proof, arguments), verifier, "agent.bank-a.example", "trusted")
+    accepted = transform_request(event(proof, arguments), verifier, "bank-a-agent.test", "trusted")
     headers = accepted["mcp"]["transformedGatewayRequest"]["headers"]
-    assert headers["x-dnsid-sub"] == "agent.bank-a.example"
+    assert headers["x-dnsid-sub"] == "bank-a-agent.test"
     assert headers["x-gateway-sentinel"] == "trusted"
     assert "authorization" not in headers
     assert "x-action-proof" not in headers
@@ -66,7 +66,7 @@ def test_interceptor_injects_trust_only_after_dnsid_verification(jose_profiles) 
     denied = transform_request(
         event(proof, {**arguments, "quantity": 3}),
         ProofVerifier(profile, MemoryReplayStore()),
-        "agent.bank-a.example",
+        "bank-a-agent.test",
         "trusted",
     )
     assert denied["mcp"]["transformedGatewayResponse"]["statusCode"] == 403

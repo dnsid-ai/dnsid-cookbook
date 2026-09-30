@@ -20,7 +20,7 @@ A GitHub code review bot deployed to Amazon Bedrock AgentCore Runtime with an Ag
 
 Two identities are active throughout:
 
-- **Bot identity** (`<your-bot-domain>.dev.dnsid.ai`) — the agent doing the work. Posted as an attribution footer on every review comment, with a link to verify its identity via DNSid.
+- **Bot identity** (`<your-bot-domain>`, your already-provisioned full DNSid domain) — the agent doing the work. Posted as an attribution footer on every review comment, with a link to verify its identity via DNSid.
 - **GitHub identity** — the bot authenticates to GitHub as your GitHub App using installation tokens scoped per-repository. No PAT required; works across any org where that app is installed.
 
 ## Why this matters
@@ -37,7 +37,7 @@ After this recipe: every review comment carries a cryptographically verifiable a
 
 **AgentCore Gateway for audit routing.** The `ReviewGateway` (MCP gateway, `authorizerType: CUSTOM_JWT`) exposes a `record_audit` tool backed by a Lambda function. The bot presents its own DNSid OIDC token as Bearer auth; the gateway validates its issuer, `dnsid:review` scope, configured audience, and bot subject before routing to the Lambda. The runtime calls the gateway via Strands `MCPClient` using the auto-injected `AGENTCORE_GATEWAY_REVIEWGATEWAY_URL` env var.
 
-**DNSid identity at attribution.** The bot's DNSid domain is appended to every GitHub review comment as a verifiable footer. Anyone can run `dnsid record verify --domain <your-bot-domain>.dev.dnsid.ai` to confirm the signature.
+**DNSid identity at attribution.** The bot's DNSid domain is appended to every GitHub review comment as a verifiable footer. Anyone can run `dnsid record verify --domain <your-bot-domain>` to confirm the signature.
 
 **DNSid + AgentCore CUSTOM_JWT — what it takes to make it work end-to-end.** The MCP 2025-03-26 protocol layer requires a `scope` claim in the Bearer token in addition to the JWT being valid. DNSid tokens now carry `scope: dnsid:review`; the gateway additionally checks the configured audience and `BOT_DOMAIN` subject. Without the scope claim, requests that pass JWT auth still get `403 insufficient_scope` from the MCP layer.
 
@@ -83,7 +83,7 @@ Caller ──► AgentCore Runtime ──► Claude (via Bedrock)
                                              (DNSid OIDC token)
 
 Review comment posted to PR:
-  "Reviewed by `<your-bot-domain>.dev.dnsid.ai` — verify identity"
+  "Reviewed by `<your-bot-domain>` — verify identity"
 ```
 
 **Deployed resources:**
@@ -134,7 +134,7 @@ Key values:
 | `GITHUB_APP_ID` | Your GitHub App ID |
 | `GITHUB_APP_KEY_PATH` | Path to the downloaded `.pem` private key file |
 | `GITHUB_APP_KEY_SECRET_NAME` | Secrets Manager secret name for deployed runtime private-key access |
-| `BOT_DOMAIN` | Your lab agent domain, e.g. `<your-bot-domain>.dev.dnsid.ai` |
+| `BOT_DOMAIN` | Full domain of your already-provisioned bot identity, matching `DNSID_CONFIG_DIR` |
 | `REVIEW_GATEWAY_AUDIENCE` | Unique audience for this gateway deployment (use its MCP URL for an existing gateway); CDK injects the same value into the runtime |
 | `DNSID_CONFIG_DIR` | Server-side directory containing the bot's `config.json` and `private.jwk` |
 | `DNSID_SERVER` | DNSid OIDC server, normally `https://api.dnsid.ai` |
@@ -188,7 +188,7 @@ AUDIT_AUDIENCE=http://localhost:9090 \
 ```bash
 export GITHUB_APP_ID=<GITHUB_APP_ID>
 export GITHUB_APP_KEY_SECRET_NAME=github-review-bot/private-key
-export BOT_DOMAIN=<your-bot-domain>.dev.dnsid.ai
+export BOT_DOMAIN=<your-bot-domain>
 export REVIEW_GATEWAY_AUDIENCE=https://review-gateway.example/mcp # choose a unique value for this deployment
 make deploy
 # or directly:
@@ -224,13 +224,13 @@ After invocation, open the PR on GitHub. The review comment ends with:
 
 ```
 ---
-*Reviewed by `<your-bot-domain>.dev.dnsid.ai` — [verify identity](https://app.dnsid.ai/v1/status/<your-bot-domain>.dev.dnsid.ai)*
+*Reviewed by `<your-bot-domain>` — [verify identity](https://app.dnsid.ai/v1/status/<your-bot-domain>)*
 ```
 
 Click **verify identity** to confirm the DNSid binding for the bot's domain. You can also verify from the CLI:
 
 ```bash
-dnsid record verify --domain <your-bot-domain>.dev.dnsid.ai
+dnsid record verify --domain "$BOT_DOMAIN"
 ```
 
 ### Validate the gateway identity flows
@@ -248,7 +248,7 @@ curl -s -o /dev/null -w "%{http_code}" -X POST "$GATEWAY" \
 # → 401
 
 # 2. Bot token with the configured audience and scope → 200
-TOKEN=$(dnsid token --domain <your-bot-domain>.dev.dnsid.ai --audience "$AUDIENCE")
+TOKEN=$(dnsid token --domain "$BOT_DOMAIN" --audience "$AUDIENCE")
 curl -s -o /dev/null -w "%{http_code}" -X POST "$GATEWAY" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \

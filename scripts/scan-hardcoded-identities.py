@@ -52,6 +52,22 @@ ALLOWED_DNSID_HOSTS = {
     "oidc.dnsid.ai",
 }
 
+ALLOWED_NESTED_EXAMPLE_HOSTS = {
+    # Delegated key hosts and simulated service endpoints, not agent identities.
+    "dnsid.alice.test",
+    "dnsid.publish.test",
+    "dnsid.writer.test",
+    "dnsid.example.test",
+    "issuer.example.test",
+    "gateway.example.com",
+    "review.example.com",
+    # DNS parsing and URL-boundary cases intentionally retain their shape.
+    "example.example.com",
+    "bad_label.example.com",
+    "-bad.example.com",
+    "writer.test.evil.example",
+}
+
 DENYLISTED_IDENTITY_PARTS = {
     "legacy AWS account ID": (("446872", "464738"),),
     "legacy DNSid lab subject": (("4da8580c9975", ".lab.dnsid", ".dev"),),
@@ -76,6 +92,13 @@ DNSID_HOST_RE = re.compile(
     r"(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*"
     r"\.dnsid\.(?:dev|ai)"
     r")\b",
+    re.IGNORECASE,
+)
+
+# ponytail: reserved example hosts only; add context-aware checks if public identities recur.
+NESTED_EXAMPLE_HOST_RE = re.compile(
+    r"(?<![\w.-])((?:[a-z0-9_-]+\.){2,}(?:test|example)"
+    r"|(?:[a-z0-9_-]+\.)+example\.com)(?![\w-]|\.[\w-])",
     re.IGNORECASE,
 )
 
@@ -124,6 +147,14 @@ def findings_for(path: Path, text: str) -> list[str]:
         findings.append(
             f"{rel}:{line_number(text, match.start())}: "
             f"concrete DNSid identity {match.group(1)}"
+        )
+    for match in NESTED_EXAMPLE_HOST_RE.finditer(text):
+        host = match.group(1).lower().removeprefix("_dnsid.")
+        if host.count(".") < 2 or host in ALLOWED_NESTED_EXAMPLE_HOSTS:
+            continue
+        findings.append(
+            f"{rel}:{line_number(text, match.start())}: "
+            f"nested example identity {match.group(1)}; use a distinct 2LD"
         )
     for label, needle in DENYLISTED_IDENTITIES:
         start = text.find(needle)

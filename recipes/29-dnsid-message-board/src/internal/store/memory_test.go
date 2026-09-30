@@ -17,8 +17,8 @@ import (
 func TestMemoryStoreRoomMembershipIdempotencyAndRevocation(t *testing.T) {
 	ctx := context.Background()
 	s := NewMemoryStore()
-	owner := board.Identity{Agent: "owner.example.com"}
-	poster := board.Identity{Agent: "poster.example.com"}
+	owner := board.Identity{Agent: "owner.test"}
+	poster := board.Identity{Agent: "poster.test"}
 
 	room, err := s.CreateRoom(ctx, owner, CreateRoomInput{RoomID: "security/risk brainstorm", Name: "Security"})
 	if err != nil {
@@ -68,7 +68,7 @@ func TestMemoryStoreRoomMembershipIdempotencyAndRevocation(t *testing.T) {
 	if afterRepeated.Room.Version != ownerSnapshot.Room.Version {
 		t.Fatalf("same-role grant changed room version: got %d want %d", afterRepeated.Room.Version, ownerSnapshot.Room.Version)
 	}
-	admin := board.Identity{Agent: "admin.example.com"}
+	admin := board.Identity{Agent: "admin.test"}
 	adminEntry, created, err := s.GrantAllowlist(ctx, owner, GrantInput{
 		RoomID:              room.RoomID,
 		TargetAgent:         admin.Agent,
@@ -170,7 +170,7 @@ func TestMemoryStoreRoomMembershipIdempotencyAndRevocation(t *testing.T) {
 func TestMemoryStoreReadMessagesDefaultsToRecentWindow(t *testing.T) {
 	ctx := context.Background()
 	s := NewMemoryStore()
-	owner := board.Identity{Agent: "owner.example.com"}
+	owner := board.Identity{Agent: "owner.test"}
 	room, err := s.CreateRoom(ctx, owner, CreateRoomInput{RoomID: "room"})
 	if err != nil {
 		t.Fatal(err)
@@ -209,9 +209,9 @@ func TestMemoryStoreReadMessagesDefaultsToRecentWindow(t *testing.T) {
 func TestMemoryStoreNicknamesAreRoomScopedUniqueAndReleased(t *testing.T) {
 	ctx := context.Background()
 	s := NewMemoryStore()
-	owner := board.Identity{Agent: "owner.example.com"}
-	poster := board.Identity{Agent: "poster.example.com"}
-	reader := board.Identity{Agent: "reader.example.com"}
+	owner := board.Identity{Agent: "owner.test"}
+	poster := board.Identity{Agent: "poster.test"}
+	reader := board.Identity{Agent: "reader.test"}
 	room, err := s.CreateRoom(ctx, owner, CreateRoomInput{RoomID: "room"})
 	if err != nil {
 		t.Fatal(err)
@@ -328,7 +328,7 @@ func TestMemoryStoreNicknamesAreRoomScopedUniqueAndReleased(t *testing.T) {
 	}); err != nil {
 		t.Fatalf("revoked nickname should be released: %v", err)
 	}
-	if _, err := s.SetNickname(ctx, board.Identity{Agent: "unlisted.example.com"}, SetNicknameInput{
+	if _, err := s.SetNickname(ctx, board.Identity{Agent: "unlisted.test"}, SetNicknameInput{
 		RoomID:   room.RoomID,
 		Nickname: "unlisted",
 	}); !errors.Is(err, board.ErrDenied) {
@@ -339,7 +339,7 @@ func TestMemoryStoreNicknamesAreRoomScopedUniqueAndReleased(t *testing.T) {
 func TestMemoryStoreMessagesSnapshotNicknameAndReadAfter(t *testing.T) {
 	ctx := context.Background()
 	s := NewMemoryStore()
-	owner := board.Identity{Agent: "owner.example.com"}
+	owner := board.Identity{Agent: "owner.test"}
 	room, err := s.CreateRoom(ctx, owner, CreateRoomInput{RoomID: "room"})
 	if err != nil {
 		t.Fatal(err)
@@ -463,7 +463,7 @@ func TestDynamoDBNicknameTransactionsUseSafeConditions(t *testing.T) {
 	if !strings.Contains(emptyCondition, "attribute_not_exists(#nicknameKey)") {
 		t.Fatalf("empty nickname condition should reject concurrent claims: %s", emptyCondition)
 	}
-	put := putNicknameTxn("table", "room", "roomKey", "Wolfgang", "wolfgang", "agent.example.com", "now").Put
+	put := putNicknameTxn("table", "room", "roomKey", "Wolfgang", "wolfgang", "agent.test", "now").Put
 	if got := *put.ConditionExpression; !strings.Contains(got, "#agent = :agent") {
 		t.Fatalf("nickname put condition should alias reserved agent name: %s", got)
 	}

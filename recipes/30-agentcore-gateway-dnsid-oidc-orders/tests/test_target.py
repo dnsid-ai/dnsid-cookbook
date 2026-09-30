@@ -15,11 +15,11 @@ def test_target_accepts_only_verified_small_orders(monkeypatch) -> None:
     order = {"sku": "LABEL-CASE", "quantity": 2}
     status, body = call(
         monkeypatch,
-        {"x-gateway-sentinel": "trusted", "x-dnsid-status": "active", "x-dnsid-sub": "agent.bank-a.example"},
+        {"x-gateway-sentinel": "trusted", "x-dnsid-status": "active", "x-dnsid-sub": "bank-a-agent.test"},
         order,
     )
     assert status == 200
-    assert body["dnsid_sub"] == "agent.bank-a.example"
+    assert body["dnsid_sub"] == "bank-a-agent.test"
 
     assert call(monkeypatch, {"x-gateway-sentinel": "forged"}, order)[0] == 403
     assert call(

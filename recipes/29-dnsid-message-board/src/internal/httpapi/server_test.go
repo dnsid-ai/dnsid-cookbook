@@ -20,7 +20,7 @@ type fakeVerifier struct{}
 
 func (fakeVerifier) VerifyBearer(_ context.Context, token string) (board.Identity, error) {
 	return board.Identity{
-		Agent:        token + ".example.com",
+		Agent:        token + ".test",
 		Issuer:       "https://api.dev.dnsid.ai",
 		Audience:     []string{"urn:test"},
 		Environment:  "lab",
@@ -46,7 +46,7 @@ func TestHTTPAPIEndToEndBehavior(t *testing.T) {
 		t.Fatalf("duplicate status = %d body=%s", duplicate.Code, duplicate.Body.String())
 	}
 
-	adminAgent := "admin.example.com"
+	adminAgent := "admin.test"
 	grantAdmin := request(t, api, http.MethodPut, "/v1/rooms/"+url.PathEscape(roomID)+"/allowlist/"+adminAgent, "owner", map[string]any{
 		"role": "admin",
 	}, nil)
@@ -54,7 +54,7 @@ func TestHTTPAPIEndToEndBehavior(t *testing.T) {
 		t.Fatalf("grant admin status = %d body=%s", grantAdmin.Code, grantAdmin.Body.String())
 	}
 
-	futureAgent := "future-agent.example.com"
+	futureAgent := "future-agent.test"
 	grant := request(t, api, http.MethodPut, "/v1/rooms/"+url.PathEscape(roomID)+"/allowlist/"+futureAgent, "admin", map[string]any{
 		"role": "poster",
 	}, nil)
@@ -143,7 +143,7 @@ func TestHTTPAPIEndToEndBehavior(t *testing.T) {
 	}
 	badIdentityBody := request(t, api, http.MethodPost, "/v1/rooms/"+url.PathEscape(roomID)+"/messages", "future-agent", map[string]any{
 		"body":  "first",
-		"agent": "attacker.example.com",
+		"agent": "attacker.test",
 	}, map[string]string{"Idempotency-Key": "idem-2"})
 	if badIdentityBody.Code != http.StatusBadRequest {
 		t.Fatalf("identity-like body should be rejected, got %d %s", badIdentityBody.Code, badIdentityBody.Body.String())

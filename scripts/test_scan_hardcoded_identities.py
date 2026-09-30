@@ -58,6 +58,30 @@ class ScanHardcodedIdentitiesTest(unittest.TestCase):
 
         self.assertEqual(findings_for_text(text), [])
 
+    def test_flags_nested_reserved_example_identities(self) -> None:
+        for host in (
+            "agent." + "example.com",
+            "agent." + "example.test",
+            "agent." + "bank-a.example",
+            "alice." + "dev." + "dnsid.test",
+            "agent." + "EXAMPLE.TEST.",
+        ):
+            with self.subTest(host=host):
+                self.assertTrue(findings_for_text(host))
+                self.assertTrue(findings_for_text("https://" + host + "/keys"))
+                self.assertTrue(findings_for_text("_dnsid." + host))
+
+    def test_allows_2ld_identities_record_owners_and_service_hosts(self) -> None:
+        text = "\n".join([
+            "alice.test",
+            "bob.test",
+            "_dnsid.alice.test",
+            "_dnsid.ace-plumbing.example",
+            "agentcore/.env.local.example",
+            *sorted(scan.ALLOWED_NESTED_EXAMPLE_HOSTS),
+        ])
+        self.assertEqual(findings_for_text(text), [])
+
     def test_skip_rules_cover_generated_and_dependency_paths(self) -> None:
         self.assertTrue(scan.should_skip(ROOT / "node_modules" / "package" / "index.js"))
         self.assertTrue(scan.should_skip(ROOT / ".venv" / "lib" / "module.py"))

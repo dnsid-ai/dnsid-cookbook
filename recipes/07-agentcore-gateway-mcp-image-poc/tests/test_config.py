@@ -25,14 +25,14 @@ def test_dnsid_settings_reads_env_overrides():
         environ={
             "DNSID_CLI": "/opt/dnsid/bin/dnsid",
             "DNSID_SERVER": "https://dnsid.example.test/",
-            "DNSID_AGENT_DOMAIN": "agent.example.test",
+            "DNSID_AGENT_DOMAIN": "agent.test",
         },
         require_https=True,
     )
 
     assert settings.cli == "/opt/dnsid/bin/dnsid"
     assert settings.server == "https://dnsid.example.test"
-    assert settings.agent_domain == "agent.example.test"
+    assert settings.agent_domain == "agent.test"
 
 
 def test_gateway_dnsid_server_must_be_https():
@@ -40,7 +40,7 @@ def test_gateway_dnsid_server_must_be_https():
         load_dnsid_settings(
             environ={
                 "DNSID_SERVER": "http://dnsid.example.test",
-                "DNSID_AGENT_DOMAIN": "agent.example.com",
+                "DNSID_AGENT_DOMAIN": "agent.test",
             },
             require_https=True,
         )
