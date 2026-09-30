@@ -8,7 +8,7 @@
 # Checks:
 #   1. `_dnsid.<domain>` TXT resolves and starts with the v= version tag
 #   2. the ku= JWKS URL from the record serves a key over HTTPS
-#   3. the kid served in DNS-land matches the local keypair on disk
+#   3. the served public JWK matches the local public JWK on disk
 #   4. the su= status URL reports the identity as ACTIVE
 #
 # Exits nonzero on any miss.
@@ -109,15 +109,19 @@ echo "--- JWKS (from ${ku}) ---"
 printf '%s\n' "${jwks}" | python3 -m json.tool
 echo ""
 
-served_kid=$(printf '%s' "${jwks}" | python3 -c "import json,sys; print(json.load(sys.stdin)['keys'][0]['kid'])") \
-    || fail "JWKS has no keys[0].kid"
+# ---------------------------------------------------------------------------
+# 3. The public key in DNS-land matches the public JWK on disk
+# ---------------------------------------------------------------------------
+served_kid=$(printf '%s' "${jwks}" | python3 -c '
+import json, os, sys
+from pathlib import Path
 
-# ---------------------------------------------------------------------------
-# 3. The key in DNS-land matches the keypair on disk
-# ---------------------------------------------------------------------------
-local_kid=$(python3 -c "import json; print(json.load(open('${DNSID_CONFIG_DIR}/public.jwk'))['kid'])")
-[[ "${served_kid}" == "${local_kid}" ]] \
-    || fail "served kid '${served_kid}' does not match local keypair kid '${local_kid}'"
+served = json.load(sys.stdin)["keys"][0]
+local = json.loads((Path(os.environ["DNSID_CONFIG_DIR"]) / "public.jwk").read_text())
+if served != local:
+    sys.exit("served public JWK does not match local public JWK")
+print(served["kid"])
+') || fail "JWKS does not contain the expected local public key"
 
 # ---------------------------------------------------------------------------
 # 4. Live status: follow su=
@@ -129,5 +133,5 @@ printf '%s' "${status}" | grep -q '"state":"ACTIVE"' \
 echo ""
 echo "✓ binding resolved"
 echo "✓ JWKS reachable at ${ku}"
-echo "✓ kid matches local keypair: ${served_kid}"
+echo "✓ public JWK matches local keypair (kid ${served_kid})"
 echo "✓ status: ACTIVE"

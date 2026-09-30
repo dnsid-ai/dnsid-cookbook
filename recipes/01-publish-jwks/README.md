@@ -11,7 +11,7 @@
 
 ## What you'll build
 
-A published DNSid identity for `publish.test` on a local DNSid registry, with your own process serving its public keys. One `make bootstrap` runs the whole provisioning lifecycle — keypair generation, registration, a signed challenge, publication to DNS, and a countersigned transparency-log entry. Then you take it apart by hand: `dig` the `_dnsid` TXT record and read every tag, `curl` the JWKS the record points at, watch that the key served over HTTPS is byte-for-byte the keypair on your disk, and hit the live status endpoint. At the end, any DNSid verifier can authenticate messages signed by this domain — and you'll know exactly which three lookups make that possible.
+A published DNSid identity for `publish.test` on a local DNSid registry, with your own process serving its public keys. One `make bootstrap` runs the whole provisioning lifecycle — keypair generation, registration, a signed challenge, publication to DNS, and a countersigned transparency-log entry. Then you take it apart by hand: `dig` the `_dnsid` TXT record and read every tag, `curl` the JWKS the record points at, check that the public JWK served over HTTPS matches the public JWK on your disk, and hit the live status endpoint. At the end, any DNSid verifier can authenticate messages signed by this domain — and you'll know exactly which three lookups make that possible.
 
 ## Why this matters
 
@@ -115,7 +115,7 @@ curl --cacert ~/.dnsid-local/certs/root-ca.pem \
 {"keys": [{"alg": "EdDSA", "crv": "Ed25519", "kid": "L6rgyZbQpknTUv...", "kty": "OKP", "use": "sig", "x": "9khC_JnqP..."}]}
 ```
 
-`kty: "OKP"` is the JOSE key type for octet key pairs (which Ed25519 uses); `x` is the base64url-encoded 32-byte public key; `kid` is the key id signed messages will reference. Compare that `kid` with `public.jwk` in your identity directory — same key, which is the point: DNS told a stranger where to look, and what they found is provably yours.
+`kty: "OKP"` is the JOSE key type for octet key pairs (which Ed25519 uses); `x` is the base64url-encoded 32-byte public key; `kid` is the key id signed messages will reference. Compare the served JWK with `public.jwk` in your identity directory, including `kty`, `crv`, and `x` — the key type, curve, and actual public-key bytes. Matching `kid` alone is not enough: it is an identifier, not proof that the keys are equal.
 
 The record's `su=` tag completes the picture — live status from the registry:
 
@@ -149,7 +149,7 @@ While it runs, steps 2 and 4's `dig` and `curl` commands work from any other ter
 make verify
 ```
 
-One shot: starts the JWKS server, then performs the verifier's walk from [`verify/verify.sh`](verify/verify.sh) — resolve the TXT binding, check the `v=` tag, follow `ku=` over HTTPS, match the served `kid` against the local keypair, follow `su=` for live status. Exits nonzero on any miss.
+One shot: starts the JWKS server, then performs the verifier's walk from [`verify/verify.sh`](verify/verify.sh) — resolve the TXT binding, check the `v=` tag, follow `ku=` over HTTPS, compare the complete served public JWK against the local `public.jwk`, follow `su=` for live status. Exits nonzero on any miss.
 
 Expected output (abridged):
 
@@ -164,7 +164,7 @@ v=dnsid-draft-01;...;ku=https://publish.test/.well-known/jwks.json;...
 
 ✓ binding resolved
 ✓ JWKS reachable at https://publish.test/.well-known/jwks.json
-✓ kid matches local keypair: L6rgyZbQpknTUv-yOwqoXTEhOIhpUjeJaKHw5aQagC4
+✓ public JWK matches local keypair (kid L6rgyZbQpknTUv-yOwqoXTEhOIhpUjeJaKHw5aQagC4)
 ✓ status: ACTIVE
 ```
 

@@ -80,8 +80,8 @@ def build_agent_card(domain: str, url: str, provider_url: str = "") -> AgentCard
         ext = card.capabilities.extensions.add()
         ext.uri = DNSID_A2A_EXTENSION_URI
         ext.description = (
-            "Requires DNSid validation, RFC 9421 HTTP Message Signatures, "
-            "and mTLS for inbound requests."
+            "Requires DNSid validation and RFC 9421 HTTP Message Signatures "
+            "for inbound requests."
         )
         ext.required = True
         try:
@@ -102,7 +102,6 @@ def build_agent_card(domain: str, url: str, provider_url: str = "") -> AgentCard
                     "contentDigest": "sha-256-required",
                     "statusCheck": "dnsid-su-active-required",
                     "providerPolicy": "provider-url-host-must-equal-or-be-subdomain-of-gi",
-                    "mtls": "required-because-target-dnsid-fl-contains-mtls",
                 }
             )
             ext.params.CopyFrom(params)
@@ -126,28 +125,17 @@ def build_agent_card(domain: str, url: str, provider_url: str = "") -> AgentCard
     except AttributeError:
         pass  # older a2a-sdk
 
-    # Security scheme: dnsidMtls (mTLS required when fl=mtls is set in DNSid record)
-    try:
-        sc = card.security_schemes["dnsidMtls"]
-        sc.mtls_security_scheme.description = (
-            "Mutual TLS is required when this agent's DNSid record contains fl=mtls."
-        )
-        req = card.security_requirements.add()
-        req.schemes["dnsidMtls"].CopyFrom(StringList())
-        try:
-            sk_req = sk.security_requirements.add()
-            sk_req.schemes["dnsidMtls"].CopyFrom(StringList())
-        except AttributeError:
-            pass
-    except (AttributeError, KeyError):
-        # Fall back to the httpSig scheme for older a2a-sdk versions.
-        sc = card.security_schemes["httpSig"]
-        sc.http_auth_security_scheme.scheme = "signature"
-        sc.http_auth_security_scheme.description = (
-            "RFC 9421 HTTP Message Signatures; keyid must be the sender's FQDN"
-        )
-        req = card.security_requirements.add()
-        req.schemes["httpSig"].CopyFrom(StringList())
+    # The required extension above defines the HTTP-signature wire contract.
+    sc = card.security_schemes["httpSig"]
+    sc.http_auth_security_scheme.scheme = "signature"
+    sc.http_auth_security_scheme.description = (
+        "RFC 9421 HTTP Message Signatures; "
+        "keyid must be <caller-dnsid-subject>#<jwks-kid>"
+    )
+    req = card.security_requirements.add()
+    req.schemes["httpSig"].CopyFrom(StringList())
+    sk_req = sk.security_requirements.add()
+    sk_req.schemes["httpSig"].CopyFrom(StringList())
 
     return card
 
