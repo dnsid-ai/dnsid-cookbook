@@ -41,7 +41,7 @@ DNSid proves the domain/key binding and the accountable entity, the domain takin
 | DNS server | local registry, `127.0.0.1:7753` | Serves live `_dnsid` TXT records |
 | Registry and log | local registry, `127.0.0.1:7755` | Issues identities and records lifecycle events |
 | TLS proxy | local registry, `:443` | Routes `https://<identity>.test` to local upstreams |
-| API | host `127.0.0.1:3120` | Verifies signed requests and checks permissions |
+| API | host `0.0.0.0:3120` | Verifies signed requests and checks permissions |
 | Model endpoint | host `:8791` scripted replies, `:8792` Decider | Answers only naming questions |
 | Client | short-lived process | Signs calls or checks outbound permissions |
 
@@ -137,8 +137,10 @@ In a second terminal:
 make bootstrap
 JEV_ENDPOINT=http://127.0.0.1:8791/v1/systemone \
   DNSID_PUBLIC_URL=https://api.test dnsid local run api -- \
-  uv run uvicorn app:app --app-dir src --host 127.0.0.1 --port 3120
+  uv run uvicorn app:app --app-dir src --host 0.0.0.0 --port 3120
 ```
+
+The API binds to all host interfaces so the Docker TLS proxy can reach it on Linux. Signed requests are still required; the scripted and real model endpoints remain loopback-only.
 
 In a third, send a signed request:
 

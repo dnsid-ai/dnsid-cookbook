@@ -42,9 +42,10 @@ uv run python -m unittest discover -s tests
 uv run python src/fixture_model.py & fixture=$!; pids+=("$fixture")
 wait_for curl -s -o /dev/null http://127.0.0.1:8791/
 
+# Docker's TLS proxy reaches the host gateway, not host loopback, on Linux.
 DNSID_PUBLIC_URL=https://api.test \
   "$DNSID_CLI" local run api --upstream "http://localhost:$API_PORT" -- \
-  uv run uvicorn app:app --app-dir src --host 127.0.0.1 --port "$API_PORT" >"$api_log" 2>&1 & pids+=($!)
+  uv run uvicorn app:app --app-dir src --host 0.0.0.0 --port "$API_PORT" >"$api_log" 2>&1 & pids+=($!)
 wait_for curl -fsS "http://127.0.0.1:$API_PORT/healthz"
 kill -0 "${pids[1]}" || { echo 'API exited before ready'; exit 1; }
 
