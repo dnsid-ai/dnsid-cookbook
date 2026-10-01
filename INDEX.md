@@ -16,7 +16,7 @@ DNSid is a thin layer easily composable with existing standards. Recipes name th
 |---|---|---|
 | **RFC 9421** — HTTP Message Signatures | Wire format for signed HTTP requests | 6, 6b, 9, 10, 12, 31, 32 |
 | **RFC 7515** — JWS | Signature envelope | 1 |
-| **RFC 7517** — JWK / JWKS | Public key publication at `/.well-known/jwks.json`; OIDC verification keys | 1, 4, 6b, 29 |
+| **RFC 7517** — JWK / JWKS | Public key publication at `/.well-known/jwks.json`; OIDC verification keys | 1, 4, 6b, 29, 33 |
 | **RFC 9530** — Digest Fields | Signed request-body integrity | 6b |
 | **RFC 8037** — Ed25519 in JOSE | Algorithm binding | 1 |
 | **RFC 8615** — Well-known URIs | JWKS hosting path | 1 |
@@ -33,6 +33,7 @@ DNSid is a thin layer easily composable with existing standards. Recipes name th
 | **gRPC** | `CallCredentials` / `ChannelCredentials` extension point | 13 |
 | **A2A (Google)** | Agent interaction protocol | 12, 31 |
 | **LangGraph** | Agent framework — verified ingress, signed tool-call egress, caller-gated tools | 31 |
+| **Pi / codemode** | Personal-agent tools — verified outbound calls and user-owned operation policy | 33 |
 | **Cloud OIDC federation** | GitHub Actions OIDC, AWS IAM Roles Anywhere, GCP Workload Identity Federation, Azure Federated Credentials | 15, 19 |
 | **Edge runtimes** | Cloudflare Workers, Lambda@Edge, CloudFront Functions, Fastly Compute, Akamai EdgeWorkers, Vercel Edge, Netlify Edge | 10, 10a–10g |
 | **Cloudflare Web Bot Auth** | Verified bot/agent traffic; DNSid as additional issuer | 24 |
@@ -89,6 +90,9 @@ A runnable Go message board on the real DNSid local registry. The CLI mints a sh
 
 ### 32. Decide how far to trust an agent you have never met
 Open a service to any DNSid-verified agent, then use a written trust policy to decide how far to trust it; use the same policy before your agent calls an unfamiliar service. TOML configures age windows, rule effects and operation requirements; code enforces them using verified DNSid facts and three model naming judgments. Scripted model replies check the wiring, and 16 raw-fact cases compare real model decisions. See [recipes/32-jev-trust-policy/](recipes/32-jev-trust-policy/).
+
+### 33. Guard a personal agent's outbound calls in Pi
+Let a Pi agent compose tools in JavaScript, while TypeScript verifies the counterparty and enforces your policy inside each outbound tool. Uses the DNSid TS SDK and Pi's native Jev classifier interface; catalog reads are real, payments are simulated and require explicit human approval. Scripted replies verify direct, codemode and resumed-session behavior without a model account. See [recipes/33-pi-outbound-trust/](recipes/33-pi-outbound-trust/).
 
 ### 30. Verify a DNSid-signed order in AgentCore Gateway
 Accept one AgentCore Gateway order from a DNS identity without exchanging a signing key or shared secret. The interceptor verifies the caller's DNS-published operational key and lifecycle state, then rejects modified or replayed actions. See [recipes/30-agentcore-gateway-dnsid-oidc-orders/](recipes/30-agentcore-gateway-dnsid-oidc-orders/).
