@@ -1,8 +1,6 @@
 .PHONY: bootstrap run verify pi clean
 DNSID_CLI ?= dnsid
 MERCHANT_PORT ?= 3133
-# Optional built checkout for SDK development; otherwise use the pinned npm release.
-DNSID_TS ?=
 
 bootstrap:
 	$(DNSID_CLI) local up --zone test
@@ -13,8 +11,6 @@ bootstrap:
 	$(DNSID_CLI) local agent ensure paypal-payments --upstream http://localhost:$(MERCHANT_PORT) -- \
 	  $(DNSID_CLI) log issue --domain paypal-payments.test
 	npm ci --ignore-scripts
-	@if [ -n "$(DNSID_TS)" ]; then npm install --ignore-scripts --no-save --package-lock=false \
-	  "$(DNSID_TS)/packages/sdk" "$(DNSID_TS)/packages/transport"; fi
 
 run: verify
 

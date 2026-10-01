@@ -23,9 +23,8 @@ A personal agent can discover an unfamiliar service without knowing who operates
 ## Prerequisites
 
 - Docker 24+ running, `make`, and the [`dnsid` CLI](https://docs.dnsid.ai/cli-installation) with `dnsid local` support.
-- Node.js 22.19+ and npm. Tested with Node 22.23.2; [`package.json`](package.json) and [`package-lock.json`](package-lock.json) pin DNSid SDK/transport 0.24.1 and Pi 0.99.2.
+- Node.js 22.19+ and npm. Tested with Node 22.23.2; [`package.json`](package.json) and [`package-lock.json`](package-lock.json) pin the published npm packages DNSid SDK/transport 0.24.1 and Pi 0.99.2. Bootstrap installs them with `npm ci`; no local SDK checkout is required.
 - A clone of this repository. No Python, model download, or account is needed for the default demo.
-- Optional: a built `dnsid-ts` checkout at `~/dnsid-ts`. Use `make verify DNSID_TS="$HOME/dnsid-ts"` to run against its SDK and transport instead of the pinned published packages.
 - Optional interactive use: a Pi chat-model login and `TYPESAFE_API_KEY` for hosted Jev. Other classifier providers can be selected with `DNSID_JEV_PROVIDER` and `DNSID_JEV_MODEL`.
 
 Pi 0.99.2's upstream npm shrinkwrap currently pins `brace-expansion` 5.0.9 with a reported denial-of-service vulnerability (`npm audit`). Do not treat this recipe as a hardened runtime for untrusted projects; upgrade Pi when its dependency is patched.
@@ -55,7 +54,6 @@ The CLI owns the containers. `dnsid local run shopper -- ...` injects DNS routin
 
 ```bash
 make bootstrap
-# Or: make bootstrap DNSID_TS="$HOME/dnsid-ts"
 dig @127.0.0.1 -p 7753 _dnsid.merchant.test TXT +short
 curl --resolve merchant.test:443:127.0.0.1 \
   --cacert ~/.dnsid-local/certs/root-ca.pem \
@@ -104,8 +102,6 @@ The payment tool independently requires an exact approved `gi`, positive integer
 
 ```bash
 make run
-# To use your built SDK checkout throughout:
-make run DNSID_TS="$HOME/dnsid-ts"
 ```
 
 The short-lived demo starts the merchant, checks the guards, runs real Pi direct and codemode tool calls using scripted model proposals, restores the same session branch, and exits. It needs no model account.
@@ -115,7 +111,6 @@ For interactive use, start `npm run merchant` in one terminal. In another:
 ```bash
 export TYPESAFE_API_KEY=...             # Or /login typesafe in Pi
 make pi                               # Uses your configured Pi chat model
-# make pi DNSID_TS="$HOME/dnsid-ts"    # Use the local built SDK
 ```
 
 Ask Pi: “Compare catalogs at merchant.test and paypal-payments.test using codemode. Then simulate paying merchant.test USD 42.” The merchant read should succeed, the impersonator should be refused, and the simulated payment should prompt for confirmation. Hosted Jev receives counterparty naming facts, never payment amounts, customer payloads or the conversation. Real-model naming accuracy is not tested by the default demo.
