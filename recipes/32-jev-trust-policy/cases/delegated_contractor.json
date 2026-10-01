@@ -1,0 +1,17 @@
+{
+  "description": "Contractor-run agent delegated to its client",
+  "operation": "catalog",
+  "facts": {
+    "counterparty": {
+      "agent_name": "payroll.contractor.invalid",
+      "accountable_entity": "acme-corp.invalid",
+      "dnssec": "VALID"
+    },
+    "agent_history": {"identity_age_days": 200, "key_age_days": 200, "key_event": "issuance"},
+    "accountable_entity_history": null
+  },
+  "expected": {
+    "clauses": {"impersonation": false, "unproven": false, "takeover_risk": false},
+    "tier": "trusted"
+  }
+}

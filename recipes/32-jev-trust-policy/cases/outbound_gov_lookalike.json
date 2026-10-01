@@ -1,0 +1,17 @@
+{
+  "description": "Outbound: service claiming to be a tax authority",
+  "operation": "customer-pii",
+  "facts": {
+    "counterparty": {
+      "agent_name": "irs-efile-assist.example",
+      "accountable_entity": "irs-efile-assist.example",
+      "dnssec": "VALID"
+    },
+    "agent_history": {"identity_age_days": 45, "key_age_days": 45, "key_event": "issuance"},
+    "accountable_entity_history": null
+  },
+  "expected": {
+    "clauses": {"impersonation": true, "unproven": false, "takeover_risk": false},
+    "tier": "untrusted"
+  }
+}

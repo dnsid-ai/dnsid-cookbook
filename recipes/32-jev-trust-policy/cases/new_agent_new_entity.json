@@ -1,0 +1,17 @@
+{
+  "description": "Brand-new agent under a brand-new entity (needs entity index)",
+  "operation": "catalog",
+  "facts": {
+    "counterparty": {
+      "agent_name": "helper.freshco.invalid",
+      "accountable_entity": "freshco.invalid",
+      "dnssec": "VALID"
+    },
+    "agent_history": {"identity_age_days": 1, "key_age_days": 1, "key_event": "issuance"},
+    "accountable_entity_history": {"first_issuance_days_ago": 1}
+  },
+  "expected": {
+    "clauses": {"impersonation": false, "unproven": true, "takeover_risk": false},
+    "tier": "limited"
+  }
+}

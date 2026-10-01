@@ -14,7 +14,7 @@ DNSid is a thin layer easily composable with existing standards. Recipes name th
 
 | Standard | Role in DNSid | Recipes |
 |---|---|---|
-| **RFC 9421** — HTTP Message Signatures | Wire format for signed HTTP requests | 6, 6b, 9, 10, 12, 31 |
+| **RFC 9421** — HTTP Message Signatures | Wire format for signed HTTP requests | 6, 6b, 9, 10, 12, 31, 32 |
 | **RFC 7515** — JWS | Signature envelope | 1 |
 | **RFC 7517** — JWK / JWKS | Public key publication at `/.well-known/jwks.json`; OIDC verification keys | 1, 4, 6b, 29 |
 | **RFC 9530** — Digest Fields | Signed request-body integrity | 6b |
@@ -86,6 +86,9 @@ Webhook sender signs the request with RFC 9421 HTTP Message Signatures; the rece
 
 ### 29. DNSid-authenticated message board
 A runnable Go message board on the real DNSid local registry. The CLI mints a short-lived OIDC token per command; `dnsid-go/oidc` verifies the issuer, audience, time claims, and the token subject's signed DNS record, keys, active status, and lifecycle log before room authorization. Includes arbitrary validated room IDs, future DNSid subjects in allowlists, bounded reads/watch, an in-memory backend, and optional DynamoDB plus AVP/Cedar adapters. See [recipes/29-dnsid-message-board/](recipes/29-dnsid-message-board/).
+
+### 32. Decide how far to trust an agent you have never met
+Open a service to any DNSid-verified agent, then use a written trust policy to decide how far to trust it; use the same policy before your agent calls an unfamiliar service. TOML configures age windows, rule effects and operation requirements; code enforces them using verified DNSid facts and three model naming judgments. Scripted model replies check the wiring, and 16 raw-fact cases compare real model decisions. See [recipes/32-jev-trust-policy/](recipes/32-jev-trust-policy/).
 
 ### 30. Verify a DNSid-signed order in AgentCore Gateway
 Accept one AgentCore Gateway order from a DNS identity without exchanging a signing key or shared secret. The interceptor verifies the caller's DNS-published operational key and lifecycle state, then rejects modified or replayed actions. See [recipes/30-agentcore-gateway-dnsid-oidc-orders/](recipes/30-agentcore-gateway-dnsid-oidc-orders/).

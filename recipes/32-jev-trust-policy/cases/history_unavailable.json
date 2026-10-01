@@ -1,0 +1,17 @@
+{
+  "description": "Neutral name, lifecycle could not be read",
+  "operation": "order-lookup",
+  "facts": {
+    "counterparty": {
+      "agent_name": "inventory.globex.invalid",
+      "accountable_entity": "globex.invalid",
+      "dnssec": "VALID"
+    },
+    "agent_history": null,
+    "accountable_entity_history": null
+  },
+  "expected": {
+    "clauses": {"impersonation": false, "unproven": true, "takeover_risk": false},
+    "tier": "limited"
+  }
+}
