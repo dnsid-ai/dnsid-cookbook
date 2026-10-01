@@ -1,9 +1,8 @@
 """Build a counterparty fact sheet from SDK-verified DNSid evidence.
 
-Code computes every fact here: ages, the name/accountable-entity relationship,
-key history. The decision model only reads the finished sheet, so it never
-does arithmetic, string matching or cryptography, and nothing in the sheet is
-text the counterparty wrote about itself.
+Code computes ages, domain relationships, key history and Unicode signals.
+Only the counterparty section goes to the model; history and operation impact
+stay in code. Nothing in the sheet is a counterparty-authored description.
 """
 
 from __future__ import annotations
@@ -14,6 +13,8 @@ import hashlib
 import logging
 from dataclasses import dataclass
 from typing import Any
+
+from confusable_homoglyphs import confusables
 
 try:
     import idna  # installed with dnsid; optional so eval and tests run without the SDK
@@ -39,6 +40,10 @@ class Interaction:
 class FactSettings:
     new_agent_days: int = 30
     recent_rotation_days: int = 7
+
+    def __post_init__(self):
+        if any(type(v) is not int or v <= 0 for v in (self.new_agent_days, self.recent_rotation_days)):
+            raise ValueError("fact age thresholds must be positive integer days")
 
 
 @dataclass(frozen=True)
@@ -66,6 +71,20 @@ def unicode_name(fqdn: str) -> str:
         return idna.decode(fqdn) if idna else fqdn.encode("ascii").decode("idna")
     except (UnicodeError, ValueError):
         return fqdn
+
+
+def name_signals(fqdn: str) -> dict[str, Any]:
+    name = unicode_name(fqdn)
+    # ponytail: ASCII-target confusables only; preserve unmapped characters, use
+    # a full UTS #39 implementation if cross-script comparisons become policy.
+    skeleton = "".join(
+        next((h["c"] for h in confusables.confusables_data.get(c, [])
+              if h["c"].isascii() and all(x.isalnum() or x in ".-" for x in h["c"])), c)
+        if not c.isascii() else c
+        for c in name
+    )
+    return {"agent_name_unicode": name, "name_skeleton": skeleton,
+            "mixed_script": bool(confusables.is_mixed_script(name))}
 
 
 # --- lifecycle history ----------------------------------------------------
@@ -107,8 +126,8 @@ def summarise(events: list[Any]) -> History:
 def read_history(verified: Any) -> History | None:
     """Read the verified lifecycle behind a verify_domain result, or None.
 
-    dnsid-py 0.22 exposes this only through the C2SP reader attached to the
-    result (see "SDK notes" in the README). Any failure here yields None, which
+    dnsid-py 0.23.1 exposes this only through the C2SP reader attached to the
+    result. Any failure here yields None, which
     the evaluator treats as "no track record": it can only reduce trust.
     """
     rebuild = getattr(getattr(verified, "log_reader", None), "rebuild_history", None)
@@ -126,7 +145,7 @@ def read_history(verified: Any) -> History | None:
 
 
 def _days(since: dt.datetime, now: dt.datetime) -> float:
-    return round((now - since).total_seconds() / 86400, 1)
+    return (now - since).total_seconds() / 86400
 
 
 def _history_facts(h: History, now: dt.datetime, s: FactSettings) -> dict[str, Any]:
@@ -141,11 +160,14 @@ def _history_facts(h: History, now: dt.datetime, s: FactSettings) -> dict[str, A
         key = "unchanged since issuance"
     else:
         key_age = _days(h.key_introduced_at, now)
-        key = f"introduced by {h.key_introduced_by} {key_age} days ago"
+        key = f"introduced by {h.key_introduced_by} {key_age:.1f} days ago"
         if key_age < s.recent_rotation_days:
             key += f" (recent: within {s.recent_rotation_days} days)"
     return {
-        "identity_age_days": age,
+        "identity_age_days": round(age, 1),
+        "is_new": age < s.new_agent_days,
+        "recent_key_rotation": h.key_introduced_by == "key rotation" and
+            _days(h.key_introduced_at, now) < s.recent_rotation_days,
         "identity_age": label,
         "current_key": key,
         "key_rotations": h.rotations,
@@ -170,9 +192,8 @@ def build_facts(
         "accountable_entity": gi,
         "relationship": relationship(domain, gi),
         "dnssec": dnssec,
+        **name_signals(domain),
     }
-    if (u := unicode_name(domain)) != domain:
-        counterparty["agent_name_unicode"] = u
     return {
         "counterparty": counterparty,
         "agent_history": _history_facts(history, now, settings) if history else HISTORY_UNAVAILABLE,

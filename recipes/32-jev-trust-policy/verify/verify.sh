@@ -43,7 +43,7 @@ uv run python -m unittest discover -s tests
 uv run python src/mock_jev.py & mock=$!; pids+=("$mock")
 wait_for curl -s -o /dev/null http://127.0.0.1:8791/
 
-DNSID_PUBLIC_URL=https://api.dev.dnsid.test \
+DNSID_PUBLIC_URL=https://api.test \
   "$DNSID_CLI" local run api --upstream "http://localhost:$API_PORT" -- \
   uv run uvicorn app:app --app-dir src --host 127.0.0.1 --port "$API_PORT" >"$api_log" 2>&1 & pids+=($!)
 wait_for curl -fsS "http://127.0.0.1:$API_PORT/healthz"
@@ -61,9 +61,9 @@ as acme-billing   call POST /v1/refunds 403     # limited is not enough to move 
 as paypal-refunds call GET  /v1/catalog 403     # brand name, gi is the local registry: untrusted
 
 # Outbound: the same policy, run by acme-billing before it calls a service.
-as acme-billing guard api.dev.dnsid.test            order-lookup allow
-as acme-billing guard api.dev.dnsid.test            customer-pii refuse
-as acme-billing guard paypal-refunds.dev.dnsid.test order-lookup refuse
+as acme-billing guard api.test            order-lookup allow
+as acme-billing guard api.test            customer-pii refuse
+as acme-billing guard paypal-refunds.test order-lookup refuse
 check "six authenticated decisions reached the fixture" [ "$(wc -l < "$MOCK_JEV_LOG")" -eq 6 ]
 
 # Decision server down: fail closed.

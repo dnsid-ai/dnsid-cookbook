@@ -2,13 +2,15 @@
   "description": "Brand name on the DNSid local registry",
   "facts": {
     "counterparty": {
-      "agent_name": "google-calendar-sync.dev.dnsid.test",
+      "agent_name": "google-calendar-sync.test",
       "accountable_entity": "dnsid.test",
-      "relationship": "hosted: the agent's name is a subdomain of its accountable entity's domain",
+      "relationship": "delegated: a separate organization is accountable, bound by a bilateral ISSUANCE event",
       "dnssec": "VALID"
     },
     "agent_history": {
       "identity_age_days": 0.1,
+      "is_new": true,
+      "recent_key_rotation": false,
       "identity_age": "new: issued less than 30 days ago",
       "current_key": "unchanged since issuance",
       "key_rotations": 0,

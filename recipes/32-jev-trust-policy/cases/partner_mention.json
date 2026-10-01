@@ -2,13 +2,15 @@
   "description": "Names a product it integrates with; not a claim to be that company",
   "facts": {
     "counterparty": {
-      "agent_name": "stripe-invoicing.acme-corp.example",
-      "accountable_entity": "acme-corp.example",
+      "agent_name": "stripe-invoicing.acme-corp.invalid",
+      "accountable_entity": "acme-corp.invalid",
       "relationship": "hosted: the agent's name is a subdomain of its accountable entity's domain",
       "dnssec": "VALID"
     },
     "agent_history": {
       "identity_age_days": 800.0,
+      "is_new": false,
+      "recent_key_rotation": false,
       "identity_age": "long-standing: issued more than a year ago",
       "current_key": "unchanged since issuance",
       "key_rotations": 0,

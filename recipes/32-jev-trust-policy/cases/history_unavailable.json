@@ -2,8 +2,8 @@
   "description": "Neutral name, lifecycle could not be read",
   "facts": {
     "counterparty": {
-      "agent_name": "inventory.globex.example",
-      "accountable_entity": "globex.example",
+      "agent_name": "inventory.globex.invalid",
+      "accountable_entity": "globex.invalid",
       "relationship": "hosted: the agent's name is a subdomain of its accountable entity's domain",
       "dnssec": "VALID"
     },

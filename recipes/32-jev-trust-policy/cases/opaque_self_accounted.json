@@ -9,6 +9,8 @@
     },
     "agent_history": {
       "identity_age_days": 400.0,
+      "is_new": false,
+      "recent_key_rotation": false,
       "identity_age": "long-standing: issued more than a year ago",
       "current_key": "unchanged since issuance",
       "key_rotations": 0,

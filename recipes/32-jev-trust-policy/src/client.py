@@ -18,7 +18,7 @@ from dnsid import HttpSignatureProfile, identity_manager_from_environment
 from facts import Interaction
 from trust import Operation, Tier, evaluator_from_environment
 
-API = "https://api.dev.dnsid.test"
+API = "https://api.test"
 STRICT = os.getenv("DNSID_RECIPE_ASSERT", "1") != "0"
 BODIES = {"/v1/quotes": {"sku": "WIDGET-1", "quantity": 10}, "/v1/refunds": {"order": "A-1001", "amount": 25.0}}
 

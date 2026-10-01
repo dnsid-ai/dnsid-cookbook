@@ -2,13 +2,15 @@
   "description": "Brand name on a generic agent-hosting platform",
   "facts": {
     "counterparty": {
-      "agent_name": "paypal-refunds.agenthost.example",
-      "accountable_entity": "agenthost.example",
+      "agent_name": "paypal-refunds.agenthost.invalid",
+      "accountable_entity": "agenthost.invalid",
       "relationship": "hosted: the agent's name is a subdomain of its accountable entity's domain",
       "dnssec": "VALID"
     },
     "agent_history": {
       "identity_age_days": 3.0,
+      "is_new": true,
+      "recent_key_rotation": false,
       "identity_age": "new: issued less than 30 days ago",
       "current_key": "unchanged since issuance",
       "key_rotations": 0,

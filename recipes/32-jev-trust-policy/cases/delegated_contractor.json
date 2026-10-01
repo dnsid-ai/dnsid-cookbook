@@ -2,13 +2,15 @@
   "description": "Contractor-run agent delegated to its client",
   "facts": {
     "counterparty": {
-      "agent_name": "payroll.contractor.example",
-      "accountable_entity": "acme-corp.example",
+      "agent_name": "payroll.contractor.invalid",
+      "accountable_entity": "acme-corp.invalid",
       "relationship": "delegated: a separate organization is accountable, bound by a bilateral ISSUANCE event",
       "dnssec": "VALID"
     },
     "agent_history": {
       "identity_age_days": 200.0,
+      "is_new": false,
+      "recent_key_rotation": false,
       "identity_age": "established: issued more than 30 days but less than a year ago",
       "current_key": "unchanged since issuance",
       "key_rotations": 0,

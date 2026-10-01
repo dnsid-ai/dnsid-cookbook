@@ -2,13 +2,15 @@
   "description": "Key rotated hours ago, then asks to move money",
   "facts": {
     "counterparty": {
-      "agent_name": "billing-bot.northwind.example",
-      "accountable_entity": "northwind.example",
+      "agent_name": "billing-bot.northwind.invalid",
+      "accountable_entity": "northwind.invalid",
       "relationship": "hosted: the agent's name is a subdomain of its accountable entity's domain",
       "dnssec": "VALID"
     },
     "agent_history": {
       "identity_age_days": 500.0,
+      "is_new": false,
+      "recent_key_rotation": true,
       "identity_age": "long-standing: issued more than a year ago",
       "current_key": "introduced by key rotation 0.3 days ago (recent: within 7 days)",
       "key_rotations": 1,
