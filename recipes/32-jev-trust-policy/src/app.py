@@ -16,8 +16,7 @@ from fastapi import FastAPI, HTTPException, Request
 
 from dnsid import HttpRequest, HttpSignatureProfile, HttpVerificationOptions, identity_manager_from_environment
 from dnsid.exceptions import VerificationError
-from facts import Interaction
-from trust import Operation, Tier, evaluator_from_environment
+from trust import TrustEvaluator
 
 if not os.getenv("DNSID_LOG_POLICY_URL"):
     raise RuntimeError("DNSID_LOG_POLICY_URL required: launch with dnsid local run")
@@ -26,22 +25,10 @@ logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("counterparty-trust")
 manager = identity_manager_from_environment()
 profile = HttpSignatureProfile.from_identity_manager(manager)
-evaluator = evaluator_from_environment(httpx.AsyncClient(timeout=10))
+evaluator = TrustEvaluator(httpx.AsyncClient(timeout=10))
 PUBLIC_URL = os.environ["DNSID_PUBLIC_URL"].rstrip("/")
 MAX_BODY = 3000
 app = FastAPI()
-
-# The service owns this table: what each route does, and the trust it needs.
-# The counterparty never gets to describe its own request.
-OPERATIONS = {
-    ("GET", "/v1/catalog"): Operation(
-        Interaction("inbound", "read the public product catalog", "none"), Tier.LIMITED),
-    ("POST", "/v1/quotes"): Operation(
-        Interaction("inbound", "request a price quote", "low"), Tier.LIMITED),
-    ("POST", "/v1/refunds"): Operation(
-        Interaction("inbound", "issue a refund to a customer", "moves money"), Tier.TRUSTED),
-}
-
 
 async def read_body(request: Request) -> bytes:
     if request.headers.get("content-length", "").isdigit() and int(request.headers["content-length"]) > MAX_BODY:
@@ -74,22 +61,23 @@ async def authenticate(request: Request, body: bytes):
     return verified
 
 
-async def gate(request: Request, method: str, path: str):
-    op = OPERATIONS[(method, path)]
+async def gate(request: Request, operation: str):
     body = await read_body(request)
     verified = await authenticate(request, body)
     try:
-        decision = await evaluator.evaluate(verified, op.interaction)
+        decision = await evaluator.evaluate(verified, operation)
     except (httpx.HTTPError, ValueError, KeyError, TypeError) as exc:
         log.warning("decision model unavailable or malformed: %s", exc)
         raise HTTPException(503, "trust decision unavailable") from exc
-    if not op.permits(decision):
+    if not evaluator.permits(decision, operation):
         # Deliberately vague: naming the clause that fired helps an attacker tune its identity.
         raise HTTPException(403, "counterparty not trusted for this operation")
     try:
         payload = json.loads(body) if body else {}
+        if not isinstance(payload, dict):
+            raise ValueError("JSON body must be an object")
     except (ValueError, UnicodeDecodeError) as exc:
-        raise HTTPException(400, "body must be JSON") from exc
+        raise HTTPException(400, "body must be a JSON object") from exc
     return verified, payload, decision
 
 
@@ -100,21 +88,14 @@ async def healthz():
 
 @app.get("/v1/catalog")
 async def catalog(request: Request):
-    verified, _, decision = await gate(request, "GET", "/v1/catalog")
+    verified, _, decision = await gate(request, "catalog")
     return {"items": [{"sku": "WIDGET-1", "price": 4.5}], "counterparty": verified.domain,
-            "trust": decision.tier.name.lower()}
-
-
-@app.post("/v1/quotes")
-async def quotes(request: Request):
-    verified, payload, decision = await gate(request, "POST", "/v1/quotes")
-    return {"quote": {"sku": payload.get("sku"), "unit_price": 4.5}, "counterparty": verified.domain,
             "trust": decision.tier.name.lower()}
 
 
 @app.post("/v1/refunds")
 async def refunds(request: Request):
-    verified, payload, decision = await gate(request, "POST", "/v1/refunds")
+    verified, payload, decision = await gate(request, "refund")
     # Demo only. A real side-effecting endpoint also needs replay and idempotency
     # enforcement: RFC 9421 freshness does not make a request one-time.
     return {"refund": "accepted", "order": payload.get("order"), "counterparty": verified.domain,

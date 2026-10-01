@@ -2,34 +2,37 @@
 
 > Open a service to any DNSid-verified agent, then use a written trust policy to decide how far to trust it; use the same policy before your agent calls an unfamiliar service.
 
-**Spec version:** `dnsid-draft-01`  
-**Status:** runnable (fixture for `make verify`; real decision model required for semantic evaluation)
-**Standards used:** RFC 9421 (HTTP Message Signatures), RFC 7517 (JWKS), DNSid C2SP lifecycle log  
-**Estimated time:** ~20 minutes, plus model setup for `make eval`
+**Spec version:** `dnsid-draft-01`
+
+**Status:** runnable (scripted model replies for `make verify`; optional Decider for real-model evaluation)
+
+**Standards used:** RFC 9421 (HTTP Message Signatures), RFC 7517 (JSON Web Key Sets), DNSid C2SP lifecycle log
+
+**Estimated time:** ~20 minutes, plus optional model download
 
 ---
 
 ## What you'll build
 
-A Python API that verifies signed requests before allowing a catalog read, quote request or demonstration refund, and a client that checks a service's identity before sending data to it. [`src/facts.py`](src/facts.py) turns verified DNSid evidence into a fact sheet; [`policy.toml`](policy.toml) separates mechanical rules from three short naming questions for a Jev-compatible decision server, an HTTP service that returns yes/no probabilities. [`src/trust.py`](src/trust.py) evaluates the rules and combines the answers into `trusted`, `limited` or `untrusted`. Each operation sets its own minimum tier in code. The fixture server exercises the wiring, **not** the accuracy of a real model.
+A Python API that uses DNSid, DNS-anchored cryptographic identity, to verify unfamiliar callers before allowing a catalog read or a demonstration refund. A client applies the same policy before it would send data to an unfamiliar service. The central flow is **verify identity → build facts → apply `policy.toml` → check the operation's required trust tier**. A tier is an application permission level: `untrusted`, `limited` or `trusted`.
 
 ## Why this matters
 
-DNSid can prove *who* controls an agent's operational key and which domain is accountable (`gi`); RFC 9421 proves that key signed this HTTP request. Neither tells you whether to share customer data with a newly encountered agent. Here a service can authenticate unfamiliar callers without a shared secret or partner allowlist, then limit what each one may do. The same check can stop an outbound agent from sending data to an impersonator.
+DNSid proves the domain/key binding and the accountable entity, the domain taking responsibility for that identity (`gi`). An HTTP signature proves that key signed this request. Neither proves that an agent named “PayPal refunds” actually represents PayPal. This recipe lets a service authenticate new callers without shared secrets or a partner allowlist, then use its own policy to restrict their access. The same distinction helps an outbound agent decide whether to share customer data.
 
 ## Prerequisites
 
 - Docker 24+ running, `make`, and the [`dnsid` CLI](https://docs.dnsid.ai/cli-installation) with `dnsid local` support.
-- [`uv`](https://docs.astral.sh/uv/) and Python 3.11+. Tested with Python 3.12.14, dnsid-py 0.23.1, FastAPI 0.141.1, httpx 0.28.1, confusable-homoglyphs 3.3.1 and uvicorn 0.52.4; versions are pinned in [`pyproject.toml`](pyproject.toml).
-- A clone of this repository. For `make serve` / `make eval` only: hardware for a local model (tested on a 48 GB Apple Silicon Mac), or an existing Jev-compatible `/v1/systemone` endpoint. Decider's runtime is optional and pinned to decider-ai 1.8.1 in the `model` dependency group. No model or API key is needed for `make verify`.
+- [`uv`](https://docs.astral.sh/uv/) and Python 3.11+. Tested with Python 3.12.14; dependencies are pinned in [`pyproject.toml`](pyproject.toml), including dnsid-py 0.23.1.
+- A clone of this repository. The standard demo needs no model or vendor account. Optional Decider setup is described under **Verify**; the default 12B model was tested on a 48 GB Apple Silicon Mac.
 
 ## Concepts
 
-- **DNSid binding** — a signed `_dnsid.<domain>` DNS TXT record linking an identity to an accountable entity (`gi`), a public-key URL (`ku=`), status (`su=`) and a lifecycle log reference. The verifier uses the keys in a JWKS (JSON Web Key Set, [RFC 7517](https://datatracker.ietf.org/doc/html/rfc7517)) at `/.well-known/jwks.json`.
-- **HTTP Message Signatures ([RFC 9421](https://datatracker.ietf.org/doc/html/rfc9421))** — request headers signed with the identity's operational key. Covered components are the method, authority, target URI and, for a body, its content digest. This proves possession of the key on this particular request.
-- **C2SP lifecycle log** — the append-only record of issuance, rotation and revocation used by DNSid verification. Its trust policy URL comes **only** from independently supplied `DNSID_LOG_POLICY_URL`, never `DNSID_LOG_REF` or data supplied by a log.
-- **Trust tier** — an application-level limit, not a cryptographic verdict. The model estimates three naming signals; code evaluates age and rotation rules, combines the signals, and chooses the tier. Model failure denies access.
-- **Local registry** — `dnsid local` starts disposable DNS, registry, log and TLS services in Docker and injects DNS routing, keys, CA and log-policy configuration into `dnsid local run` processes.
+- **DNSid binding** — a signed `_dnsid.<domain>` TXT record connecting an identity, accountable entity (`gi`), public-key URL (`ku=`), status URL (`su=`) and lifecycle log reference (`lr=`). The verifier follows those references rather than trusting a caller's claimed identity.
+- **JWKS** — JSON Web Key Set, a standard list of public keys ([RFC 7517](https://datatracker.ietf.org/doc/html/rfc7517)), published at `/.well-known/jwks.json`.
+- **HTTP Message Signatures** — [RFC 9421](https://datatracker.ietf.org/doc/html/rfc9421) signs selected request components: here the method, authority, target URI and, for a body, its content digest. A digest is a hash binding the signature to those body bytes.
+- **Two different policies** — `DNSID_LOG_POLICY_URL` is independently trusted configuration for checking the C2SP lifecycle log, the append-only record of issuance, rotation and revocation. It must never come from `DNSID_LOG_REF` or log-provided data. [`policy.toml`](policy.toml), by contrast, is this application's permission policy; changing it cannot waive identity verification.
+- **Trust judgments** — code checks age and rotation, and the model estimates three naming signals. Model opinions about brand affiliation are fallible, not verified delegation or permission grants. Code alone combines the signals and enforces operation requirements.
 
 ## Running system
 
@@ -37,10 +40,12 @@ DNSid can prove *who* controls an agent's operational key and which domain is ac
 |---|---|---|
 | DNS server | local registry, `127.0.0.1:7753` | Serves live `_dnsid` TXT records |
 | Registry and log | local registry, `127.0.0.1:7755` | Issues identities and records lifecycle events |
-| TLS proxy | local registry, `:443` | Routes `https://*.dev.dnsid.test` to local upstreams |
-| API | host `127.0.0.1:3120` | Verifies inbound signatures and gates operations |
-| Decision endpoint | host `127.0.0.1:8791` fixture, `:8792` Decider | Answers only naming questions; the fixture is never an accuracy benchmark |
-| Client | short-lived process | Signs inbound calls or gates outbound calls |
+| TLS proxy | local registry, `:443` | Routes `https://<identity>.test` to local upstreams |
+| API | host `127.0.0.1:3120` | Verifies signed requests and checks permissions |
+| Model endpoint | host `:8791` scripted replies, `:8792` Decider | Answers only naming questions |
+| Client | short-lived process | Signs calls or checks outbound permissions |
+
+The CLI owns the Docker services. `dnsid local run` injects DNS routing, TLS trust, credentials, identity keys and the independently trusted log-policy location into recipe processes.
 
 ## Step 1 — Provision identities and inspect their records
 
@@ -52,11 +57,20 @@ curl --resolve acme-billing.test:443:127.0.0.1 \
   https://acme-billing.test/.well-known/jwks.json
 ```
 
-`make bootstrap` starts `dnsid local up --zone test` and uses `dnsid local agent ensure ... -- dnsid log issue` for `api`, `acme-billing` and `paypal-refunds`. The latter has a valid identity but its accountable entity is the local registry, **not** PayPal. The TXT record has one semicolon-separated value starting with `v=`, including `ku=` and `su=`. `--resolve` routes the host-only curl through the local TLS proxy; if using `--state`, use the CA path supplied by `DNSID_CA_BUNDLE` under `dnsid local run` instead.
+The Makefile starts `dnsid local up --zone test` and provisions `api.test`, `acme-billing.test` and `paypal-refunds.test` idempotently with `dnsid local agent ensure ... -- dnsid log issue`. An excerpt of the live catalog caller's record, with cryptographic fields omitted:
+
+```text
+v=dnsid-draft-01;
+gi=acme-billing.test;
+ku=https://acme-billing.test/.well-known/jwks.json;
+su=https://registry.test/v1/status/acme-billing.test
+```
+
+The real TXT value is one semicolon-separated record; `dig` may split it into quoted chunks. `gi` names the accountable domain, `ku` supplies the public keys for verifying requests, and `su` supplies live status. The brand lookalike's `gi` is `paypal-refunds.test`, **not** `paypal.com`: self-accountability does not establish brand affiliation. `--resolve` routes curl through the local TLS proxy. With custom registry state, use the CA path injected as `DNSID_CA_BUNDLE`.
 
 ## Step 2 — Verify identity before asking about trust
 
-[`src/app.py`](src/app.py) bounds the request body, builds an `HttpRequest` using a deployment-configured public URL (never a forwarded-host header), and verifies it before calling the decision endpoint:
+From [`src/app.py`](src/app.py):
 
 ```python
 verified = await asyncio.to_thread(
@@ -64,25 +78,35 @@ verified = await asyncio.to_thread(
 await asyncio.to_thread(manager.verify_log_evidence, verified)
 ```
 
-The SDK checks the binding, key, live status, lifecycle log and signed request; the second call asks for fresh non-revocation evidence. DNSid verification runs off the async server thread. A bad signature or unavailable verification stops here: the model cannot waive it. For a bodyless GET, the SDK receives `body=None` rather than an empty body, since the signing client does not cover `content-digest` on GET.
+The SDK checks the DNSid binding, key, lifecycle, live status and request signature; the second call requires fresh non-revocation evidence. The API bounds the body and uses a configured public URL, not a caller-controlled forwarded-host header. Invalid identity or signature stops before any model call. The outbound [`src/client.py`](src/client.py) similarly calls `verify_domain` and `verify_log_evidence` before checking a service's permissions.
 
-The outbound [`src/client.py`](src/client.py) calls `verify_domain` and `verify_log_evidence` before evaluating an unfamiliar service with the **same** trust policy. No model decision is reused as authentication.
+## Step 3 — Configure trust and operation requirements
 
-## Step 3 — Apply the written policy
+[`src/facts.py`](src/facts.py) reads the verified lifecycle into raw identity age, key age and key-event kind. [`src/trust.py`](src/trust.py) applies the configured windows to those facts on every request—there is no decision cache. These excerpts from [`policy.toml`](policy.toml) are actual configuration, not instructions interpreted by an LLM:
 
-[`policy.toml`](policy.toml) marks `unproven` and `takeover_risk` as `evaluated_by = "code"`. Code bins verified ages without rounding at the boundary, checks for a recent **rotation** (not issuance or migration), and takes impact from our own operation table. A new identity with unknown or new entity history is limited; a recent rotation before moving money, exposing credentials or sharing personal data is denied. Editing these rules' prose alone does not change their implementation.
+```toml
+[rules.unproven]
+new_agent_days = 30
+effect = "limit"
+```
 
-Only the `counterparty` section goes to the model: the verified name, `gi`, their domain relationship, DNSSEC state and code-built Unicode signals. `mixed_script` says the name mixes writing systems; `name_skeleton` substitutes known ASCII lookalikes, for example Cyrillic `а` → Latin `a`. Unmapped characters are preserved; this is a useful signal, not a complete Unicode security check or an automatic denial. Evaluation rebuilds the same signals from each case's DNS wire name. The model receives no lifecycle history, operation descriptions, customer payloads or counterparty-authored descriptions.
+```toml
+[requires]
+catalog = "limited"
+refund = "trusted"
+order-lookup = "limited"
+customer-pii = "trusted"
+```
 
-The three questions in `policy.toml` ask whether the name references an organization (`names_org`), whether `gi` is its official domain (`same_org`), and whether the name claims to act for it rather than use its product (`acts_for`). Code combines them as quoted from [`src/trust.py`](src/trust.py):
+A new identity without established entity history triggers `unproven`. A recent **key rotation**, not issuance or log migration, before a sensitive operation triggers `takeover_risk`. Code defines each operation's real impact; the caller cannot label a refund harmless. Matching rules apply `limit` or `deny`; the most restrictive result wins. Missing lifecycle history never gets full trust. Entity-level history is unavailable in the live registry; two offline cases illustrate that possible future evidence.
+
+Only verified counterparty naming facts reach the model. Code also supplies a Unicode lookalike spelling (`name_skeleton`) and a mixed-writing-system flag; these are diagnostic signals, not complete Unicode security checks. The three configured questions ask whether the name references an organization, whether `gi` is its official domain, and whether the name claims to act for it. The model receives no lifecycle history, operation descriptions or customer payloads. From `src/trust.py`:
 
 ```python
 impersonation = min(answers["names_org"], answers["acts_for"], 1 - answers["same_org"])
 ```
 
-This is a thresholded AND, **not** a calibrated joint probability. [`src/trust.py`](src/trust.py) starts at `trusted`; a clause score at or above its threshold applies `limit` or `deny`, and the most restrictive wins. Missing lifecycle history caps trust at `limited`. Missing, malformed or unreachable model answers fail closed. Decisions are cached briefly by identity, entity, policy version, operation and lifecycle fingerprint; bump the policy version when rules or questions change.
-
-The demo refund endpoint does **not** move money. Real side effects need replay and idempotency protection beyond RFC 9421 freshness. The SDK's default checkpoint store is in-memory; for a long-running verifier, use a durable checkpoint store so log rollback protection survives restarts.
+Comparing this score with the configured threshold implements an AND, **not** a calibrated joint probability. Missing, malformed or unreachable model answers fail closed. The route calls `evaluate(verified, "catalog")`, then `permits(decision, "catalog")`; the latter reads the minimum tier from TOML.
 
 ## Run it
 
@@ -90,23 +114,41 @@ The demo refund endpoint does **not** move money. Real side effects need replay 
 make run
 ```
 
-This runs the same flow as verification without making transcript assertions. It starts a hard-coded fixture at `:8791`, serves the API behind the local registry's TLS proxy, and exercises both inbound and outbound gates. The fixture's simplistic substring rules are deliberately **not** a trust model.
+This runs the signed inbound calls and outbound checks using scripted model replies for the three demo identities. It uses real DNSid verification, but the scripted replies are **not** a naming classifier. For a fresh registry:
 
-To keep the API running against Decider instead, start `make serve` as described below, then in another terminal:
+| Request/check | Identity verified? | Tier | Result |
+|---|---|---|---|
+| Unsigned catalog read | No | Not evaluated | 401 |
+| `acme-billing.test` catalog read | Yes | Limited | 200 |
+| Same agent's refund | Yes | Limited | 403 |
+| `paypal-refunds.test` catalog read | Yes | Untrusted | 403 |
+| Outbound order lookup at `api.test` | Yes | Limited | Allow |
+| Outbound customer-data sharing at `api.test` | Yes | Limited | Refuse |
+
+To keep the API running for a policy-edit experiment, start the scripted model in one terminal—no weights needed:
+
+```bash
+uv run python src/fixture_model.py
+```
+
+In a second terminal:
 
 ```bash
 make bootstrap
-DNSID_PUBLIC_URL=https://api.test dnsid local run api -- \
+JEV_ENDPOINT=http://127.0.0.1:8791/v1/systemone \
+  DNSID_PUBLIC_URL=https://api.test dnsid local run api -- \
   uv run uvicorn app:app --app-dir src --host 127.0.0.1 --port 3120
 ```
 
-A third terminal can send a signed catalog request:
+In a third, send a signed request:
 
 ```bash
 dnsid local run acme-billing -- uv run python src/client.py call GET /v1/catalog 200
 ```
 
-The API and outbound client default to Decider at `:8792`; `make verify` explicitly uses the separate fixture at `:8791`.
+For real model judgments, run `make serve` instead of the scripted server and set `JEV_ENDPOINT` to `http://127.0.0.1:8792/v1/systemone` (the default when unset). Setup is below.
+
+**Try one policy edit:** change `rules.unproven.effect` from `"limit"` to `"deny"`, bump `version`, and restart the API in the second terminal. For a fresh identity, repeat the client command with expected status `403`: verification still succeeds, but the policy now denies even catalog reads. Restore the effect and version afterward. Alternatively, set `requires.catalog = "trusted"` to deny limited callers without changing their tier. Policy is loaded at process startup, not hot-reloaded.
 
 ## Verify
 
@@ -114,49 +156,35 @@ The API and outbound client default to Decider at `:8792`; `make verify` explici
 make verify
 ```
 
-Expected: unsigned catalog read → 401 without contacting the decision server; signed `acme-billing` catalog read → 200 (`limited`); its refund → 403; signed `paypal-refunds` catalog read → 403; outbound lookup of `api` → allow, sharing customer data with it → refuse; outbound lookup of `paypal-refunds` → refuse; with the fixture stopped, a signed quote request → 503. `verify passed` checks the fixture plumbing and fail-closed behavior, **not** real-world trust accuracy.
+The one-shot check asserts the table above, rejects the brand lookalike outbound, rejects signed non-object JSON with 400, and returns 503 when the model endpoint is unavailable. It also proves that unsigned requests never reached the model. `verify passed` means the plumbing and fail-closed behavior work, **not** that a model understands every name.
 
-To serve [Decider](https://github.com/Mapika/decider) locally, open a second terminal in this recipe:
+Optional real-model check: `make eval EVAL_FLAGS=--strict`. The 16 offline cases store raw domains, ages and key-event kinds; the same code applies policy windows live and offline. Their expected results target the default policy. Changing the policy may intentionally change those results. Decider 12B still gets **15/16 tiers** right: it wrongly denies the Stripe integration case, so strict evaluation fails. Do not lower thresholds just to fit these cases.
 
-```bash
-make serve MODEL=decider-4b       # first run downloads ~8.4 GB of weights
-# Wait for "Application startup complete"; leave this terminal running.
-```
+<details>
+<summary>Optional Decider setup and evaluation details</summary>
 
-Then evaluate in the first terminal:
+In this recipe directory, start the local [Decider](https://github.com/Mapika/decider) server:
 
 ```bash
-make eval MODEL=decider-4b
-make eval MODEL=decider-4b EVAL_FLAGS=--strict
+make serve                       # default: 12B, ~24 GB weights; tested on a 48 GB Mac
+# Wait for "Application startup complete"; leave it running.
+# In another terminal:
+make eval
+make eval EVAL_FLAGS=--strict
 ```
 
-The server binds only to `127.0.0.1:8792` and exposes `/health`. It automatically chooses CUDA, Apple's MPS (Metal Performance Shaders GPU backend), or CPU; override with `DECIDER_DEVICE=mps make serve`. The optional Metal kernel is included on Apple Silicon; CUDA-only Triton dependencies are excluded on macOS. Tested runtime: torch 2.14.1, transformers 5.18.0, MLX 0.32.3. CPU uses float32 and needs more memory than the weights' quoted 16-bit size. GGUF quantized weights do **not** work with this HTTP server.
+The optional `model` dependency group pins decider-ai 1.8.1. The server binds to `127.0.0.1:8792`, reports readiness at `/health`, and chooses CUDA, Apple's MPS GPU backend, or CPU. CPU uses float32 and needs more memory. Tested runtime: torch 2.14.1, transformers 5.18.0, MLX 0.32.3; macOS excludes CUDA-only dependencies. GGUF quantized weights are not supported by this server.
 
-On the tested 48 GB Mac, 12B is the default (`make serve` / `make eval` without `MODEL`). Stop the 4B server with Ctrl-C before trying it:
+Stop the server before switching weights: `make serve MODEL=decider-4b` downloads ~8.4 GB instead. `make eval MODEL=decider-4b` is only a request label; it cannot switch a running server's weights. `DECIDER_MODEL` can point to a model directory; `MODEL_PORT` changes the port. Other compatible endpoints work with `JEV_ENDPOINT=http://127.0.0.1:8080/v1/systemone make eval MODEL=your-model`; `JEV_API_KEY` is optional. Hosted endpoints receive counterparty naming facts.
 
-```bash
-make serve MODEL=decider-12b      # ~24 GB of 16-bit weights plus runtime
-# In the other terminal:
-make eval MODEL=decider-12b EVAL_FLAGS=--strict
-```
+Current 12B v2 results with policy `/3`: 47/48 rule matches, 15/16 tiers, 9.9 seconds for a warm server. The earlier 4B v2.1 run with policy `/2` got 13/16 tiers, missing three impersonators. The three naming questions and their threshold are unchanged. 12B's stored yes/no temperature of 0.05 produces near-binary answers, not evidence of certainty. These small hand-labelled cases are a smoke test, not independent calibration. Tested weight revisions: 12B `8ac1efa708b71b86ae33b01d2a8d7a3ddcb48e66`; 4B `eb5fbdfc9448473ec25e399882912863afbdb70e`.
 
-`make serve` selects the actual weights; `make eval MODEL=...` sets only a request label, not a remote model switch. Evaluation prints the server-reported model, each naming probability, clause scores, tier accuracy and elapsed time. `DECIDER_MODEL` can select a downloaded model directory; `MODEL_PORT` changes the port. Other compatible servers work with `JEV_ENDPOINT=http://127.0.0.1:8080/v1/systemone make eval MODEL=your-model`; `JEV_API_KEY` is optional. Hosted servers receive only counterparty identity facts.
-
-[`cases/`](cases/) contains 16 labelled fact sheets, including an internationalized-name lookalike, delegated contractor, partner mention, rotations and entity-history examples. Hypothetical hosted names use reserved `.invalid` domains; live identities use distinct `.test` domains. Strict evaluation returns nonzero on any labelled clause or tier mismatch and always rejects fixture results. These small, hand-labelled cases are a smoke test, **not** independent calibration or a production safety claim.
-
-| Server / weights | Correct clauses | Correct tiers | Time for 16 cases |
-|---|---:|---:|---:|
-| Decider 4B v2.1, MPS | 43/46 | 13/16 | 4.6 s |
-| Decider 12B v2, MPS (default) | 45/46 | 15/16 | 10.6 s |
-
-4B missed `outbound_gov_lookalike`, `squat_platform_hosted` and `testnet_brand_squat`, all false-negative impersonation decisions. 12B caught every labelled impersonator but wrongly denied `partner_mention` (a Stripe integration); **both strict runs fail**. The 12B checkpoint's stored yes/no temperature is 0.05, producing near-binary answers, not evidence of perfect certainty. Results use policy `counterparty-trust/2` without lowering the inherited impersonation threshold or overriding checkpoint calibration to fit these cases. These are single warm-server runs, excluding download/load time. Tested weights revisions: 4B `eb5fbdfc9448473ec25e399882912863afbdb70e`; 12B `8ac1efa708b71b86ae33b01d2a8d7a3ddcb48e66`.
-
-The six authenticated inbound/outbound demo checks also passed against the real 12B server: neutral agent reads allowed, its refund and customer-data sharing refused, and the brand impersonator refused in both directions.
-
-The live registry has no entity-level history index yet, so that field is `unknown` live; two cases show future entity-history evidence. Age and rotation checks pass all labelled mechanical rules without a model. Model accuracy, thresholds and false positives still need independent calibration before deployment.
+</details>
 
 ## What to try next
 
-- Edit a naming question or threshold in `policy.toml` (or a mechanical rule in `src/trust.py`), bump `version`, add a labelled case, and rerun `make eval` against a real model. Code, not the model, owns operation tiers.
-- Run `make clean` to stop the local registry. Use `dnsid local reset --hard && make verify` to watch first-time provisioning again.
-- See [Recipe 12](../12-a2a-dnsid/) for another signed agent-to-agent request flow.
+- Edit an effect, age window, naming question or operation requirement in `policy.toml`, bump the version, and restart. Add a labelled case explaining the intended result. The three rules are explicit Python, not a generic policy language.
+- Run `make clean` to stop the local registry. Stop a foreground API or model with Ctrl-C. `dnsid local reset --hard && make verify` repeats first-time provisioning.
+- See [Recipe 12](../12-a2a-dnsid/) for another signed agent-to-agent flow.
+
+The refund does **not** move money. Real side effects need replay and idempotency protection beyond signature freshness. A long-running verifier also needs durable log checkpoints, records that detect log rollback across restarts, instead of the SDK's in-memory default.

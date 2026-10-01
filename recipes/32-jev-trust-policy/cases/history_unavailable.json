@@ -1,24 +1,17 @@
 {
   "description": "Neutral name, lifecycle could not be read",
+  "operation": "order-lookup",
   "facts": {
     "counterparty": {
       "agent_name": "inventory.globex.invalid",
       "accountable_entity": "globex.invalid",
-      "relationship": "hosted: the agent's name is a subdomain of its accountable entity's domain",
       "dnssec": "VALID"
     },
-    "agent_history": "unavailable: the verified lifecycle could not be read",
-    "accountable_entity_history": "unknown: no entity-level history index is available yet",
-    "interaction": {
-      "direction": "outbound",
-      "operation": "send an order number to look up its shipping status",
-      "impact": "low"
-    }
+    "agent_history": null,
+    "accountable_entity_history": null
   },
   "expected": {
-    "clauses": {
-      "impersonation": false
-    },
+    "clauses": {"impersonation": false, "unproven": true, "takeover_risk": false},
     "tier": "limited"
   }
 }

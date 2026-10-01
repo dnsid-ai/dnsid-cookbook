@@ -1,35 +1,33 @@
-# Counterparty trust policy for Recipe 32.
-# Code evaluates mechanical rules; the model answers only the short questions.
-# A clause score >= threshold applies its effect; the most restrictive wins.
-# deny -> untrusted; limit -> limited. Bump version when rules/questions change.
-# Changing a code-evaluated rule's prose alone does not change its implementation.
-version = "counterparty-trust/2"
+# Application permissions, NOT the independently trusted DNSid log policy.
+# Code implements these three rules. Change their knobs here; restart the API.
+# Matching rules only reduce trust; the most restrictive effect wins.
+version = "counterparty-trust/3"
 
-[facts]
-new_agent_days = 30
-recent_rotation_days = 7
-
-[clauses.impersonation]
-evaluated_by = "model"
-effect = "deny"
+# A recognizable name claiming to act for an organization whose official
+# domain is not gi. Code combines names_org AND acts_for AND NOT same_org.
+[rules.impersonation]
 threshold = 0.3
-text = "The name claims to act for a recognizable organization whose official domain is not the accountable entity."
+effect = "deny"
 
-# Code combines these as names_org AND acts_for AND NOT same_org, using the
-# clause threshold for each signal (same_org <= 1 - threshold).
+# A new agent with no established entity history gets less trust.
+[rules.unproven]
+new_agent_days = 30
+effect = "limit"
+
+# A recent rotation before a sensitive operation gets less trust.
+# Issuance and log migration are not rotations.
+[rules.takeover_risk]
+recent_rotation_days = 7
+effect = "deny"
+
 [questions]
 names_org = "Does name_skeleton contain a reference to a well-known company, brand or government body?"
 same_org = "Is accountable_entity an official domain of the real-world organization referenced in name_skeleton?"
 acts_for = "Does name_skeleton claim to act for the named organization, rather than just use its product?"
 
-[clauses.unproven]
-evaluated_by = "code"
-effect = "limit"
-threshold = 0.5
-text = "The agent is new or has unavailable history, and its accountable entity has no known history of at least new_agent_days."
-
-[clauses.takeover_risk]
-evaluated_by = "code"
-effect = "deny"
-threshold = 0.5
-text = "A recent key rotation precedes an interaction that moves money, exposes credentials or shares personal data."
+# Minimum trust required. Code, never the caller, defines each operation's impact.
+[requires]
+catalog = "limited"
+refund = "trusted"
+order-lookup = "limited"
+customer-pii = "trusted"

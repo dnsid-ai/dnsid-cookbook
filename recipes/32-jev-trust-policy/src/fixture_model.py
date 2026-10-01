@@ -8,16 +8,10 @@ import json
 import os
 from http.server import BaseHTTPRequestHandler, HTTPServer
 
-BRANDS = ("paypal", "stripe", "irs", "google", "microsoft", "amazon", "apple")
-LOG = os.getenv("MOCK_JEV_LOG")
-
-
-def naming_answers(cp):
-    name = cp["name_skeleton"]
-    brand = next((b for b in BRANDS if b in name), None)
-    return {"names_org": 0.97 if brand else 0.03,
-            "same_org": 0.97 if brand and cp["accountable_entity"] in (brand + ".com", brand + ".gov") else 0.03,
-            "acts_for": 0.97 if brand else 0.03}
+# Scripted responses for the demo identities, not a naming classifier.
+ANSWERS = {"api.test": (0.03, 0.03, 0.03), "acme-billing.test": (0.03, 0.03, 0.03),
+           "paypal-refunds.test": (0.97, 0.03, 0.97)}
+LOG = os.getenv("FIXTURE_LOG")
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -27,7 +21,8 @@ class Handler(BaseHTTPRequestHandler):
         assert "agent_name" in cp and "agent_history" not in cp, cp
         assert set(questions) == {"names_org", "same_org", "acts_for"}
         assert all(q["type"] == "noul" and q["instructions"] for q in questions.values())
-        answers = {name: {"type": "noul", "noul": p} for name, p in naming_answers(cp).items()}
+        answers = {name: {"type": "noul", "noul": p} for name, p in
+                   zip(("names_org", "same_org", "acts_for"), ANSWERS[cp["agent_name"]])}
         if LOG:
             with open(LOG, "a") as f:
                 f.write(json.dumps({"agent": cp["agent_name"], "answers": answers}) + "\n")

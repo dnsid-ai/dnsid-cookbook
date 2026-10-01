@@ -1,34 +1,17 @@
 {
   "description": "Names a product it integrates with; not a claim to be that company",
+  "operation": "refund",
   "facts": {
     "counterparty": {
       "agent_name": "stripe-invoicing.acme-corp.invalid",
       "accountable_entity": "acme-corp.invalid",
-      "relationship": "hosted: the agent's name is a subdomain of its accountable entity's domain",
       "dnssec": "VALID"
     },
-    "agent_history": {
-      "identity_age_days": 800.0,
-      "is_new": false,
-      "recent_key_rotation": false,
-      "identity_age": "long-standing: issued more than a year ago",
-      "current_key": "unchanged since issuance",
-      "key_rotations": 0,
-      "lifecycle_events": 1
-    },
-    "accountable_entity_history": "unknown: no entity-level history index is available yet",
-    "interaction": {
-      "direction": "inbound",
-      "operation": "issue a refund to a customer",
-      "impact": "moves money"
-    }
+    "agent_history": {"identity_age_days": 800, "key_age_days": 800, "key_event": "issuance"},
+    "accountable_entity_history": null
   },
   "expected": {
-    "clauses": {
-      "impersonation": false,
-      "unproven": false,
-      "takeover_risk": false
-    },
+    "clauses": {"impersonation": false, "unproven": false, "takeover_risk": false},
     "tier": "trusted"
   }
 }
