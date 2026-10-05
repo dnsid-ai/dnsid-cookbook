@@ -11,9 +11,26 @@ const outputSchema = Type.Object({
 const domainSchema = Type.Object({ domain: Type.String({ description: 'DNS hostname only, not a URL' }) });
 
 export default function outboundTrust(pi: ExtensionAPI) {
+  const provider = process.env.DNSID_JEV_PROVIDER ?? 'local-clef';
+  const modelId = process.env.DNSID_JEV_MODEL ?? 'clef-flash';
   let guard: ReturnType<typeof createGuard> | undefined;
   // Evidence and approvals are not restored from session history or codemode store().
-  pi.on('session_start', () => { guard = undefined; });
+  pi.on('session_start', (_event, ctx) => {
+    guard = undefined;
+    if (provider === 'local-clef') {
+      // Clef is a decision model: reuse System One, not chat-token scoring.
+      const classify = ctx.modelRegistry.getProvider('typesafe')?.classify;
+      if (!classify) throw new Error('System One classifier client unavailable');
+      pi.registerProvider(provider, {
+        apiKey: process.env.LLAMA_API_KEY ?? 'local',
+        baseUrl: `${(process.env.LLAMA_BASE_URL ?? 'http://127.0.0.1:8080').replace(/\/+$/, '')}/v1`,
+        models: [{ type: 'classifier', id: modelId, name: 'Local Clef Flash',
+          api: 'typesafe-system-one', input: ['text'], contextWindow: 4096,
+          cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0 } }],
+        classifiers: { 'typesafe-system-one': { classify } },
+      });
+    }
+  });
 
   async function run(ctx: ExtensionToolContext, signal: AbortSignal | undefined,
                      action: (guard: Awaited<ReturnType<typeof createGuard>>, classify: Classify,
@@ -21,9 +38,8 @@ export default function outboundTrust(pi: ExtensionAPI) {
     const usage: Usage = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, totalTokens: 0,
       cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 } };
     const classify: Classify = async context => {
-      const model = ctx.modelRegistry.findOfType('classifier',
-        process.env.DNSID_JEV_PROVIDER ?? 'typesafe', process.env.DNSID_JEV_MODEL ?? 'jev-latest');
-      if (!model) throw new Error('Configured Jev classifier not found');
+      const model = ctx.modelRegistry.findOfType('classifier', provider, modelId);
+      if (!model) throw new Error('Configured naming classifier not found');
       const result = await ctx.modelRegistry.classify(model, context, {
         signal: AbortSignal.any([AbortSignal.timeout(15_000), ...(signal ? [signal] : [])]),
       });

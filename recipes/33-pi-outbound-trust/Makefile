@@ -1,4 +1,4 @@
-.PHONY: bootstrap run verify pi clean
+.PHONY: bootstrap run verify serve eval pi clean
 DNSID_CLI ?= dnsid
 MERCHANT_PORT ?= 3133
 
@@ -17,6 +17,16 @@ run: verify
 verify: bootstrap
 	npm run check
 	MERCHANT_PORT=$(MERCHANT_PORT) DNSID_CLI=$(DNSID_CLI) bash verify.sh
+
+# Foreground local decision server. Downloads/caches weights once; Ctrl-C stops it.
+serve:
+	llama serve -hf ggml-org/Clef-Flash-GGUF:Q4_K_M --alias clef-flash \
+	  --no-mmproj --host 127.0.0.1 --port 8080 -c 4096
+
+# Optional live naming check; start make serve first. No chat-model account needed.
+eval: bootstrap
+	npm run check
+	$(DNSID_CLI) local run shopper -- npm run demo -- --local-model
 
 # Optional interactive run: start `npm run merchant` in another terminal first.
 pi: bootstrap

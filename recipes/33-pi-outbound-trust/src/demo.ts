@@ -1,4 +1,4 @@
-// Scripted naming replies and tool proposals; real SDK, DNSid registry, Pi and codemode.
+// Scripted tool proposals; --local-model uses real naming replies in the Pi calls.
 import assert from 'node:assert/strict';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -10,6 +10,7 @@ import { createAgentSession, createCodemodeExtension, DefaultResourceLoader, Mod
 import { createGuard, validateDomain } from './guard.ts';
 import { startMerchant } from './merchant.ts';
 
+const liveNaming = process.argv.includes('--local-model');
 let classifierCalls = 0;
 let classifierMode: 'normal' | 'malformed' | 'unavailable' = 'normal';
 async function classify(context: ClassifierContext): Promise<ClassifierResult> {
@@ -82,7 +83,7 @@ try {
   await assert.rejects(guard.catalog('missing-counterparty.test', classify));
   assert.equal(classifierCalls, beforeInvalid);
   assert.equal(state.catalogCalls, 0);
-  console.log('ok    unverifiable domain stops before Jev and catalog');
+  console.log('ok    unverifiable domain stops before classifier and catalog');
 
   const inspected = await guard.inspect('merchant.test', classify);
   assert.equal(inspected.accountableEntity, 'merchant.test');
@@ -129,8 +130,10 @@ try {
   console.log('ok    payment pins entity and amount; explicit approval only; no money sent');
 
   // Real Pi execution, including nested codemode calls and restoring the same branch.
-  process.env.DNSID_JEV_PROVIDER = 'recipe-fixture';
-  process.env.DNSID_JEV_MODEL = 'scripted';
+  if (!liveNaming) {
+    process.env.DNSID_JEV_PROVIDER = 'recipe-fixture';
+    process.env.DNSID_JEV_MODEL = 'scripted';
+  }
   const manager = SessionManager.inMemory();
   let nestedCalls = 0;
   for (const resumed of [false, true]) {
@@ -176,6 +179,7 @@ try {
         if (event.type === 'tool_execution_end' && !event.parentToolCallId) {
           results.push({ name: event.toolName, error: event.isError,
             text: JSON.stringify(event.result) });
+          if (liveNaming) console.log('live ', event.toolName, event.isError ? 'refused' : 'ok');
         }
       });
       const before: number = state.catalogCalls;
@@ -194,7 +198,7 @@ try {
   }
   assert.equal(nestedCalls, 3);
   console.log('ok    Pi direct and codemode calls enforce policy; resumed approval is refused');
-  console.log('verify passed (scripted naming replies; real DNSid TS SDK and Pi codemode)');
+  console.log(`verify passed (${liveNaming ? 'live naming replies in Pi calls' : 'scripted naming replies'}; real DNSid TS SDK and Pi codemode)`);
 } finally {
   server.closeAllConnections();
   await new Promise<void>(resolve => server.close(() => resolve()));
