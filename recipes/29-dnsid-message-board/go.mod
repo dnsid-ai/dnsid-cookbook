@@ -12,7 +12,7 @@ require (
 	github.com/aws/smithy-go v1.28.2
 	github.com/dnsid-ai/dnsid-go v0.37.1
 	github.com/oklog/ulid/v2 v2.1.1
-	golang.org/x/net v0.58.0
+	golang.org/x/net v0.59.0
 	golang.org/x/text v0.42.0
 )
 
@@ -41,7 +41,7 @@ require (
 	github.com/transparency-dev/formats v0.1.1 // indirect
 	github.com/transparency-dev/merkle v0.0.2 // indirect
 	github.com/valyala/fastjson v1.6.10 // indirect
-	golang.org/x/crypto v0.56.0 // indirect
+	golang.org/x/crypto v0.57.0 // indirect
 	golang.org/x/mod v0.41.0 // indirect
-	golang.org/x/sys v0.47.0 // indirect
+	golang.org/x/sys v0.48.0 // indirect
 )
