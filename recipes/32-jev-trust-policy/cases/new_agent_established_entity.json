@@ -1,0 +1,17 @@
+{
+  "description": "Brand-new agent under a long-standing entity (needs entity index)",
+  "operation": "catalog",
+  "facts": {
+    "counterparty": {
+      "agent_name": "quotes-v2.northwind.invalid",
+      "accountable_entity": "northwind.invalid",
+      "dnssec": "VALID"
+    },
+    "agent_history": {"identity_age_days": 1, "key_age_days": 1, "key_event": "issuance"},
+    "accountable_entity_history": {"first_issuance_days_ago": 1500}
+  },
+  "expected": {
+    "clauses": {"impersonation": false, "unproven": false, "takeover_risk": false},
+    "tier": "trusted"
+  }
+}

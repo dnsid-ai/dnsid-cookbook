@@ -1,0 +1,17 @@
+{
+  "description": "Opaque generated name, long history: not suspicious",
+  "operation": "catalog",
+  "facts": {
+    "counterparty": {
+      "agent_name": "agent-7f3a9c2b.example",
+      "accountable_entity": "agent-7f3a9c2b.example",
+      "dnssec": "VALID"
+    },
+    "agent_history": {"identity_age_days": 400, "key_age_days": 400, "key_event": "issuance"},
+    "accountable_entity_history": null
+  },
+  "expected": {
+    "clauses": {"impersonation": false, "unproven": false, "takeover_risk": false},
+    "tier": "trusted"
+  }
+}

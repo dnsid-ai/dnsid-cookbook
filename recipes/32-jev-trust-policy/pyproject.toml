@@ -1,0 +1,11 @@
+[project]
+name = "recipe-32-jev-trust-policy"
+version = "0.2.0"
+requires-python = ">=3.11"
+dependencies = [
+  "dnsid @ git+https://github.com/dnsid-ai/dnsid-py@v0.23.1",
+  "fastapi==0.141.1",
+  "httpx==0.28.1",
+  "confusable-homoglyphs==3.3.1",
+  "uvicorn==0.52.4",
+]

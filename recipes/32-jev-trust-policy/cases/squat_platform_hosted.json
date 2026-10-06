@@ -1,0 +1,17 @@
+{
+  "description": "Brand name on a generic agent-hosting platform",
+  "operation": "refund",
+  "facts": {
+    "counterparty": {
+      "agent_name": "paypal-refunds.agenthost.invalid",
+      "accountable_entity": "agenthost.invalid",
+      "dnssec": "VALID"
+    },
+    "agent_history": {"identity_age_days": 3, "key_age_days": 3, "key_event": "issuance"},
+    "accountable_entity_history": null
+  },
+  "expected": {
+    "clauses": {"impersonation": true, "unproven": true, "takeover_risk": false},
+    "tier": "untrusted"
+  }
+}
