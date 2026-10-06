@@ -90,11 +90,11 @@ def decide(policy: dict, facts: dict, answers: dict, operation: str) -> Decision
 
 async def ask_model(http: httpx.AsyncClient, policy: dict, counterparty: dict) -> dict:
     """Jev's 'noul' field is a yes/no probability. Send only verified naming facts."""
-    body = {"model": os.getenv("JEV_MODEL", "decider-12b"), "state": counterparty, "independent": True,
+    body = {"model": os.getenv("JEV_MODEL", "clef-flash"), "state": counterparty, "independent": True,
             "questions": {name: {"type": "noul", "instructions": text}
                           for name, text in policy["questions"].items()}}
     key = os.getenv("JEV_API_KEY")
-    response = await http.post(os.getenv("JEV_ENDPOINT", "http://127.0.0.1:8792/v1/systemone"),
+    response = await http.post(os.getenv("JEV_ENDPOINT", "http://127.0.0.1:8080/v1/systemone"),
                                json=body, headers={"Authorization": f"Bearer {key}"} if key else {})
     response.raise_for_status()
     answers = response.json()["answers"]

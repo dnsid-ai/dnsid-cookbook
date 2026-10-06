@@ -9,11 +9,3 @@ dependencies = [
   "confusable-homoglyphs==3.3.1",
   "uvicorn==0.52.4",
 ]
-
-# Only `make serve` installs model weights/runtime; verify stays lightweight.
-[dependency-groups]
-model = ["decider-ai[serve,metal]==1.8.1"]
-
-[tool.uv]
-# Triton kernels are CUDA-only; Decider has a PyTorch/Metal path on macOS.
-override-dependencies = ["flash-linear-attention; sys_platform != 'darwin'"]

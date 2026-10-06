@@ -59,7 +59,7 @@ async def main(argv: list[str]) -> int:
                   f"want={expected['tier']:9} {' '.join(marks)} "
                   + " ".join(f"{k}={v:.2f}" for k, v in answers.items()), flush=True)
 
-    print(f"\nmodel {', '.join(sorted(served_models)) or os.getenv('JEV_MODEL', 'decider-12b')}   "
+    print(f"\nmodel {', '.join(sorted(served_models)) or os.getenv('JEV_MODEL', 'clef-flash')}   "
           f"clauses {clause_hits}/{clause_total}   tiers {tier_hits}/{len(cases)}   "
           f"policy {policy['version']}   seconds {time.monotonic() - started:.1f}")
     if fixture:

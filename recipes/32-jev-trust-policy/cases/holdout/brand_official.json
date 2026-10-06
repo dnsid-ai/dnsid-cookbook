@@ -1,0 +1,25 @@
+{
+  "description": "Known brand's own domain",
+  "operation": "catalog",
+  "facts": {
+    "counterparty": {
+      "agent_name": "copilot.microsoft.com",
+      "accountable_entity": "microsoft.com",
+      "dnssec": "VALID"
+    },
+    "agent_history": {
+      "identity_age_days": 700,
+      "key_age_days": 700,
+      "key_event": "issuance"
+    },
+    "accountable_entity_history": null
+  },
+  "expected": {
+    "clauses": {
+      "impersonation": false,
+      "unproven": false,
+      "takeover_risk": false
+    },
+    "tier": "trusted"
+  }
+}

@@ -10,6 +10,7 @@ import tempfile
 import unittest
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import patch
 
 import httpx
 from dnsid.models import IssuanceEvent, KeyRotationEvent, MigrationEvent
@@ -42,7 +43,7 @@ def model_reply(body, seen):
 
 class TrustTests(unittest.TestCase):
     def test_all_labelled_mechanical_rules(self):
-        for path in (ROOT / "cases").glob("*.json"):
+        for path in (ROOT / "cases").rglob("*.json"):
             c = json.loads(path.read_text())
             decision = decide(POLICY, c["facts"], CALM | {"unproven": 0, "takeover_risk": 0}, c["operation"])
             for name in ("unproven", "takeover_risk"):
@@ -138,6 +139,22 @@ class TrustTests(unittest.TestCase):
             model_reply({"answers": answers | {"names_org": {"type": "choice", "noul": 0.2}}}, [])
         with self.assertRaises(KeyError):
             model_reply({"answers": {}}, [])
+
+    def test_local_model_defaults_and_endpoint_overrides(self):
+        async def check(env, endpoint, model, authorization):
+            def handle(request):
+                self.assertEqual(str(request.url), endpoint)
+                self.assertEqual(json.loads(request.content)["model"], model)
+                self.assertEqual(request.headers.get("authorization"), authorization)
+                return httpx.Response(200, json={"answers": {
+                    k: {"type": "noul", "noul": v} for k, v in CALM.items()}})
+            with patch.dict("os.environ", env, clear=True):
+                async with httpx.AsyncClient(transport=httpx.MockTransport(handle)) as http:
+                    self.assertEqual(await ask_model(http, POLICY, {}), CALM)
+        asyncio.run(check({}, "http://127.0.0.1:8080/v1/systemone", "clef-flash", None))
+        asyncio.run(check({"JEV_ENDPOINT": "https://classifier.example/v1/systemone",
+                          "JEV_MODEL": "jev-latest", "JEV_API_KEY": "test-key"},
+                         "https://classifier.example/v1/systemone", "jev-latest", "Bearer test-key"))
 
     def test_unicode_and_domain_relationships(self):
         signals = name_signals("xn--pypal-billing-w1k.com")
