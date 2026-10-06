@@ -204,6 +204,19 @@ Build 11379 gets **5/6 tiers and 17/18 rule matches**, compared with 3/6 tiers o
 
 If `/v1/systemone` returns 404, check that you launched the pinned build. If port 8080 is occupied, stop the other server or use `MODEL_PORT`. Stop the foreground server with Ctrl-C; `make clean` stops only the registry.
 
+### Usage warning and potential improvements
+
+**This recipe demonstrates a policy mechanism, not production-ready authorization.** A `trusted` tier means the configured checks found no reason to restrict access; it does not prove brand affiliation, honest intent or permission to receive sensitive data. An old identity can still impersonate an organization. Unavailable or malformed model answers fail closed, but valid, incorrect answers can permit access.
+
+Domain names alone cannot reliably distinguish an independent product integration from an official service. The Stripe and Google cases expose that ambiguity. Do not use model naming scores as the sole authorization check for real refunds, credentials or customer data. Require independently verified permission or delegation, checked in code. Keep identity and signature verification mandatory.
+
+Potential improvements, not implemented here:
+
+- **Expand and review the labelled cases.** Apply consistent rules to integrations and impersonation claims. Include more brands, government services and neutral names. Reserve unseen organizations for final evaluation, and report missed impersonators separately from false denials. The current sets have already been examined during development.
+- **Use explicit affiliation evidence.** Maintain an application-owned reference of official domains and check the verified accountable entity against it in code. A mismatch alone does not establish impersonation; unknown affiliations still need a policy decision.
+- **Compare questions and models under controlled conditions.** Test a direct impersonation question alongside the three-signal rule, higher-precision weights or another compatible model. Keep inputs and runtime fixed when comparing models, and record latency and memory use. These changes are experiments, not demonstrated improvements.
+- **Calibrate and restrict uncertain outcomes.** Select thresholds on separate labelled data using the cost of missed impersonators and false denials. Consider limiting ambiguous cases rather than granting full trust. Report how often the system declines to decide; restriction improves safety but does not itself prove better classification accuracy.
+
 ## What to try next
 
 - Edit an effect, age window, naming question or operation requirement in `policy.toml`, bump the version, and restart. Add a labelled case explaining the intended result. The three rules are explicit Python, not a generic policy language.
