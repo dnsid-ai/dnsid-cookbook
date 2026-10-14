@@ -1,0 +1,4 @@
+node_modules/
+.dnsid-verdicts.json
+.dnsid-verdicts/
+logs/
