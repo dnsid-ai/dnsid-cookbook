@@ -1,0 +1,57 @@
+[
+  {
+    "domain": "researcher-1.researchlab.test",
+    "countries": [
+      "USA",
+      "DEU"
+    ],
+    "statusBefore": "READY",
+    "requests": [
+      {
+        "url": "https://publicdata.test/v1/health-spending/USA",
+        "outcome": "HTTP 200"
+      },
+      {
+        "url": "https://publicdata.test/v1/health-spending/DEU",
+        "outcome": "HTTP 200"
+      }
+    ],
+    "report": "USA (2021): total health spending 17.4% of GDP, $12,000 per capita (USD PPP), public share 57%, out-of-pocket share 10%.\nDEU (2021): total health spending 12.9% of GDP, $7,400 per capita (USD PPP), public share 78%, out-of-pocket share 12%.\n\nData source: \"Approximated from WHO GHED and OECD Health Statistics (2021). Illustrative; not for citation.\"\n\nThe United States spends a substantially larger share of its GDP on health (17.4% vs. 12.9%) and nearly 1.6 times more per capita in PPP terms than Germany. However, Germany's health system relies more heavily on public/compulsory financing (78% vs. 57%), while the U.S. has a correspondingly lower public share and a slightly lower out-of-pocket share (10% vs. 12%), indicating the difference is made up mostly by private insurance rather than direct patient payments.",
+    "statusAfter": "READY"
+  },
+  {
+    "domain": "researcher-3.researchlab.test",
+    "countries": [
+      "GBR",
+      "JPN"
+    ],
+    "statusBefore": "READY",
+    "requests": [
+      {
+        "url": "https://publicdata.test/v1/health-spending/GBR",
+        "outcome": "HTTP 200"
+      },
+      {
+        "url": "https://publicdata.test/v1/health-spending/JPN",
+        "outcome": "HTTP 200"
+      }
+    ],
+    "report": "GBR (United Kingdom), 2021: Total health spending 12.4% of GDP; per capita USD PPP 5,400; public (government/compulsory) share 83%; out-of-pocket share 13%.\n\nJPN (Japan), 2021: Total health spending 10.8% of GDP; per capita USD PPP 5,250; public (government/compulsory) share 85%; out-of-pocket share 12%.\n\nData source: \"Approximated from WHO GHED and OECD Health Statistics (2021). Illustrative; not for citation.\"\n\nThe UK spends a somewhat larger share of GDP on health than Japan (12.4% vs. 10.8%) and also has slightly higher per-capita spending (US$5,400 PPP vs. US$5,250 PPP). Japan relies slightly more heavily on public/compulsory financing (85% vs. 83%) and has a marginally lower out-of-pocket share (12% vs. 13%), though both countries show broadly similar, predominantly publicly funded health systems with modest out-of-pocket burdens.",
+    "statusAfter": "READY"
+  },
+  {
+    "domain": "researcher-4.researchlab.test",
+    "countries": [
+      "BRA"
+    ],
+    "statusBefore": "VERIFIED",
+    "requests": [
+      {
+        "url": "https://publicdata.test/v1/health-spending/BRA",
+        "outcome": "HTTP 200"
+      }
+    ],
+    "report": "Brazil (BRA), 2021: Total health spending = 9.9% of GDP; Per capita = $1,600 USD PPP; Public (government/compulsory) share = 45%; Out-of-pocket share = 23%.\n\nData source: \"Approximated from WHO GHED and OECD Health Statistics (2021). Illustrative; not for citation.\"\n\nAs this is a single-country assignment, there is no comparison to make across countries. Brazil's total health expenditure of 9.9% of GDP is relatively high for an upper-middle-income country, but the public share (45%) is lower than typical for high-income universal-coverage systems, leaving a notable out-of-pocket burden (23%) on individuals.",
+    "statusAfter": "READY"
+  }
+]

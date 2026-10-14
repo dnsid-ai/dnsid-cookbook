@@ -1,0 +1,26 @@
+{
+  "name": "researchlab",
+  "version": "1.0.0",
+  "description": "Research lab on DNSid Local: a coordinator, researcher agents with DNSid identities, and a verifying data service",
+  "scripts": {
+    "publicdata": "node src/publicdata/server.ts",
+    "lab": "node src/coordinator.ts",
+    "researcher": "node src/researcher.ts",
+    "revoke": "node src/revoke.ts",
+    "typecheck": "tsc"
+  },
+  "type": "module",
+  "private": true,
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.3.295",
+    "@dnsid-ai/agent-sdk-plugin": "^0.0.1",
+    "@dnsid-ai/http-signatures": "~0.24.2",
+    "@dnsid-ai/sdk": "~0.24.2",
+    "@dnsid-ai/transport": "~0.24.2",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.1",
+    "typescript": "^6.0.3"
+  }
+}

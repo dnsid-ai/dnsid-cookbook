@@ -68,6 +68,12 @@ ALLOWED_NESTED_EXAMPLE_HOSTS = {
     "writer.test.evil.example",
 }
 
+# Nested identities allowed only inside one directory, where the hierarchy is
+# the point: researchlab's researchers live under the lab's own domain.
+ALLOWED_NESTED_SUFFIXES_BY_DIR = {
+    ("examples", "researchlab"): ".researchlab.test",
+}
+
 DENYLISTED_IDENTITY_PARTS = {
     "legacy AWS account ID": (("446872", "464738"),),
     "legacy DNSid lab subject": (("4da8580c9975", ".lab.dnsid", ".dev"),),
@@ -151,6 +157,9 @@ def findings_for(path: Path, text: str) -> list[str]:
     for match in NESTED_EXAMPLE_HOST_RE.finditer(text):
         host = match.group(1).lower().removeprefix("_dnsid.")
         if host.count(".") < 2 or host in ALLOWED_NESTED_EXAMPLE_HOSTS:
+            continue
+        allowed_suffix = ALLOWED_NESTED_SUFFIXES_BY_DIR.get(rel.parts[:2])
+        if allowed_suffix and host.endswith(allowed_suffix):
             continue
         findings.append(
             f"{rel}:{line_number(text, match.start())}: "

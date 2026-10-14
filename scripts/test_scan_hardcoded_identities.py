@@ -82,6 +82,15 @@ class ScanHardcodedIdentitiesTest(unittest.TestCase):
         ])
         self.assertEqual(findings_for_text(text), [])
 
+    def test_allows_nested_identities_only_in_their_directory(self) -> None:
+        text = "agent researcher-1" + ".researchlab.test\n"
+
+        self.assertEqual(findings_for_text(text, "examples/researchlab/README.md"), [])
+        self.assertTrue(findings_for_text(text, "recipes/example/README.md"))
+        self.assertTrue(
+            findings_for_text("agent bob" + ".alice.test\n", "examples/researchlab/README.md")
+        )
+
     def test_skip_rules_cover_generated_and_dependency_paths(self) -> None:
         self.assertTrue(scan.should_skip(ROOT / "node_modules" / "package" / "index.js"))
         self.assertTrue(scan.should_skip(ROOT / ".venv" / "lib" / "module.py"))
