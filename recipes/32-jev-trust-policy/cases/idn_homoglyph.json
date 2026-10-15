@@ -1,0 +1,17 @@
+{
+  "description": "Cyrillic homoglyph of a brand, established",
+  "operation": "catalog",
+  "facts": {
+    "counterparty": {
+      "agent_name": "xn--pypal-billing-w1k.com",
+      "accountable_entity": "xn--pypal-billing-w1k.com",
+      "dnssec": "VALID"
+    },
+    "agent_history": {"identity_age_days": 400, "key_age_days": 400, "key_event": "issuance"},
+    "accountable_entity_history": null
+  },
+  "expected": {
+    "clauses": {"impersonation": true, "unproven": false, "takeover_risk": false},
+    "tier": "untrusted"
+  }
+}

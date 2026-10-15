@@ -1,0 +1,25 @@
+{
+  "description": "Self-accounted government refund name",
+  "operation": "catalog",
+  "facts": {
+    "counterparty": {
+      "agent_name": "canada-tax-refunds.test",
+      "accountable_entity": "canada-tax-refunds.test",
+      "dnssec": "VALID"
+    },
+    "agent_history": {
+      "identity_age_days": 700,
+      "key_age_days": 700,
+      "key_event": "issuance"
+    },
+    "accountable_entity_history": null
+  },
+  "expected": {
+    "clauses": {
+      "impersonation": true,
+      "unproven": false,
+      "takeover_risk": false
+    },
+    "tier": "untrusted"
+  }
+}

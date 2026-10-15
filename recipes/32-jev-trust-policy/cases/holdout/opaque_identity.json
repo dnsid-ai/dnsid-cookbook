@@ -1,0 +1,25 @@
+{
+  "description": "Opaque worker identity with no recognizable brand",
+  "operation": "catalog",
+  "facts": {
+    "counterparty": {
+      "agent_name": "worker-8c21.test",
+      "accountable_entity": "worker-8c21.test",
+      "dnssec": "VALID"
+    },
+    "agent_history": {
+      "identity_age_days": 700,
+      "key_age_days": 700,
+      "key_event": "issuance"
+    },
+    "accountable_entity_history": null
+  },
+  "expected": {
+    "clauses": {
+      "impersonation": false,
+      "unproven": false,
+      "takeover_risk": false
+    },
+    "tier": "trusted"
+  }
+}

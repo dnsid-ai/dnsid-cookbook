@@ -1,0 +1,25 @@
+{
+  "description": "Generic inventory service under a fictional business domain",
+  "operation": "catalog",
+  "facts": {
+    "counterparty": {
+      "agent_name": "inventory.fabrikam.invalid",
+      "accountable_entity": "fabrikam.invalid",
+      "dnssec": "VALID"
+    },
+    "agent_history": {
+      "identity_age_days": 700,
+      "key_age_days": 700,
+      "key_event": "issuance"
+    },
+    "accountable_entity_history": null
+  },
+  "expected": {
+    "clauses": {
+      "impersonation": false,
+      "unproven": false,
+      "takeover_risk": false
+    },
+    "tier": "trusted"
+  }
+}

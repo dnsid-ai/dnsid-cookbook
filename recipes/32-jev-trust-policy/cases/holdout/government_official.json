@@ -1,0 +1,25 @@
+{
+  "description": "Government service under its official domain",
+  "operation": "catalog",
+  "facts": {
+    "counterparty": {
+      "agent_name": "tax.canada.ca",
+      "accountable_entity": "canada.ca",
+      "dnssec": "VALID"
+    },
+    "agent_history": {
+      "identity_age_days": 700,
+      "key_age_days": 700,
+      "key_event": "issuance"
+    },
+    "accountable_entity_history": null
+  },
+  "expected": {
+    "clauses": {
+      "impersonation": false,
+      "unproven": false,
+      "takeover_risk": false
+    },
+    "tier": "trusted"
+  }
+}

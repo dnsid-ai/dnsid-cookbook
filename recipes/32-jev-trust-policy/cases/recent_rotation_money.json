@@ -1,0 +1,17 @@
+{
+  "description": "Key rotated hours ago, then asks to move money",
+  "operation": "refund",
+  "facts": {
+    "counterparty": {
+      "agent_name": "billing-bot.northwind.invalid",
+      "accountable_entity": "northwind.invalid",
+      "dnssec": "VALID"
+    },
+    "agent_history": {"identity_age_days": 500, "key_age_days": 0.3, "key_event": "key rotation"},
+    "accountable_entity_history": null
+  },
+  "expected": {
+    "clauses": {"impersonation": false, "unproven": false, "takeover_risk": true},
+    "tier": "untrusted"
+  }
+}

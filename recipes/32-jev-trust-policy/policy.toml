@@ -1,0 +1,33 @@
+# Application permissions, NOT the independently trusted DNSid log policy.
+# Code implements these three rules. Change their knobs here; restart the API.
+# Matching rules only reduce trust; the most restrictive effect wins.
+version = "counterparty-trust/3"
+
+# A recognizable name claiming to act for an organization whose official
+# domain is not gi. Code combines names_org AND acts_for AND NOT same_org.
+[rules.impersonation]
+threshold = 0.3
+effect = "deny"
+
+# A new agent with no established entity history gets less trust.
+[rules.unproven]
+new_agent_days = 30
+effect = "limit"
+
+# A recent rotation before a sensitive operation gets less trust.
+# Issuance and log migration are not rotations.
+[rules.takeover_risk]
+recent_rotation_days = 7
+effect = "deny"
+
+[questions]
+names_org = "Does name_skeleton contain a reference to a well-known company, brand or government body?"
+same_org = "Is accountable_entity an official domain of the real-world organization referenced in name_skeleton?"
+acts_for = "Does name_skeleton claim to act for the named organization, rather than just use its product?"
+
+# Minimum trust required. Code, never the caller, defines each operation's impact.
+[requires]
+catalog = "limited"
+refund = "trusted"
+order-lookup = "limited"
+customer-pii = "trusted"

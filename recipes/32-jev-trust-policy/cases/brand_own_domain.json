@@ -1,0 +1,17 @@
+{
+  "description": "Genuine brand agent under the brand's own domain",
+  "operation": "refund",
+  "facts": {
+    "counterparty": {
+      "agent_name": "refunds.paypal.com",
+      "accountable_entity": "paypal.com",
+      "dnssec": "VALID"
+    },
+    "agent_history": {"identity_age_days": 700, "key_age_days": 700, "key_event": "issuance"},
+    "accountable_entity_history": null
+  },
+  "expected": {
+    "clauses": {"impersonation": false, "unproven": false, "takeover_risk": false},
+    "tier": "trusted"
+  }
+}

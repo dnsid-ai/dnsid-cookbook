@@ -1,0 +1,17 @@
+{
+  "description": "Outbound: tax authority under its own domain",
+  "operation": "customer-pii",
+  "facts": {
+    "counterparty": {
+      "agent_name": "efile.irs.gov",
+      "accountable_entity": "irs.gov",
+      "dnssec": "VALID"
+    },
+    "agent_history": {"identity_age_days": 900, "key_age_days": 900, "key_event": "issuance"},
+    "accountable_entity_history": null
+  },
+  "expected": {
+    "clauses": {"impersonation": false, "unproven": false, "takeover_risk": false},
+    "tier": "trusted"
+  }
+}

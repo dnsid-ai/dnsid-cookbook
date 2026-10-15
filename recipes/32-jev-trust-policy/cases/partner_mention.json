@@ -1,0 +1,17 @@
+{
+  "description": "Names a product it integrates with; not a claim to be that company",
+  "operation": "refund",
+  "facts": {
+    "counterparty": {
+      "agent_name": "stripe-invoicing.acme-corp.invalid",
+      "accountable_entity": "acme-corp.invalid",
+      "dnssec": "VALID"
+    },
+    "agent_history": {"identity_age_days": 800, "key_age_days": 800, "key_event": "issuance"},
+    "accountable_entity_history": null
+  },
+  "expected": {
+    "clauses": {"impersonation": false, "unproven": false, "takeover_risk": false},
+    "tier": "trusted"
+  }
+}

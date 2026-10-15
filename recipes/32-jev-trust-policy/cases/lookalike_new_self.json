@@ -1,0 +1,17 @@
+{
+  "description": "Hyphenated lookalike registered two days ago",
+  "operation": "refund",
+  "facts": {
+    "counterparty": {
+      "agent_name": "pay-pal-support.help",
+      "accountable_entity": "pay-pal-support.help",
+      "dnssec": "VALID"
+    },
+    "agent_history": {"identity_age_days": 2, "key_age_days": 2, "key_event": "issuance"},
+    "accountable_entity_history": null
+  },
+  "expected": {
+    "clauses": {"impersonation": true, "unproven": true, "takeover_risk": false},
+    "tier": "untrusted"
+  }
+}

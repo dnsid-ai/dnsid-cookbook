@@ -1,0 +1,25 @@
+{
+  "description": "Self-accounted brand support name",
+  "operation": "catalog",
+  "facts": {
+    "counterparty": {
+      "agent_name": "microsoft-support.test",
+      "accountable_entity": "microsoft-support.test",
+      "dnssec": "VALID"
+    },
+    "agent_history": {
+      "identity_age_days": 700,
+      "key_age_days": 700,
+      "key_event": "issuance"
+    },
+    "accountable_entity_history": null
+  },
+  "expected": {
+    "clauses": {
+      "impersonation": true,
+      "unproven": false,
+      "takeover_risk": false
+    },
+    "tier": "untrusted"
+  }
+}
