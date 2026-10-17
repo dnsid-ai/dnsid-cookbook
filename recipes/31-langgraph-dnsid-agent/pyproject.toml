@@ -11,7 +11,7 @@ dependencies = [
     "langgraph==1.2.11",
     "langchain-core==1.6.5",
     "langchain-anthropic==1.7.2",
-    "fastapi==0.141.1",
+    "fastapi==0.142.2",
     "uvicorn==0.54.0",
     "dnspython==2.8.0",
     "sse-starlette==3.4.11",
