@@ -11,7 +11,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/verifiedpermissions v1.34.4
 	github.com/aws/smithy-go v1.28.2
 	github.com/dnsid-ai/dnsid-go v0.37.1
-	github.com/oklog/ulid/v2 v2.1.1
+	github.com/oklog/ulid/v2 v2.1.2
 	golang.org/x/net v0.58.0
 	golang.org/x/text v0.42.0
 )
