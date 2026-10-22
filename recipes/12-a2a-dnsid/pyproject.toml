@@ -1,4 +1,5 @@
 [project]
+authors = [{ name = "Known Systems AI, Inc." }]
 name = "recipe-12-a2a-dnsid"
 version = "0.1.0"
 description = "DNSid cookbook recipe 12 — A2A protocol + DNSid"

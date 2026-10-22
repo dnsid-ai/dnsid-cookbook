@@ -1,5 +1,6 @@
 {
   "name": "researchlab",
+  "author": "Known Systems AI, Inc.",
   "version": "1.0.0",
   "description": "Research lab on DNSid Local: a coordinator, researcher agents with DNSid identities, and a verifying data service",
   "scripts": {

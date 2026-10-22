@@ -3,6 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
+authors = [{ name = "Known Systems AI, Inc." }]
 name = "audit-lambda"
 version = "0.1.0"
 requires-python = ">=3.13"

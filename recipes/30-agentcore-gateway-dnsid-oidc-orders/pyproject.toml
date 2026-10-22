@@ -3,6 +3,7 @@ requires = ["setuptools==84.0.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
+authors = [{ name = "Known Systems AI, Inc." }]
 name = "agentcore-gateway-dnsid-orders"
 version = "0.1.0"
 description = "Minimal DNSid action verification for Amazon Bedrock AgentCore Gateway"
