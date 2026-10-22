@@ -3,6 +3,7 @@ requires = ["setuptools>=69"]
 build-backend = "setuptools.build_meta"
 
 [project]
+authors = [{ name = "Known Systems AI, Inc." }]
 name = "agentcore-gateway-mcp-image-poc"
 version = "0.1.0"
 description = "Local Bedrock image target and UI for the AgentCore Gateway MCP image PoC"

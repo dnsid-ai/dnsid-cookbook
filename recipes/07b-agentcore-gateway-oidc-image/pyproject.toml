@@ -3,6 +3,7 @@ requires = ["setuptools>=69"]
 build-backend = "setuptools.build_meta"
 
 [project]
+authors = [{ name = "Known Systems AI, Inc." }]
 name = "agentcore-gateway-oidc-image"
 version = "0.1.0"
 description = "Minimal DNSid OIDC adapter image generation recipe for AgentCore Gateway"

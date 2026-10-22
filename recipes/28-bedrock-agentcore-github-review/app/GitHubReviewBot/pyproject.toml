@@ -3,6 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
+authors = [{ name = "Known Systems AI, Inc." }]
 name = "GitHubReviewBot"
 version = "0.1.0"
 description = "AgentCore Runtime Application using Strands SDK"

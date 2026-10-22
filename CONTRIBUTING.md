@@ -1,5 +1,7 @@
 # Contributing to dnsid-cookbook
 
+Follow the shared [entity-naming rule](https://github.com/dnsid-ai/dnsid-sdk-compliance/blob/main/policy/ENTITY_NAMING.md) for legal text, copyright notices, and package author metadata.
+
 Recipes are the product here. A good recipe is runnable, honest about what it verifies, and cites
 the spec or SDK behavior it relies on.
 
