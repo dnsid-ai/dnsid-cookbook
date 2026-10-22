@@ -19,8 +19,14 @@ Built with the Claude Agent SDK and the DNSid plugin
 
 ## Run it
 
-You need Node 24+, the `dnsid` CLI, DNSid Local (`dnsid local up --zone test`),
-and a Claude login or `ANTHROPIC_API_KEY`.
+You need Node 24.22.1+ on the 24.x line, or Node 26.12.1+, the `dnsid` CLI,
+DNSid Local (`dnsid local up --zone test`), and a Claude login or
+`ANTHROPIC_API_KEY`.
+
+The Node.js minimum includes the emSign compromised-intermediate block. The
+DNSid SDKs stay at `0.24.2`: plugin `0.0.1` cannot bring a new identity online
+with SDK `0.31.0`. Upgrade them together when the plugin supports the new
+startup verification.
 
 ```bash
 npm install

@@ -11,7 +11,7 @@ BOARD_PORT ?= 3401
 OWNER_PORT ?= 3402
 POSTER_PORT ?= 3403
 AUDIENCE ?= urn:dnsid-message-board:testnet
-TOKEN_ENVIRONMENT ?= production
+TOKEN_ENVIRONMENT ?= sandbox
 
 BOARD_DOMAIN := board.$(ZONE)
 OWNER_DOMAIN := owner.$(ZONE)

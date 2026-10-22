@@ -28,7 +28,7 @@ TARGET_NAME = "OrderTarget"
 API_NAME = f"{PREFIX}-api"
 STAGE = "orders"
 PROVISIONAL_AUDIENCE = "urn:amazon:bedrock-agentcore:gateway:dnsid-order-proof"
-DNSID_DEPENDENCY = "dnsid @ git+https://github.com/dnsid-ai/dnsid-py@v0.23.1"
+DNSID_DEPENDENCY = "dnsid @ git+https://github.com/dnsid-ai/dnsid-py@v0.29.1"
 
 
 def aws(settings: Settings, service: str, *, region: str | None = None) -> Any:
@@ -125,6 +125,8 @@ def package_lambda(settings: Settings) -> Path:
             "cp",
             "--only-binary=:all:",
             DNSID_DEPENDENCY,
+            "certifi>=2026.10.19",
+            "urllib3>=2.8.0",
         ],
         check=True,
     )

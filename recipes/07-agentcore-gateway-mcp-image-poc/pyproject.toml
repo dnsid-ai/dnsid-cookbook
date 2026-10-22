@@ -9,8 +9,10 @@ version = "0.1.0"
 description = "Local Bedrock image target and UI for the AgentCore Gateway MCP image PoC"
 requires-python = ">=3.11"
 dependencies = [
+    "certifi>=2026.10.19",
+    "urllib3>=2.8.0",
     "boto3>=1.35.0",
-    "dnsid @ git+https://github.com/dnsid-ai/dnsid-py@v0.23.1",
+    "dnsid @ git+https://github.com/dnsid-ai/dnsid-py@v0.29.1",
 ]
 
 [project.optional-dependencies]

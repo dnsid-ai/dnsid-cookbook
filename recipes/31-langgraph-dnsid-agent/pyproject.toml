@@ -5,15 +5,17 @@ version = "0.1.0"
 description = "DNSid cookbook recipe 31 — LangGraph agent with a DNSid identity"
 requires-python = ">=3.11"
 # Versions below are the ones this recipe was actually tested against
-# (Python 3.13, 2026-09). Later versions probably work; these are known to.
+# (Python 3.13, 2026-10). Later versions probably work; these are known to.
 dependencies = [
-    "dnsid @ git+https://github.com/dnsid-ai/dnsid-py@v0.23.1",
-    "a2a-sdk==1.1.5",
-    "langgraph==1.2.11",
-    "langchain-core==1.6.5",
-    "langchain-anthropic==1.7.2",
-    "fastapi==0.141.1",
+    "certifi>=2026.10.19",
+    "urllib3>=2.8.0",
+    "dnsid @ git+https://github.com/dnsid-ai/dnsid-py@v0.29.1",
+    "a2a-sdk==1.2.3",
+    "langgraph==1.2.16",
+    "langchain-core==1.6.13",
+    "langchain-anthropic==1.7.6",
+    "fastapi==0.160.0",
     "uvicorn==0.54.0",
-    "dnspython==2.8.0",
-    "sse-starlette==3.4.11",
+    "dnspython==2.9.0",
+    "sse-starlette==3.5.0",
 ]
