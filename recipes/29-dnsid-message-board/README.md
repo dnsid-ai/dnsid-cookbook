@@ -24,12 +24,12 @@ A room owner can also add a syntactically valid future DNSid domain to an allowl
 ## Prerequisites
 
 - Docker 24+ (running)
-- Go 1.26.6+
+- Go 1.26.10+
 - `make`
 - The `dnsid` CLI on `PATH`
 - A clone of this repository
 
-The recipe pins `github.com/dnsid-ai/dnsid-go` v0.37.1 in `go.mod`.
+The recipe pins `github.com/dnsid-ai/dnsid-go` v0.43.0 in `go.mod`.
 
 ## Concepts
 
@@ -94,6 +94,10 @@ result, err := v.profile.VerifyOIDCToken(ctx, token, oidc.VerifyOIDCTokenOptions
 ```
 
 `VerifyOIDCToken` checks the OIDC signature and claims, then calls the supplied DNSid resolver for `sub`. The resolver validates the exact signed TXT profile, accountable-entity and operational JWKS documents, active status, and C2SP lifecycle evidence. The server additionally requires a `jti`, applies its configured environment policy, and stores only a hash of the token identifier for audit data.
+
+The local Makefile requires `environment=sandbox`, matching the current local
+registry issuer; `TOKEN_ENVIRONMENT` can override this for another registry build.
+AWS mode still requires an explicitly configured `DNSID_ENVIRONMENT`.
 
 The local registry resolver is configured in `src/internal/localregistry/localregistry.go`. Its C2SP trust policy comes only from `DNSID_LOG_POLICY_URL`, which is injected independently by the harness. It never derives policy trust from `DNSID_LOG_REF` or log-provided data.
 

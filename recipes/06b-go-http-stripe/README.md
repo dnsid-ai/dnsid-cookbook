@@ -21,11 +21,11 @@ RFC 9421 standardizes how to sign an HTTP request, but a relying party still nee
 
 - Docker 24+ (running)
 - `make`, `dig`, and `curl`
-- Go 1.26.6 or newer
+- Go 1.26.10 or newer
 - The `dnsid` CLI — `brew install dnsid-ai/tap/dnsid`, or download a binary per the [installation docs](https://docs.dnsid.ai/cli-installation) and put it on `PATH`
 - A clone of this repository
 
-The recipe pins `dnsid-go` v0.37.1 in [`go.mod`](go.mod).
+The recipe pins `dnsid-go` v0.43.0 in [`go.mod`](go.mod).
 
 ## Concepts
 

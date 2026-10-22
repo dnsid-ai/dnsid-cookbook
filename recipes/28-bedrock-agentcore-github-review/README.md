@@ -100,9 +100,17 @@ Review comment posted to PR:
 > **Observability note.** The deployed bot depends on `aws-opentelemetry-distro`, which AgentCore uses to
 > emit traces and metrics to **your own** AWS account (CloudWatch / X-Ray). Nothing is sent to DNSid or
 > Known Systems. Set `enableOtel: false` in the AgentCore config to turn it off.
+>
+> **Remaining dependency advisories:** `aws-opentelemetry-distro` 0.21.0 pins
+> `opentelemetry-api` 1.44.0, affected by unbounded trace-state parsing
+> ([GHSA-xcq7-p3pf-p88h](https://github.com/advisories/GHSA-xcq7-p3pf-p88h)).
+> AWS must support API 1.45.1+ before that dependency can be updated safely.
+> The CDK test tooling also includes `sprintf-js`, affected by unbounded
+> precision parsing with no patched release
+> ([GHSA-hp3w-g68c-fv3c](https://github.com/advisories/GHSA-hp3w-g68c-fv3c)).
 
 - Python 3.11+, `uv`
-- Node.js 20+ (for the AgentCore CLI)
+- Node.js 24.22.1+ on the 24.x line, or 26.12.1+ (for the AgentCore CLI; includes the emSign compromised-intermediate block)
 - AWS CLI with credentials for account `<AWS_ACCOUNT_ID>`, region `us-east-1`
 - AWS CDK: `npm install -g aws-cdk`
 - AgentCore CLI: `npm install -g @aws/agentcore`

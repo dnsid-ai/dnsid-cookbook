@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools==84.0.0"]
+requires = ["setuptools==84.2.1"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -10,12 +10,14 @@ description = "Minimal DNSid action verification for Amazon Bedrock AgentCore Ga
 requires-python = ">=3.11"
 # Versions tested with Python 3.13.
 dependencies = [
-    "boto3==1.43.103",
-    "dnsid @ git+https://github.com/dnsid-ai/dnsid-py@v0.23.1",
+    "certifi>=2026.10.19",
+    "urllib3>=2.8.0",
+    "boto3==1.43.117",
+    "dnsid @ git+https://github.com/dnsid-ai/dnsid-py@v0.29.1",
 ]
 
 [project.optional-dependencies]
-dev = ["pip==26.2.1", "pytest==9.1.1"]
+dev = ["pip==26.2.2", "pytest==9.1.1"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
