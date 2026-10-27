@@ -11,7 +11,7 @@ dependencies = [
     "urllib3>=2.8.0",
     "dnsid @ git+https://github.com/dnsid-ai/dnsid-py@v0.29.1",
     "a2a-sdk==1.2.3",
-    "fastapi==0.160.0",
+    "fastapi==0.162.0",
     "uvicorn==0.54.0",
     "dnspython==2.9.0",
     "sse-starlette==3.5.0",
