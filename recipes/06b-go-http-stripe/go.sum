@@ -5,8 +5,8 @@ github.com/WebDecoy/web-bot-auth v0.4.1/go.mod h1:Vjih4b1Xzxi3whR7J3Fnfy2wBZDytv
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.1 h1:5RVFMOWjMyRy8cARdy79nAmgYw3hK/4HUq48LQ6Wwqo=
 github.com/decred/dcrd/dcrec/secp256k1/v4 v4.4.1/go.mod h1:ZXNYxsqcloTdSy/rNShjYzMhyjf0LaoftYK0p+A3h40=
-github.com/dnsid-ai/dnsid-go v0.43.0 h1:czX04Orj2MUpTSKufVpj10oc1+hVghGQKJwzdZvbjPk=
-github.com/dnsid-ai/dnsid-go v0.43.0/go.mod h1:+bvFa8F78AFgHbqUHp6cGpaigUepGRAw3hVntk98utg=
+github.com/dnsid-ai/dnsid-go v0.44.1 h1:9shsA7xCmmPfJM9Zg7of1Pdg8wVeonGLY1u59eU+e4g=
+github.com/dnsid-ai/dnsid-go v0.44.1/go.mod h1:+bvFa8F78AFgHbqUHp6cGpaigUepGRAw3hVntk98utg=
 github.com/forcebit/http-message-signatures-rfc9421-go v0.0.20 h1:VnNRXDNoMKv81qrLgdVK+L/Z0SsJgsB5u/ks/2DuXwE=
 github.com/forcebit/http-message-signatures-rfc9421-go v0.0.20/go.mod h1:yvfSnl9dxcx4tbiqfqGSDnnx8ylQPenP/VCcXXWvndA=
 github.com/goccy/go-json v0.11.2 h1:jdZv93Tt4ioR8yW1CoNsvSxrcZlCXAUU1aZXN7gpXUA=
