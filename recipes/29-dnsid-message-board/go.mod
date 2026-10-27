@@ -10,7 +10,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.72.0
 	github.com/aws/aws-sdk-go-v2/service/verifiedpermissions v1.42.0
 	github.com/aws/smithy-go v1.28.6
-	github.com/dnsid-ai/dnsid-go v0.43.0
+	github.com/dnsid-ai/dnsid-go v0.44.1
 	github.com/oklog/ulid/v2 v2.1.2
 	golang.org/x/net v0.61.0
 	golang.org/x/text v0.43.0
