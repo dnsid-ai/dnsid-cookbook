@@ -1,23 +1,21 @@
 #!/usr/bin/env bash
-# One-shot run of the full LangGraph + DNSid flow, with transcript assertions.
+# One-shot run of the recipe, with transcript assertions.
 #
-# Starts the tools API and the graph agent under `dnsid local run`, waits
-# for both identities to publish, then:
-#   1. peer (allowlisted) asks the graph to place an order — the graph's
-#      scripted model calls place_order, which travels to the tools API as a
-#      signed HTTP request attributable to graph.<zone>.
-#   2. outsider (verified but NOT allowlisted) asks the same — place_order is
-#      absent from its tool set, so no order happens.
+# Starts the tools API and the graph agent under `dnsid local run`, then:
+# The agent runs on a real model (DNSID_RECIPE_MODEL), so every check below
+# reads what the code logged, never the model's wording.
 #
-# Assertions:
-#   - graph verified the signed A2A POST from peer.<zone> (ingress)
-#   - tools verified the signed POST /order from graph.<zone> (egress)
-#   - peer's reply carries both identities and the accepted order
-#   - outsider's request verified, but its reply shows place_order unavailable
-#   - the tools log contains exactly one verified /order call
+#   1. peer (allowlisted) asks the graph to order 3 widgets: place_order runs,
+#      as a signed request the tools API verifies as graph.<zone>.
+#   2. outsider (verified, not allowlisted) asks the same: place_order is
+#      absent, no order happens.
+#   3. peer asks the graph to fetch from rogue.<zone>, which has no DNSid
+#      identity: the graph's client refuses before sending anything.
+#   4. a signed request sent twice: the copy is rejected (replay protection).
+#   5. an unsigned request to the graph gets a 401.
 #
 # DNSID_RECIPE_ASSERT=0 skips the assertions (used by `make run`).
-# Assumes `make bootstrap` has run (local registry up, identities ensured).
+# Assumes `make bootstrap` has run.
 
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -30,146 +28,120 @@ TOOLS_PORT="${TOOLS_PORT:-3103}"
 OUTSIDER_PORT="${OUTSIDER_PORT:-3104}"
 ASSERT="${DNSID_RECIPE_ASSERT:-1}"
 
-GRAPH_CU="https://graph.${ZONE}/.well-known/agent-card.json"
-
-# Portable across BSD and GNU mktemp: an explicit XXXXXX template.
-TOOLS_LOG=$(mktemp "${TMPDIR:-/tmp}/dnsid-recipe31-tools.XXXXXX")
-GRAPH_LOG=$(mktemp "${TMPDIR:-/tmp}/dnsid-recipe31-graph.XXXXXX")
-PEER_LOG=$(mktemp "${TMPDIR:-/tmp}/dnsid-recipe31-peer.XXXXXX")
-OUTSIDER_LOG=$(mktemp "${TMPDIR:-/tmp}/dnsid-recipe31-outsider.XXXXXX")
-TOOLS_PID=""
-GRAPH_PID=""
+LOGS=$(mktemp -d "${TMPDIR:-/tmp}/dnsid-recipe31.XXXXXX")
+PIDS=()
 
 fail() {
     echo "" >&2
     echo "FAIL: $1" >&2
-    # Emit the local registry container logs — without them a red CI job is undebuggable.
     echo "--- local registry containers ---" >&2
     docker ps --filter "name=dnsid-local" >&2 || true
     docker ps -q --filter "name=dnsid-local" | while read -r c; do
         echo "--- docker logs ${c} (tail) ---" >&2
-        docker logs --tail 50 "${c}" >&2 || true
+        docker logs --tail 30 "${c}" >&2 || true
     done
     exit 1
 }
 
 kill_our_agents() {
-    # `dnsid local run` wraps the python process; killing the wrapper alone
-    # can leave the agent holding its port. Kill by command line instead.
-    pkill -f "python -u src/main.py" 2>/dev/null || true
+    # `dnsid local run` wraps the python process; kill by command line too.
+    # uvicorn finishes in-flight requests on SIGTERM, and with a slow model an
+    # in-flight request can still place an order. Give it 5s, then SIGKILL.
+    local pattern="python -u src/main.py (tools|graph)"
+    pkill -f "${pattern}" 2>/dev/null || true
+    for _ in $(seq 1 10); do
+        pgrep -f "${pattern}" >/dev/null || return 0
+        sleep 0.5
+    done
+    pkill -9 -f "${pattern}" 2>/dev/null || true
 }
 
 cleanup() {
-    for pid in "${GRAPH_PID}" "${TOOLS_PID}"; do
-        if [[ -n "${pid}" ]]; then
-            kill "${pid}" 2>/dev/null || true
-            wait "${pid}" 2>/dev/null || true
-        fi
-    done
+    for pid in "${PIDS[@]}"; do kill "${pid}" 2>/dev/null || true; done
     kill_our_agents
-    echo ""
-    echo "--- tools transcript ---"
-    cat "${TOOLS_LOG}"
-    echo ""
-    echo "--- graph transcript ---"
-    cat "${GRAPH_LOG}"
-    rm -f "${TOOLS_LOG}" "${GRAPH_LOG}" "${PEER_LOG}" "${OUTSIDER_LOG}"
+    for role in tools graph; do
+        echo ""
+        echo "--- ${role} transcript ---"
+        cat "${LOGS}/${role}.log"
+    done
+    rm -rf "${LOGS}"
 }
 trap cleanup EXIT
-
-# Kill any leftover agent processes from a previous run.
 kill_our_agents
 
-wait_for() {
-    local pattern="$1" log="$2" pid="$3" what="$4"
-    echo -n "    waiting for ${what}"
-    for _ in $(seq 1 90); do
-        if ! kill -0 "${pid}" 2>/dev/null; then
-            echo ""
-            cat "${log}" >&2
-            fail "${what}: process exited early"
-        fi
-        if grep -qE "${pattern}" "${log}" 2>/dev/null; then
-            echo " done"
-            return 0
-        fi
-        echo -n "."
-        sleep 1
+start() {
+    local name="$1" port="$2"
+    echo "==> starting ${name} on :${port}"
+    "${DNSID_CLI}" local run "${name}" --upstream "http://localhost:${port}" -- \
+        uv run python -u src/main.py "${name}" >"${LOGS}/${name}.log" 2>&1 &
+    PIDS+=($!)
+    for _ in $(seq 1 60); do
+        grep -q "listening" "${LOGS}/${name}.log" && return 0
+        kill -0 "${PIDS[-1]}" 2>/dev/null || { cat "${LOGS}/${name}.log" >&2; fail "${name} exited early"; }
+        sleep 0.5
     done
-    echo ""
-    cat "${log}" >&2
-    fail "${what}: timed out after 90s"
+    fail "${name} did not start"
 }
 
-# ---------------------------------------------------------------------------
-# 1. Start the tools API and the graph agent
-# ---------------------------------------------------------------------------
-echo "==> starting tools API on :${TOOLS_PORT}"
-"${DNSID_CLI}" local run tools --upstream "http://localhost:${TOOLS_PORT}" -- \
-    uv run python -u src/main.py tools \
-    >"${TOOLS_LOG}" 2>&1 &
-TOOLS_PID=$!
-wait_for "published" "${TOOLS_LOG}" "${TOOLS_PID}" "tools identity to publish"
+ask() {
+    local who="$1" port="$2" text="$3"
+    echo "==> ${who}: ${text}"
+    "${DNSID_CLI}" local run "${who}" --upstream "http://localhost:${port}" -- \
+        uv run python -u src/main.py ask "graph.${ZONE}" "${text}" 2>&1 | tee "${LOGS}/${who}.$4.log"
+}
 
-echo "==> starting graph agent on :${GRAPH_PORT}"
-"${DNSID_CLI}" local run graph --upstream "http://localhost:${GRAPH_PORT}" --cu "${GRAPH_CU}" -- \
-    uv run python -u src/main.py graph \
-    >"${GRAPH_LOG}" 2>&1 &
-GRAPH_PID=$!
-wait_for "verified: graph.${ZONE} -> tools.${ZONE}" "${GRAPH_LOG}" "${GRAPH_PID}" "graph to publish and verify the tools API"
+start tools "${TOOLS_PORT}"
+start graph "${GRAPH_PORT}"
 
-# ---------------------------------------------------------------------------
-# 2. The allowlisted peer places an order through the graph
-# ---------------------------------------------------------------------------
-echo "==> peer asks the graph to order 3 widgets"
+ask peer "${PEER_PORT}" "Please order 3 widgets" order
+ask outsider "${OUTSIDER_PORT}" "Please order 3 widgets" order
+ask peer "${PEER_PORT}" "Use the fetch tool to GET https://rogue.${ZONE}/catalog and tell me what it returns." rogue
+
+echo "==> peer sends one signed request twice"
 "${DNSID_CLI}" local run peer --upstream "http://localhost:${PEER_PORT}" -- \
-    uv run python -u src/main.py send "graph.${ZONE}" "Please order 3 widgets" \
-    2>&1 | tee "${PEER_LOG}"
+    uv run python -u verify/replay.py "https://graph.${ZONE}/ask" 2>&1 | tee "${LOGS}/replay.log"
 
-# ---------------------------------------------------------------------------
-# 3. The outsider (verified, not allowlisted) tries the same
-# ---------------------------------------------------------------------------
-echo "==> outsider asks the graph to order 3 widgets"
-"${DNSID_CLI}" local run outsider --upstream "http://localhost:${OUTSIDER_PORT}" -- \
-    uv run python -u src/main.py send "graph.${ZONE}" "Please order 3 widgets" \
-    2>&1 | tee "${OUTSIDER_LOG}"
+echo "==> unsigned request to the graph"
+CA_BUNDLE=$("${DNSID_CLI}" local agent ensure peer --upstream "http://localhost:${PEER_PORT}" --format dotenv \
+    | sed -n 's/^DNSID_CA_BUNDLE="\(.*\)"$/\1/p')
+UNSIGNED=$(curl -s -w ' %{http_code}' --cacert "${CA_BUNDLE}" --resolve "graph.${ZONE}:443:127.0.0.1" \
+    -H 'content-type: application/json' -d '{"text":"Please order 500 widgets"}' "https://graph.${ZONE}/ask")
+echo "${UNSIGNED}"
 
-# ---------------------------------------------------------------------------
-# 4. Assert the transcript
-# ---------------------------------------------------------------------------
 if [[ "${ASSERT}" == "1" ]]; then
     echo ""
     echo "==> asserting transcript"
+    G="${LOGS}/graph.log" T="${LOGS}/tools.log"
 
-    grep -q "verified signed POST / from peer.${ZONE}" "${GRAPH_LOG}" \
-        || fail "graph never verified the signed A2A POST from peer.${ZONE}"
-    echo "  ok: peer->graph ingress verified"
+    grep -q "\[graph.${ZONE}\] verified POST /ask from peer.${ZONE}" "${G}" || fail "graph did not verify peer"
+    grep -q "\[peer.${ZONE}\] verified peer graph.${ZONE}" "${LOGS}/peer.order.log" || fail "peer did not verify graph"
+    echo "  ok: peer and graph verified each other"
 
-    grep -q "verified signed POST /order from graph.${ZONE}" "${TOOLS_LOG}" \
-        || fail "tools never verified a signed /order call from graph.${ZONE}"
-    echo "  ok: graph->tools egress verified as graph.${ZONE}"
+    grep -q "\[tools.${ZONE}\] verified POST /order from graph.${ZONE}" "${T}" || fail "tools did not verify graph"
+    grep -q "^200 " "${LOGS}/peer.order.log" || fail "peer's request failed"
+    echo "  ok: graph's signed tool call verified by tools"
 
-    grep -q "reply: \"\[from: graph.${ZONE}; verified caller: peer.${ZONE}\]" "${PEER_LOG}" \
-        || fail "peer's reply is missing the two verified identities"
-    grep -q '\\?"status\\?": \\?"accepted\\?"' "${PEER_LOG}" \
-        || grep -q "accepted" "${PEER_LOG}" \
-        || fail "peer's reply is missing the accepted order"
-    echo "  ok: reply carries both identities and the accepted order"
+    grep -q "\[graph.${ZONE}\] verified POST /ask from outsider.${ZONE}" "${G}" || fail "graph did not verify outsider"
+    grep -q "\[policy\] hid place_order from outsider.${ZONE}" "${G}" || fail "place_order was not hidden from outsider"
+    grep -q "\[policy\] hid place_order from peer.${ZONE}" "${G}" && fail "place_order was hidden from peer"
+    echo "  ok: outsider verified, but place_order absent"
 
-    grep -q "verified signed POST / from outsider.${ZONE}" "${GRAPH_LOG}" \
-        || fail "graph never verified the signed A2A POST from outsider.${ZONE}"
-    grep -q "place_order tool is not available" "${OUTSIDER_LOG}" \
-        || fail "outsider's reply does not show place_order as unavailable"
-    echo "  ok: outsider verified, but the sensitive tool is absent"
+    # The model must choose to call fetch; a refusal proves the client stopped it.
+    grep -q "\[graph.${ZONE}\] refused peer rogue.${ZONE}" "${G}" || fail "graph did not refuse the unverified peer"
+    grep -q "verified peer rogue.${ZONE}" "${G}" && fail "graph contacted rogue.${ZONE}"
+    echo "  ok: graph refused to call an unverified peer"
 
-    order_calls=$(grep -c "verified signed POST /order" "${TOOLS_LOG}" || true)
-    [[ "${order_calls}" == "1" ]] \
-        || fail "expected exactly 1 verified /order call, saw ${order_calls}"
+    [[ "${UNSIGNED}" == *"SIGNATURE_INVALID"*" 401" ]] || fail "unsigned request was not rejected: ${UNSIGNED}"
+    echo "  ok: unsigned request rejected with 401"
+
+    grep -q "^first: 200" "${LOGS}/replay.log" || fail "first copy of the signed request was not accepted"
+    grep -q "^replay: 401.*nonce already used" "${LOGS}/replay.log" || fail "replayed request was not rejected"
+    echo "  ok: replayed signed request rejected with 401"
+
+    orders=$(grep -c "verified POST /order" "${T}" || true)
+    [[ "${orders}" == "1" ]] || fail "expected exactly 1 order, saw ${orders}"
     echo "  ok: exactly one order reached the tools API"
 
     echo ""
     echo "✓ verify passed"
 fi
-
-echo ""
-echo "==> done"

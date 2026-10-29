@@ -1,7 +1,7 @@
 [project]
 authors = [{ name = "Known Systems AI, Inc." }]
 name = "recipe-31-langgraph-dnsid-agent"
-version = "0.1.0"
+version = "0.2.0"
 description = "DNSid cookbook recipe 31 — LangGraph agent with a DNSid identity"
 requires-python = ">=3.11"
 # Versions below are the ones this recipe was actually tested against
@@ -9,13 +9,14 @@ requires-python = ">=3.11"
 dependencies = [
     "certifi>=2026.10.19",
     "urllib3>=2.8.0",
-    "dnsid @ git+https://github.com/dnsid-ai/dnsid-py@v0.29.1",
-    "a2a-sdk==1.2.3",
-    "langgraph==1.2.16",
-    "langchain-core==1.6.13",
-    "langchain-anthropic==1.7.6",
-    "fastapi==0.160.0",
+    "langchain-dnsid",
+    "dnsid",
+    "langchain==1.4.3",
+    "langgraph==1.2.12",
+    "fastapi==0.142.2",
     "uvicorn==0.54.0",
-    "dnspython==2.9.0",
-    "sse-starlette==3.5.0",
 ]
+
+[tool.uv.sources]
+langchain-dnsid = { path = "lib/langchain-dnsid", editable = true }
+dnsid = { git = "https://github.com/dnsid-ai/dnsid-py", tag = "v0.32.0" }

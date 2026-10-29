@@ -51,6 +51,9 @@ jobs:
           #   07 / 07b / 30 (AgentCore gateway) — verify targets a deployed AWS
           #                                       gateway (deploy-only recipes)
           #   28-bedrock-agentcore-github-review — no verify target (deploy-only)
+          #
+          # `target` overrides `verify` for recipes whose full flow needs a model
+          # API key; CI runs their offline test instead.
           - recipe: 01-publish-jwks
           - recipe: 06b-go-http-stripe
             go: true
@@ -60,6 +63,7 @@ jobs:
             go: true
           - recipe: 31-langgraph-dnsid-agent
             uv: true
+            target: test
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -90,8 +94,8 @@ jobs:
       - name: Pull local registry image
         run: docker pull ghcr.io/identity-digital/dnsid-local-registry:main
 
-      - name: make verify
-        run: make -C "recipes/${{ matrix.recipe }}" verify
+      - name: make ${{ matrix.target || 'verify' }}
+        run: make -C "recipes/${{ matrix.recipe }}" ${{ matrix.target || 'verify' }}
 
       # Local-registry-in-CI has real moving parts (container startup ordering, DNS
       # routing); without the container logs, a red job is undebuggable.
