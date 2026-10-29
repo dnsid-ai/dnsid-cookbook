@@ -63,10 +63,12 @@ The harness contract every runnable recipe follows:
 ## Security posture in agent recipes
 
 An LLM is never in the trust path. It may choose tool arguments; identity,
-verification, signing, and tool exposure are code. Verified caller identity travels in
-out-of-band config (e.g. LangGraph `config["configurable"]`), never in model-writable
-state, and nothing inherits trust across a resumed session or checkpoint — every
-inbound request is re-verified.
+verification, signing, and tool exposure are code. Verified caller identity travels out
+of band, never in model-writable state: in LangGraph, runtime context (`context=`) when
+your own server invokes the agent, or the server's verified auth user
+(`langgraph_auth_user`) on LangGraph's deployment server, where `context` comes from
+the client and must not be trusted. Nothing inherits trust across a resumed session or
+checkpoint — every inbound request is re-verified.
 
 ## Plans
 

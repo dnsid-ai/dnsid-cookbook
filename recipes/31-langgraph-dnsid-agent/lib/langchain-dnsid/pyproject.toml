@@ -1,0 +1,19 @@
+[project]
+name = "langchain-dnsid"
+version = "0.1.0"
+description = "DNSid identity for LangChain / LangGraph agents: verified callers, signed and verified egress, caller-scoped tools"
+requires-python = ">=3.11"
+dependencies = [
+    "dnsid>=0.32.0",
+    "langchain>=1.4",
+    "httpx>=0.28",
+    "starlette>=0.40",
+]
+
+[build-system]
+requires = ["uv_build>=0.9,<1"]
+build-backend = "uv_build"
+
+# dnsid-py is not on PyPI yet.
+[tool.uv.sources]
+dnsid = { git = "https://github.com/dnsid-ai/dnsid-py", tag = "v0.32.0" }

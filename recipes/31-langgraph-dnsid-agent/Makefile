@@ -1,4 +1,4 @@
-.PHONY: bootstrap run verify clean
+.PHONY: bootstrap model run test verify clean
 
 DNSID_CLI ?= dnsid
 ZONE ?= test
@@ -7,13 +7,12 @@ PEER_PORT ?= 3102
 TOOLS_PORT ?= 3103
 OUTSIDER_PORT ?= 3104
 
-GRAPH_CU := https://graph.$(ZONE)/.well-known/agent-card.json
-
 # Start the local registry and provision all four identities. Idempotent: `agent
-# ensure` and `log issue` are safe to re-run for existing identities.
+# ensure` and `log issue` are safe to re-run for existing identities. The local
+# registry publishes each identity's _dnsid record and hosts its JWKS and status.
 bootstrap:
 	$(DNSID_CLI) local up --zone $(ZONE)
-	$(DNSID_CLI) local agent ensure graph --upstream http://localhost:$(GRAPH_PORT) --cu "$(GRAPH_CU)" -- \
+	$(DNSID_CLI) local agent ensure graph --upstream http://localhost:$(GRAPH_PORT) -- \
 		$(DNSID_CLI) log issue --domain graph.$(ZONE)
 	$(DNSID_CLI) local agent ensure tools --upstream http://localhost:$(TOOLS_PORT) -- \
 		$(DNSID_CLI) log issue --domain tools.$(ZONE)
@@ -21,20 +20,25 @@ bootstrap:
 		$(DNSID_CLI) log issue --domain peer.$(ZONE)
 	$(DNSID_CLI) local agent ensure outsider --upstream http://localhost:$(OUTSIDER_PORT) -- \
 		$(DNSID_CLI) log issue --domain outsider.$(ZONE)
-	uv sync
+	# --inexact keeps a model provider package you added with `uv pip install`.
+	uv sync --inexact
 
-# Full flow: tools API and graph agent come up under `dnsid local run`, the
-# allowlisted peer places an order through the graph's signed tool call, the
-# outsider tries the same and finds the tool absent. Same script as
-# `make verify`, without the transcript assertions.
-run: bootstrap
+# The agent needs a real model: any LangChain "provider:model" string, with that
+# provider's package installed and its API key set (README, step 1).
+model:
+	@test -n "$$DNSID_RECIPE_MODEL" || { echo 'Set DNSID_RECIPE_MODEL, e.g. DNSID_RECIPE_MODEL=anthropic:claude-sonnet-5 (README, step 1)'; exit 1; }
+
+# Full flow, same script as `make verify`, without the transcript assertions.
+run: model bootstrap
 	DNSID_RECIPE_ASSERT=0 bash verify/verify.sh
 
-# One-shot check: runs the full flow and asserts the expected transcript
-# (peer->graph ingress verified, graph->tools egress verified as the graph's
-# domain, reply carries both identities, outsider sees the sensitive tool
-# absent). Exits nonzero on any miss.
-verify: bootstrap
+# Offline module check: fake model, real signatures. No registry, no API key.
+# This is what CI runs.
+test:
+	uv run python lib/langchain-dnsid/tests/test_langchain_dnsid.py
+
+# Offline check, then the full flow with transcript assertions.
+verify: model bootstrap test
 	bash verify/verify.sh
 
 clean:
