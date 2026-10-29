@@ -74,10 +74,11 @@ start() {
     echo "==> starting ${name} on :${port}"
     "${DNSID_CLI}" local run "${name}" --upstream "http://localhost:${port}" -- \
         uv run python -u src/main.py "${name}" >"${LOGS}/${name}.log" 2>&1 &
-    PIDS+=($!)
+    local pid=$!
+    PIDS+=("${pid}")
     for _ in $(seq 1 60); do
         grep -q "listening" "${LOGS}/${name}.log" && return 0
-        kill -0 "${PIDS[-1]}" 2>/dev/null || { cat "${LOGS}/${name}.log" >&2; fail "${name} exited early"; }
+        kill -0 "${pid}" 2>/dev/null || { cat "${LOGS}/${name}.log" >&2; fail "${name} exited early"; }
         sleep 0.5
     done
     fail "${name} did not start"

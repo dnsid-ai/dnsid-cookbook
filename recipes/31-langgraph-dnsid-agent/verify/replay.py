@@ -22,7 +22,7 @@ async def main(url: str) -> None:
     # The SDK's plain (unsigning) client: local registry DNS and CA, nothing else.
     async with idm.create_dnsid_async_http_client() as client:
         for attempt in ("first", "replay"):
-            resp = await client.post(url, headers=signed.headers, content=body)
+            resp = await client.post(url, headers=signed.headers, content=body, timeout=120)
             print(f"{attempt}: {resp.status_code} {resp.text}")
 
 

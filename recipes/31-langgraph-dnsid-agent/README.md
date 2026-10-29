@@ -84,7 +84,13 @@ Everything runs on **the DNSid local registry**: a complete DNSid setup (DNS, re
 
 ## Step 1 — Pick a model and create the identities
 
-Install your provider's LangChain package, set its API key, and name the model as LangChain's `provider:model` string:
+Start the local registry. This also creates the recipe's Python environment:
+
+```bash
+make bootstrap
+```
+
+Then install your provider's LangChain package, set its API key, and name the model as LangChain's `provider:model` string:
 
 ```bash
 uv pip install langchain-anthropic          # or langchain-openai, langchain-google-genai, ...
@@ -92,13 +98,7 @@ export ANTHROPIC_API_KEY=...
 export DNSID_RECIPE_MODEL=anthropic:claude-sonnet-5
 ```
 
-Then start the local registry:
-
-```bash
-make bootstrap
-```
-
-This starts the local registry and creates four identities: `graph`, `tools`, `peer`, and `outsider`. Each one gets a key pair and a published DNS record. Look at one:
+`make bootstrap` started the local registry and created four identities: `graph`, `tools`, `peer`, and `outsider`. Each one gets a key pair and a published DNS record. Look at one:
 
 ```bash
 dig @127.0.0.1 -p 7753 _dnsid.graph.test TXT +short
