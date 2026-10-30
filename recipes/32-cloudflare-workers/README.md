@@ -122,7 +122,7 @@ Verification checks types, runs 32 fast tests, builds both Workers, and runs sev
 
 The suite also checks unsigned requests, direct origin calls without the secret, and origin response forwarding. `make clean` stops only this recipe's registry and removes its temporary state. Standalone `npm run test:e2e` provisions and cleans up its own registry automatically. See [test details](test/README.md).
 
-Local results do not establish Cloudflare edge behavior. Before production, resolve the log fetcher's DNS/address guarantees, the synthetic certificate-expiry workaround, and whether checkpoint history needs durable storage. See [upstream issue drafts](ISSUES.md).
+Local results do not establish Cloudflare edge behavior. Before production, resolve the log fetcher's DNS/address guarantees, the synthetic certificate-expiry workaround, and whether checkpoint history needs durable storage.
 
 ## What to try next
 

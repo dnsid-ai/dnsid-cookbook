@@ -13,7 +13,7 @@ const DEFAULT_MAX_RESPONSE_BYTES = 1024 * 1024;
  * @param fetcher Fetch implementation; defaults to the Workers global fetch.
  *
  * TODO: Replace synthetic tlsCert metadata with an explicit evidence-cache lifetime
- * when the SDK supports fetchers without certificate access (ISSUES.md #3).
+ * when the SDK supports fetchers without certificate access.
  * Workers validates TLS but does not expose the certificate. Until then, notAfter
  * is a cache deadline, not the certificate's actual expiry.
  */
