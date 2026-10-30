@@ -111,7 +111,7 @@ make verify
 make clean
 ```
 
-Verification checks types, runs 31 fast tests, builds both Workers, and runs seven end-to-end tests. Success includes:
+Verification checks types, runs 32 fast tests, builds both Workers, and runs seven end-to-end tests. Success includes:
 
 ```text
 ✔ forwards verified identity on cold and warm requests

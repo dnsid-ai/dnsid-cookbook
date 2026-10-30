@@ -39,6 +39,10 @@ const MAX_BODY_BYTES = 8 * 1024 * 1024;
 
 const HOP_HEADERS = [
   "authorization",
+  // A client may have already signed the request; egress replaces its signature and digest.
+  "signature",
+  "signature-input",
+  "content-digest",
   DESTINATION_HEADER.toLowerCase(),
   "host",
   "cf-connecting-ip",

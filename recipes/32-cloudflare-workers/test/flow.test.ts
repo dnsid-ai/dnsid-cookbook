@@ -1,3 +1,4 @@
+import { parseSignatureInput } from '@dnsid-ai/http-signatures';
 import { env } from 'cloudflare:workers';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { createIngressHandler, type IngressEnv } from '../src/ingress.ts';
@@ -52,6 +53,35 @@ describe('request forwarding', () => {
   });
 
 
+});
+
+describe('egress signing headers', () => {
+  it('replaces caller signatures and digest with a fresh verifiable signature', async () => {
+    const body = 'fresh request body';
+    const staleDigest = 'sha-256=:AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=:';
+    const egress = await createTestEgress(enrolled, async request => {
+      const signatures = parseSignatureInput(request.headers.get('Signature-Input')!);
+      expect(signatures.size).toBe(1);
+      expect(signatures.has('caller')).toBe(false);
+      expect(request.headers.get('Signature')).not.toContain('caller=');
+      expect(request.headers.get('Content-Digest')).toBeTruthy();
+      expect(request.headers.get('Content-Digest')).not.toBe(staleDigest);
+      return ingress(request);
+    });
+
+    const response = await egress(viaEgress('/resource', {
+      method: 'POST',
+      body,
+      headers: {
+        Signature: 'caller=:AQID:',
+        'Signature-Input': 'caller=("@method");created=1;keyid="caller"',
+        'Content-Digest': staleDigest,
+      },
+    }));
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ agent: enrolled.domain, body });
+  });
 });
 
 describe('egress destinations', () => {
