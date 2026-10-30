@@ -64,6 +64,8 @@ jobs:
           - recipe: 31-langgraph-dnsid-agent
             uv: true
             target: test
+          - recipe: 32-cloudflare-workers
+            node: true
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -76,6 +78,11 @@ jobs:
 
       - uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         if: matrix.uv
+
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        if: matrix.node
+        with:
+          node-version: '24'
 
       # Public release binaries (same source the dnsid-ai/homebrew-tap cask uses).
       - name: Install dnsid CLI
@@ -107,3 +114,7 @@ jobs:
             echo "=== docker logs $c ==="
             docker logs --tail 200 "$c" 2>&1 || true
           done
+
+      - name: Clean Worker recipe registry
+        if: always() && matrix.node
+        run: make -C "recipes/${{ matrix.recipe }}" clean

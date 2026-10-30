@@ -14,10 +14,10 @@ DNSid is a thin layer easily composable with existing standards. Recipes name th
 
 | Standard | Role in DNSid | Recipes |
 |---|---|---|
-| **RFC 9421** — HTTP Message Signatures | Wire format for signed HTTP requests | 6, 6b, 9, 10, 12, 31 |
+| **RFC 9421** — HTTP Message Signatures | Wire format for signed HTTP requests | 6, 6b, 9, 10, 12, 31, 32 |
 | **RFC 7515** — JWS | Signature envelope | 1 |
-| **RFC 7517** — JWK / JWKS | Public key publication at `/.well-known/jwks.json`; OIDC verification keys | 1, 4, 6b, 29 |
-| **RFC 9530** — Digest Fields | Signed request-body integrity | 6b |
+| **RFC 7517** — JWK / JWKS | Public key publication at `/.well-known/jwks.json`; OIDC verification keys | 1, 4, 6b, 29, 32 |
+| **RFC 9530** — Digest Fields | Signed request-body integrity | 6b, 32 |
 | **RFC 8037** — Ed25519 in JOSE | Algorithm binding | 1 |
 | **RFC 8615** — Well-known URIs | JWKS hosting path | 1 |
 | **RFC 7519** — JWT | OIDC token format | 7b, 15, 29 |
@@ -34,7 +34,7 @@ DNSid is a thin layer easily composable with existing standards. Recipes name th
 | **A2A (Google)** | Agent interaction protocol | 12 |
 | **LangGraph** | Agent framework — verified callers, signed and verified outgoing calls, caller-scoped tools | 31 |
 | **Cloud OIDC federation** | GitHub Actions OIDC, AWS IAM Roles Anywhere, GCP Workload Identity Federation, Azure Federated Credentials | 15, 19 |
-| **Edge runtimes** | Cloudflare Workers, Lambda@Edge, CloudFront Functions, Fastly Compute, Akamai EdgeWorkers, Vercel Edge, Netlify Edge | 10, 10a–10g |
+| **Edge runtimes** | Cloudflare Workers, Lambda@Edge, CloudFront Functions, Fastly Compute, Akamai EdgeWorkers, Vercel Edge, Netlify Edge | 10, 10a–10g, 32 |
 | **Cloudflare Web Bot Auth** | Verified bot/agent traffic; DNSid as additional issuer | 24 |
 | **Agent discovery manifests** | A2A `/.well-known/agent.json`, OpenAI `/.well-known/ai-plugin.json`, MCP descriptors | 23 |
 | **C2PA** | Content provenance signing — DNSid-anchored issuer (experimental) | 25 |
@@ -92,6 +92,9 @@ Accept one AgentCore Gateway order from a DNS identity without exchanging a sign
 
 ### 10. Edge verification — overview
 Verify at PoP. Reject before origin. Cache JWKS per-PoP. Cuts origin load and abuse surface. Each platform below differs in runtime, crypto primitives, network access, and cache surface — pick the one that matches your CDN.
+
+### 32. DNSid ingress and egress on Cloudflare Workers
+Verify incoming agent requests and sign outgoing ones with two independent Workers. Ingress verifies identity, signatures, and replay protection before forwarding identity headers to your service; optional egress signs with centrally managed agent keys. The origin owns access permissions. Runs both bundles locally with DNSid Local and a test-only HTTP origin. See [recipes/32-cloudflare-workers/](recipes/32-cloudflare-workers/). **Status:** runnable locally; deployed edge behavior remains unverified.
 
 ### 10a. Cloudflare Workers
 V8 isolate. `crypto.subtle` does Ed25519 natively. JWKS cached in Workers KV or Cache API; DNS resolution via DoH (`1.1.1.1`) from inside the Worker. Verify in `fetch` handler; reject with 401 before `fetch(origin)`.

@@ -1,0 +1,32 @@
+{
+  "name": "dnsid-cloudflare-recipe",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit && tsc -p test/e2e/tsconfig.json",
+    "build:check": "wrangler deploy --dry-run -c wrangler.ingress.jsonc --outdir .out/ingress && wrangler deploy --dry-run -c wrangler.egress.jsonc --outdir .out/egress",
+    "e2e:local": "npm run test:e2e",
+    "test:integration": "npm run test:e2e",
+    "test:e2e": "npm run build:check && node --test --test-concurrency=1 --test-timeout=900000 test/e2e/flow.test.ts",
+    "test:live": "vitest run --config vitest.live.config.ts"
+  },
+  "dependencies": {
+    "@dnsid-ai/http-signatures": "0.34.0",
+    "@dnsid-ai/log-c2sp-tlog": "0.34.0",
+    "@dnsid-ai/protocol": "0.34.0",
+    "@dnsid-ai/sdk": "0.34.0",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@cloudflare/vitest-plugin": "^1.4.11",
+    "@cloudflare/workers-types": "^5.20261029.1",
+    "@types/node": "^24.19.2",
+    "jose": "^6.2.14",
+    "miniflare": "^5.20261023.3-beta",
+    "typescript": "^6.0.3",
+    "undici": "^8.12.3",
+    "vitest": "^4.1.11",
+    "wrangler": "^4.156.0"
+  }
+}

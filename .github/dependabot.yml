@@ -1,5 +1,10 @@
 version: 2
 updates:
+  - package-ecosystem: npm
+    directory: /recipes/32-cloudflare-workers
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
   - package-ecosystem: gomod
     directory: /examples/plumbing-store
     schedule:
