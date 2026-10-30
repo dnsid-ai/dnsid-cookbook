@@ -9,7 +9,7 @@
 
 The default run uses local fixtures and does not include live-service tests. Keep protocol failure cases in the fast suite; use end-to-end tests for service integration.
 
-`fixture.ts` supplies identity evidence; `signing-fixture.ts` supplies token hashing and a real egress signer with an injected destination. `xreq.worker.ts` is a manual cross-request cancellation experiment, separate from the automated suites.
+`fixture.ts` supplies identity evidence; `signing-fixture.ts` supplies token hashing and a real egress signer with an injected destination.
 
 Live checks are optional diagnostics, not a replacement for deployed Cloudflare validation. Their external endpoints and trust keys may need updating independently of the integration code.
 
