@@ -1,6 +1,6 @@
 # Local integration tests
 
-Run `npm run test:e2e` from the repository root. The `npm run e2e:local` and `npm run test:integration` commands remain aliases. Tests and their support code live in `test/e2e/`. These tests are separate from `npm test`, which runs the fast Worker tests. `npm run typecheck` checks both suites. Optional public-service checks run separately with `npm run test:live`; see [test commands](../README.md).
+Run `npm run test:e2e` from this recipe’s root directory. Tests and their support code live in `test/e2e/`. These tests are separate from `npm test`, which runs the fast Worker tests. `npm run typecheck` checks both suites. Optional public-service checks run separately with `npm run test:live`; see [test commands](../README.md).
 
 ## Prerequisites
 

@@ -6,8 +6,6 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit && tsc -p test/e2e/tsconfig.json",
     "build:check": "wrangler deploy --dry-run -c wrangler.ingress.jsonc --outdir .out/ingress && wrangler deploy --dry-run -c wrangler.egress.jsonc --outdir .out/egress",
-    "e2e:local": "npm run test:e2e",
-    "test:integration": "npm run test:e2e",
     "test:e2e": "npm run build:check && node --test --test-concurrency=1 --test-timeout=900000 test/e2e/flow.test.ts",
     "test:live": "vitest run --config vitest.live.config.ts"
   },
