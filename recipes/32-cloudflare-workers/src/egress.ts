@@ -133,12 +133,21 @@ export function createEgressHandler(
     const destination = request.headers.get(DESTINATION_HEADER);
     let origin: string;
     try {
-      origin = new URL(destination ?? "").origin;
+      const destinationUrl = new URL(destination ?? "");
+      if (destinationUrl.protocol !== "https:") {
+        return deny(
+          400,
+          "destination_required",
+          `${DESTINATION_HEADER} must be an absolute HTTPS URL`,
+        );
+      }
+
+      origin = destinationUrl.origin;
     } catch {
       return deny(
         400,
         "destination_required",
-        `${DESTINATION_HEADER} must be an absolute URL`,
+        `${DESTINATION_HEADER} must be an absolute HTTPS URL`,
       );
     }
 

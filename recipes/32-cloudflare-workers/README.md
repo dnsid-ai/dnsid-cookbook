@@ -84,7 +84,7 @@ This installs dependencies and provisions `enrolled.test`, `stranger.test`, and 
 
 [`src/egress.ts`](src/egress.ts) checks a bearer token, selects an agent key, signs the request, and forwards it. Multiple tokens may select one identity; one token cannot select two identities.
 
-Callers provide `Authorization: Bearer <token>` and `DNSid-Destination: https://destination.example`. Egress preserves the path and query. The local harness supplies disposable keys and tokens for you.
+Callers provide `Authorization: Bearer <token>` and `DNSid-Destination: https://destination.example`. Egress requires an HTTPS destination and preserves the path and query. The local harness supplies disposable keys and tokens for you.
 
 ## Step 3 — Follow incoming requests
 
@@ -111,7 +111,7 @@ make verify
 make clean
 ```
 
-Verification checks types, runs 27 fast tests, builds both Workers, and runs seven end-to-end tests. Success includes:
+Verification checks types, runs 31 fast tests, builds both Workers, and runs seven end-to-end tests. Success includes:
 
 ```text
 ✔ forwards verified identity on cold and warm requests

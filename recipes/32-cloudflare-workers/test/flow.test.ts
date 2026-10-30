@@ -68,6 +68,24 @@ describe('egress destinations', () => {
     expect(forwarded!.headers.has('authorization')).toBe(false);
   });
 
+  it.each(['http://service.example', 'data:x', 'file:///tmp/example', 'ftp://service.example'])(
+    'rejects non-HTTPS destination %s without forwarding', async destination => {
+      let forwarded = false;
+      const egress = await createTestEgress(enrolled, async () => {
+        forwarded = true;
+        return new Response();
+      });
+
+      const response = await egress(viaEgress('/resource', {}, 'agent-token', destination));
+      expect(response.status).toBe(400);
+      expect(await response.json()).toEqual({
+        error: 'destination_required',
+        message: 'DNSid-Destination must be an absolute HTTPS URL',
+      });
+      expect(forwarded).toBe(false);
+    },
+  );
+
   it('rejects missing and malformed destinations', async () => {
     const egress = await egressFor(enrolled);
     const missing = viaEgress('/accounts/1/balance');
