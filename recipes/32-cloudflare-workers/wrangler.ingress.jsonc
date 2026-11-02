@@ -1,0 +1,17 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "dnsid-ingress",
+  "main": "src/ingress.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  // Node-only SDK transport; see src/shims/transport.ts.
+  "alias": { "@dnsid-ai/transport": "./src/shims/transport.ts" },
+  "durable_objects": { "bindings": [{ "name": "NONCES", "class_name": "NonceStore" }] },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["NonceStore"] }],
+  "vars": {
+    "DNSID_LOG_POLICY_URL": "https://policy.example/dnsid-policy",
+    // Backend enforces access policy using verified identity headers.
+    "ORIGIN_URL": "https://origin.example"
+  }
+  // Secrets: ORIGIN_SECRET (wrangler secret put ORIGIN_SECRET)
+}

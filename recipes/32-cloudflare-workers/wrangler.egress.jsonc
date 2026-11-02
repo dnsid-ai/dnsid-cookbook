@@ -1,0 +1,11 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "dnsid-egress",
+  "main": "src/egress.ts",
+  "compatibility_date": "2026-10-01",
+  "compatibility_flags": ["nodejs_compat"],
+  // Node-only SDK transport; see src/shims/transport.ts.
+  "alias": { "@dnsid-ai/transport": "./src/shims/transport.ts" }
+  // Secret DNSID_AGENTS: JSON map of agent domain -> { privateJwk, tokenHashes } (privateJwk is a JSON string).
+  // Set with: wrangler secret put DNSID_AGENTS -c wrangler.egress.jsonc < agents.secret.json
+}

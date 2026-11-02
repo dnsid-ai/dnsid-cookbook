@@ -1,0 +1,7 @@
+node_modules
+.out
+.wrangler
+.dev.vars
+agents.secret.json
+/plan.md
+.recipe-state.json
