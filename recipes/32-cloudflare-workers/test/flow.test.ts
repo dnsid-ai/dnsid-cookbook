@@ -85,6 +85,20 @@ describe('egress signing headers', () => {
 });
 
 describe('egress destinations', () => {
+  it.each(['//attacker.example/collect?mode=test', '///attacker.example/collect?mode=test'])(
+    'keeps the selected destination for path %s', async path => {
+      let forwarded: Request | undefined;
+      const egress = await createTestEgress(enrolled, async request => {
+        forwarded = request;
+        return new Response('ok');
+      });
+      const response = await egress(viaEgress(path));
+      expect(response.status).toBe(200);
+      expect(forwarded!.url).toBe(`${BANK}${path}`);
+      expect(forwarded!.headers.has('Signature')).toBe(true);
+    },
+  );
+
   it('signs and forwards to a destination without an allowlist', async () => {
     let forwarded: Request | undefined;
     const egress = await createTestEgress(enrolled, async request => {
@@ -135,6 +149,18 @@ describe('ingress hardening', () => {
     await egress(viaEgress(path, init));
     return captured;
   }
+
+  it.each(['//attacker.example/collect?mode=test', '///attacker.example/collect?mode=test'])(
+    'keeps the origin secret at the configured origin for signed path %s', async path => {
+      const signed = await captureSigned(path);
+      const response = await ingress(signed);
+      expect(response.status).toBe(200);
+      const seen = originSeen.at(-1)!;
+      expect(seen.url).toBe(`${ingressEnv.ORIGIN_URL}${path}`);
+      expect(seen.headers.get('DNSid-Origin-Auth')).toBe(ingressEnv.ORIGIN_SECRET);
+      expect(seen.headers.get('DNSid-Agent')).toBe(enrolled.domain);
+    },
+  );
 
   it('overwrites caller-supplied identity and origin-auth headers', async () => {
     const signed = await captureSigned('/accounts/1/balance');

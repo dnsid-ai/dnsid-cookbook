@@ -169,7 +169,10 @@ export function createIngressHandler(
     );
 
     const url = new URL(request.url);
-    const target = new URL(url.pathname + url.search, env.ORIGIN_URL);
+    // Assign path components so a leading // cannot replace the trusted origin.
+    const target = new URL(env.ORIGIN_URL);
+    target.pathname = url.pathname;
+    target.search = url.search;
     const outbound = new Request(target, {
       method: request.method,
       headers,

@@ -170,7 +170,11 @@ export function createEgressHandler(
       }
     }
 
-    const outbound = new Request(new URL(url.pathname + url.search, origin), {
+    // Assign path components so a leading // cannot replace the destination.
+    const target = new URL(origin);
+    target.pathname = url.pathname;
+    target.search = url.search;
+    const outbound = new Request(target, {
       method: request.method,
       headers,
       body,
