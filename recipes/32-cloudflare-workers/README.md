@@ -38,6 +38,8 @@ Egress gives an operator one place to hold agent signing keys and sign outgoing 
 
 **When to skip it:** when your agents already manage their keys and sign with the SDK. Ingress accepts valid DNSid signatures without requiring our egress Worker. Egress is optional tooling; whether it helps depends on how you operate your agents.
 
+**Signing keys in production:** this recipe loads private keys from Worker secrets into the egress runtime. A key management service (KMS) that signs remotely can keep private keys outside the Worker, reducing key exposure if the runtime is compromised. Remote signing adds a network round trip and a service dependency. Choose based on your security requirements and latency budget. KMS signing would require a different key provider; it is not implemented in this recipe.
+
 Both Workers return the destination’s response to the caller.
 
 ## Why this matters
