@@ -3,13 +3,13 @@ module github.com/identity-digital/dnsid-cookbook/recipes/29-dnsid-message-board
 go 1.26.10
 
 require (
-	github.com/aws/aws-sdk-go-v2 v1.47.3
+	github.com/aws/aws-sdk-go-v2 v1.47.5
 	github.com/aws/aws-sdk-go-v2/config v1.33.9
 	github.com/aws/aws-sdk-go-v2/credentials v1.20.9
 	github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue v1.21.14
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.72.0
 	github.com/aws/aws-sdk-go-v2/service/verifiedpermissions v1.42.0
-	github.com/aws/smithy-go v1.28.6
+	github.com/aws/smithy-go v1.28.7
 	github.com/dnsid-ai/dnsid-go v0.43.0
 	github.com/oklog/ulid/v2 v2.1.2
 	golang.org/x/net v0.61.0
