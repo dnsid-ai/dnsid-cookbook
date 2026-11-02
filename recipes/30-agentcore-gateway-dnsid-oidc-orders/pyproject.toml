@@ -17,7 +17,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-dev = ["pip==26.2.2", "pytest==9.1.1"]
+dev = ["pip==26.2.2", "pytest==9.2.0"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
