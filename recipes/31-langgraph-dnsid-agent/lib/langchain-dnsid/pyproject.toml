@@ -1,4 +1,5 @@
 [project]
+authors = [{ name = "Known Systems AI, Inc." }]
 name = "langchain-dnsid"
 version = "0.1.0"
 description = "DNSid identity for LangChain / LangGraph agents: verified callers, signed and verified egress, caller-scoped tools"
