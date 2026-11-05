@@ -1,5 +1,6 @@
 {
   "name": "dnsid-cloudflare-recipe",
+  "author": "Known Systems AI, Inc.",
   "private": true,
   "type": "module",
   "scripts": {
