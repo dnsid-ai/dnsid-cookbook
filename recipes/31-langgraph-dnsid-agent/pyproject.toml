@@ -11,7 +11,7 @@ dependencies = [
     "urllib3>=2.8.0",
     "langchain-dnsid",
     "dnsid",
-    "langchain==1.4.3",
+    "langchain==1.4.9",
     "langgraph==1.2.12",
     "fastapi==0.142.2",
     "uvicorn==0.54.0",
