@@ -1,0 +1,36 @@
+request_headers {
+  headers {
+    headers {
+      key: ":method"
+      raw_value: "GET"
+    }
+    headers {
+      key: ":authority"
+      raw_value: "bank.example"
+    }
+    headers {
+      key: ":path"
+      raw_value: "/accounts/a%2Fb%20c?view=summary&q=%7E"
+    }
+    headers {
+      key: ":scheme"
+      value: "https"
+    }
+    headers {
+      key: "signature-input"
+      raw_value: "sig1=(\"@method\" \"@authority\" \"@target-uri\");created=1762900000;keyid=\"k1\""
+    }
+    headers {
+      key: "signature"
+      raw_value: "sig1=:AAEC/w==:"
+    }
+    headers {
+      key: "x-empty"
+    }
+    headers {
+      key: "accept"
+      value: "*/*"
+    }
+  }
+  end_of_stream: true
+}

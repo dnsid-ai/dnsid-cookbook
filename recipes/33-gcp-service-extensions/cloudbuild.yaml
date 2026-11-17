@@ -1,0 +1,66 @@
+# The deployment's image build, submitted by scripts/deploy.sh (`gcloud builds submit`) with this deployment's own
+# build identity, source bucket and log location. It builds both final linux/amd64 images, runs the container checks of
+# scripts/container-smoke.sh against them, and only then publishes them to the deployment's Artifact Registry
+# repository: `images` are pushed after every step has succeeded, so a failed check publishes nothing. The pushed
+# images' digests are read from the finished build (results.images) and given to the service stage.
+#
+# Build inputs (what is uploaded; scripts/lib/build-context.sh assembles exactly these): this file, the two Dockerfiles
+# and their .dockerignore allowlists, the verifier's package files, src/ and proto/, Demo Bank's files, the smoke script
+# and its cleanup library, and the probe with its four test-support files. Nothing else: no Terraform, state, keys,
+# certificates, plan records, tests or node_modules.
+# Final image contents are narrower still: each Dockerfile copies only what its .dockerignore lets in (the verifier:
+# package.json, LICENSE, src/, proto/ and its production dependencies; Demo Bank: package.json, server.ts, LICENSE).
+# The smoke script and the probes run beside the images during the build and are never part of them.
+#
+# Every list is a block list ("- item"): a flow list ("[a, b]") cannot hold the "${...}" substitutions, whose braces
+# YAML reads as flow syntax, and gcloud refuses the whole file. tests/unit/build-config.test.ts parses this file.
+#
+# Substitutions (all required): _VERIFIER_IMAGE and _ORIGIN_IMAGE, the tagged names to push to; _DEPLOYMENT, the
+# deployment's name, which tags the build so teardown can find and cancel it.
+
+steps:
+  - id: build-verifier
+    name: gcr.io/cloud-builders/docker:24.0.9@sha256:8c01add5afa1da06e187d07064555cce9d27c59e732f0460a9977936da0d8cdd
+    args:
+      - build
+      - --platform=linux/amd64
+      - --pull
+      - --tag=${_VERIFIER_IMAGE}
+      - .
+
+  - id: build-origin
+    name: gcr.io/cloud-builders/docker:24.0.9@sha256:8c01add5afa1da06e187d07064555cce9d27c59e732f0460a9977936da0d8cdd
+    args:
+      - build
+      - --platform=linux/amd64
+      - --pull
+      - --tag=${_ORIGIN_IMAGE}
+      - origin
+
+  # Runtime version, non-root user, entry point, image contents, startup on the default and a custom PORT, the
+  # verifier's denial of an unsigned request, Demo Bank's routes, the refusal of an empty governance setting, and a
+  # graceful SIGTERM stop. Containers run on Cloud Build's own network; any failure fails the build.
+  - id: validate
+    name: gcr.io/cloud-builders/docker:24.0.9@sha256:8c01add5afa1da06e187d07064555cce9d27c59e732f0460a9977936da0d8cdd
+    entrypoint: bash
+    args:
+      - scripts/container-smoke.sh
+    env:
+      - SMOKE_IMAGES=${_VERIFIER_IMAGE} ${_ORIGIN_IMAGE}
+      - SMOKE_NETWORK=cloudbuild
+
+images:
+  - ${_VERIFIER_IMAGE}
+  - ${_ORIGIN_IMAGE}
+
+tags:
+  - dnsid-gse
+  - ${_DEPLOYMENT}
+
+timeout: 1800s
+
+options:
+  # A user-specified build identity needs a log destination it can write to: the deployment's own bucket, given by
+  # scripts/deploy.sh as --gcs-log-dir.
+  logging: GCS_ONLY
+  substitutionOption: MUST_MATCH

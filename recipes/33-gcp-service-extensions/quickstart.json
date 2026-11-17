@@ -1,0 +1,26 @@
+{
+  "platform": "gcp",
+  "title": "DNSid Google Cloud Service Extensions",
+  "inputs": [
+    {
+      "name": "GOOGLE_CLOUD_PROJECT",
+      "why": "The Google Cloud project to deploy into. It must already exist with billing enabled; the deployment enables the APIs it needs but can't create a project or attach billing.",
+      "example": "my-sandbox-project"
+    },
+    {
+      "name": "GOOGLE_CLOUD_REGION",
+      "why": "Where Cloud Run runs the verifier and the sample API. Defaulted, so a first try doesn't need it.",
+      "example": "us-central1",
+      "default": "us-central1"
+    },
+    {
+      "name": "DNSID_TRUSTED_GOVERNANCE",
+      "why": "The governance IDs the edge trusts, comma-separated. Defaulted to the sandbox governance that Partner Preview Portal agents use; set it to trust your own organization's agents.",
+      "example": "dnsid-sandbox.io",
+      "default": "dnsid-sandbox.io"
+    }
+  ],
+  "auth": "gcloud auth application-default login",
+  "up": "scripts/deploy.sh",
+  "down": "scripts/teardown.sh"
+}

@@ -1,0 +1,11 @@
+{
+  "name": "dnsid-gcp-demo-bank",
+  "version": "0.0.0",
+  "description": "Demo Bank: the read-only sample API the DNSid verifier protects. No dependencies.",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "engines": {
+    "node": "^24.22.3"
+  }
+}

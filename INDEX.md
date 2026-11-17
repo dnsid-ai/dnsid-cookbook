@@ -14,7 +14,7 @@ DNSid is a thin layer easily composable with existing standards. Recipes name th
 
 | Standard | Role in DNSid | Recipes |
 |---|---|---|
-| **RFC 9421** — HTTP Message Signatures | Wire format for signed HTTP requests | 6, 6b, 9, 10, 12, 31, 32 |
+| **RFC 9421** — HTTP Message Signatures | Wire format for signed HTTP requests | 6, 6b, 9, 10, 12, 31, 32, 33 |
 | **RFC 7515** — JWS | Signature envelope | 1 |
 | **RFC 7517** — JWK / JWKS | Public key publication at `/.well-known/jwks.json`; OIDC verification keys | 1, 4, 6b, 29, 32 |
 | **RFC 9530** — Digest Fields | Signed request-body integrity | 6b, 32 |
@@ -34,7 +34,7 @@ DNSid is a thin layer easily composable with existing standards. Recipes name th
 | **A2A (Google)** | Agent interaction protocol | 12 |
 | **LangGraph** | Agent framework — verified callers, signed and verified outgoing calls, caller-scoped tools | 31 |
 | **Cloud OIDC federation** | GitHub Actions OIDC, AWS IAM Roles Anywhere, GCP Workload Identity Federation, Azure Federated Credentials | 15, 19 |
-| **Edge runtimes** | Cloudflare Workers, Lambda@Edge, CloudFront Functions, Fastly Compute, Akamai EdgeWorkers, Vercel Edge, Netlify Edge | 10, 10a–10g, 32 |
+| **Edge runtimes** | Cloudflare Workers, Lambda@Edge, CloudFront Functions, Fastly Compute, Akamai EdgeWorkers, Vercel Edge, Netlify Edge, Google Cloud load balancer (Service Extensions) | 10, 10a–10g, 32, 33 |
 | **Cloudflare Web Bot Auth** | Verified bot/agent traffic; DNSid as additional issuer | 24 |
 | **Agent discovery manifests** | A2A `/.well-known/agent.json`, OpenAI `/.well-known/ai-plugin.json`, MCP descriptors | 23 |
 | **C2PA** | Content provenance signing — DNSid-anchored issuer (experimental) | 25 |
@@ -116,6 +116,9 @@ Deno runtime, full standard library plus Web Crypto. JWKS cache in Deno KV. Call
 
 ### 32. DNSid ingress and egress on Cloudflare Workers
 Verify incoming agent requests and sign outgoing ones with two independent Workers. Ingress verifies identity, signatures, and replay protection before forwarding identity headers to your service; optional egress signs with centrally managed agent keys. The origin owns access permissions. Runs both bundles locally with DNSid Local and a test-only HTTP origin. See [recipes/32-cloudflare-workers/](recipes/32-cloudflare-workers/). **Status:** runnable locally; deployed edge behavior remains unverified.
+
+### 33. DNSid authorization at the Google Cloud load balancer
+Verify signed agent identity at a Google Cloud global external Application Load Balancer, and require the verifier's attestation before the API serves data. Its authorization policy calls a verifier on Cloud Run through a Service Extensions authorization extension that checks the RFC 9421 signature, the DNSid identity, a trusted-governance list, lifecycle state and log-evidence freshness; the API receives the verified identity with the verifier's attestation, which it checks before trusting it (a request that bypasses the policy is refused there), and keeps its own authorization. Runs locally on DNSid Local; one command deploys it to Google Cloud with Terraform and one removes it. See [recipes/33-gcp-service-extensions/](recipes/33-gcp-service-extensions/). **Status:** runnable locally; the Google Cloud deployment is deploy-only, tested live (latest run, 2026-11-16: 831 s to a working endpoint, 188 s to tear down).
 
 ### 27. AI-generated email provenance (DKIM + DNSid)
 DKIM proves a message left an authorized SMTP server for the sending domain — it doesn't say *which agent* on the sender side composed it. Compose with DNSid by adding a signed `X-Agent-Identity` header (or equivalent in the DKIM-signed header set) carrying the DNSid binding for the agent that produced the message. Recipients verify DKIM as today, then verify the agent identity against `_dnsid.<agent-domain>`. **Result:** receivers can distinguish "this came from the corp.com mail server" from "this was composed by `corp-billing.test`," and apply different trust / filtering / archival policy per agent. Composes with: DKIM, ARC, BIMI; replaces ad-hoc `User-Agent`-string trust for AI-sent mail.

@@ -1,0 +1,5 @@
+# Demo Bank's build context: the server, its package file and the license. Nothing else.
+*
+!package.json
+!server.ts
+!LICENSE

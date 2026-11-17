@@ -1,0 +1,10 @@
+# The verifier image's build context: only what the image needs. Everything else, tests, fixtures, docs, plan records,
+# publishing files, local state and any credential, never leaves this directory.
+*
+!package.json
+!package-lock.json
+!.npmrc
+!LICENSE
+!src/
+!proto/
+**/node_modules

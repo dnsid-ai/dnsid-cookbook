@@ -1,0 +1,7 @@
+node_modules/
+# Deployment state never belongs in the tree (scripts/deploy.sh keeps it in STATE_DIR and refuses a STATE_DIR here).
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+*.tfvars.json

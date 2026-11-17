@@ -1,0 +1,29 @@
+{
+  "name": "dnsid-gcp-service-extensions",
+  "version": "0.0.0",
+  "description": "DNSid identity, governance and C2SP lifecycle verification for RFC 9421 signed requests at the Google Cloud Application Load Balancer (Service Extensions authorization callout).",
+  "private": true,
+  "license": "Apache-2.0",
+  "type": "module",
+  "engines": {
+    "node": "^24.22.3"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test:unit": "node --test \"tests/unit/*.test.ts\"",
+    "test:local": "scripts/test-local.sh"
+  },
+  "devDependencies": {
+    "@types/node": "24.19.2",
+    "typescript": "7.0.2",
+    "yaml": "2.9.1"
+  },
+  "dependencies": {
+    "@dnsid-ai/log-c2sp-tlog": "0.37.0",
+    "@dnsid-ai/sdk": "0.37.0",
+    "@dnsid-ai/transport": "0.37.0",
+    "@grpc/grpc-js": "1.14.7",
+    "@grpc/proto-loader": "0.8.1",
+    "protobufjs": "7.6.6"
+  }
+}
