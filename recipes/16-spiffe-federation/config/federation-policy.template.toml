@@ -1,0 +1,29 @@
+# Acme's DNSid federation trust policy. `make bootstrap` renders it into .state/controller/policy.toml.
+# This is Acme's decision record: WHICH organization may speak for WHICH SPIFFE trust domain, and how
+# fresh the evidence must be.
+
+[federation]
+trust_domain = "rackloria.test"                 # the SPIFFE trust domain this policy governs
+governance_id = "rackloria.test"                # the only DNSid governance ID allowed to speak for it
+# Pinned RFC 7638 thumbprint(s) of Rackloria's DNSid entity key. In this recipe they are captured at
+# bootstrap from the local registry (trust on first use). In production, confirm them with Rackloria out
+# of band. A different entity key under the same governance ID is rejected.
+entity_key_thumbprints = __PINS__
+signer_pattern = "spire-fed-*.rackloria.test"   # DNSid identities allowed to sign the federation binding
+binding_url = "http://rackloria-publisher:8080/binding.jws"
+bundle_endpoint_url = "https://rackloria-server:8443"
+bundle_endpoint_spiffe_id = "spiffe://rackloria.test/spire/server"
+federated_entries = ["spiffe://acme.test/purchasing"]   # only purchasing may federate with Rackloria
+
+[verification]
+poll_interval_s = 5             # reconcile cadence (bounds how fast a revocation is noticed)
+checkpoint_freshness_s = 300    # max age of the witness-cosigned C2SP checkpoint
+max_statement_age_s = 900       # binding statements older than this are not accepted
+clock_skew_s = 60
+unavailable_grace_s = 30        # indeterminate results are tolerated this long, then trust is withdrawn
+# C2SP log trust policy, fetched once at bootstrap from DNSID_LOG_POLICY_URL (never from the log or the
+# identity record) and pinned. Production: obtain trust anchors and witness policy out of band.
+log_policy_file = "/etc/dnsidfed/log-policy.txt"
+dns_server = "__DNS__"          # the local registry's in-network resolver
+ca_bundle_path = "/dnsid/root-ca.pem"
+private_address_hosts = [".test"]

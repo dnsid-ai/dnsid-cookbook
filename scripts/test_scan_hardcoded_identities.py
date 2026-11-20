@@ -91,6 +91,28 @@ class ScanHardcodedIdentitiesTest(unittest.TestCase):
             findings_for_text("agent bob" + ".alice.test\n", "examples/researchlab/README.md")
         )
 
+    def test_recipe16_allows_its_governance_hierarchy_only_in_its_directory(self) -> None:
+        recipe = "recipes/16-spiffe-federation/"
+        signer = "spire-fed-20261119120000-ab12" + ".rackloria.test\n"
+
+        for path in ("README.md", "tests/helpers.py", ".state/dnsid/current-signer"):
+            with self.subTest(path=path):
+                self.assertEqual(findings_for_text(signer, recipe + path), [])
+        self.assertTrue(findings_for_text(signer, "recipes/12-a2a-dnsid/README.md"))
+        # The suffix is anchored: names merely ending in "rackloria.test" are still flagged.
+        self.assertTrue(findings_for_text("agent x" + ".evilrackloria.test\n", recipe + "README.md"))
+
+    def test_recipe16_lookalike_fixture_is_allowed_only_in_its_one_file(self) -> None:
+        lookalike = "spire-fed-abc" + ".rackl0ria.test\n"
+        other_lookalike = "spire-fed-xyz" + ".rackl0ria.test\n"
+
+        self.assertEqual(findings_for_text(lookalike, "recipes/16-spiffe-federation/tests/test_policy.py"), [])
+        # Same host anywhere else in the recipe, or any other host under the lookalike domain, is flagged.
+        self.assertTrue(findings_for_text(lookalike, "recipes/16-spiffe-federation/README.md"))
+        self.assertTrue(findings_for_text(lookalike, "recipes/16-spiffe-federation/tests/test_binding.py"))
+        self.assertTrue(findings_for_text(other_lookalike, "recipes/16-spiffe-federation/tests/test_policy.py"))
+        self.assertTrue(findings_for_text(lookalike, "recipes/12-a2a-dnsid/README.md"))
+
     def test_skip_rules_cover_generated_and_dependency_paths(self) -> None:
         self.assertTrue(scan.should_skip(ROOT / "node_modules" / "package" / "index.js"))
         self.assertTrue(scan.should_skip(ROOT / ".venv" / "lib" / "module.py"))
