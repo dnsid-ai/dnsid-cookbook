@@ -9,6 +9,10 @@ set -euo pipefail
 . "$(dirname "$0")/lib.sh"
 trap 'printf "ERROR unexpected failure at scripts/bootstrap.sh:%s\n" "$LINENO" >&2; dump_logs' ERR
 
+info "Compose project ${PROJECT} (per-checkout; scripts/paths.py)"
+legacy_stack_check || die "LEGACY STACK: another Compose project of this recipe is running (see above); nothing was started"
+ok "no running containers of the legacy project ${LEGACY_PROJECT} (or it was selected explicitly)"
+
 info "DNSid local registry (dnsid CLI, state: ${DNSID_LOCAL_STATE#"$ROOT"/})"
 dnsid local up --zone test --state "$DNSID_LOCAL_STATE" \
   --registry-port "$DNSID_LOCAL_REGISTRY_PORT" --dns-port "$DNSID_LOCAL_DNS_PORT" \

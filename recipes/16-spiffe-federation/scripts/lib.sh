@@ -6,8 +6,12 @@
 ROOT=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 STATE="$ROOT/.state"
 PY="$ROOT/.venv/bin/python"
-PROJECT=dnsid-recipe16
 export RECIPE_STATE="$STATE"
+# This checkout's Compose project (scripts/paths.py: derived from the canonical recipe path, or the validated
+# RECIPE16_COMPOSE_PROJECT override). Exported for compose.yaml, which names the project and images after it.
+PROJECT=$(python3 -I "$ROOT/scripts/paths.py" project "${RECIPE16_COMPOSE_PROJECT:-}") || exit 2
+export RECIPE16_COMPOSE_PROJECT="$PROJECT"
+LEGACY_PROJECT=dnsid-recipe16
 : "${DNSID_LOCAL_STATE:?run through make}" "${DNSID_LOCAL_REGISTRY_PORT:?run through make}" \
   "${DNSID_LOCAL_DNS_PORT:?run through make}"
 # Only this recipe's own local registry state, by its canonical path, never a symlink or another instance.
@@ -143,12 +147,28 @@ wait_until() { # wait_until SECONDS DESCRIPTION CMD...
 
 url() { # url SERVICE : host-side status endpoint
   case $1 in
-    purchasing) echo http://127.0.0.1:18080 ;;
-    inventory)  echo http://127.0.0.1:18081 ;;
-    supplier)   echo http://127.0.0.1:18082 ;;
-    controller) echo http://127.0.0.1:18085 ;;
-    publisher)  echo http://127.0.0.1:18090 ;;
+    purchasing) echo "http://127.0.0.1:${RECIPE16_PURCHASING_PORT:-18080}" ;;
+    inventory)  echo "http://127.0.0.1:${RECIPE16_INVENTORY_PORT:-18081}" ;;
+    supplier)   echo "http://127.0.0.1:${RECIPE16_SUPPLIER_PORT:-18082}" ;;
+    controller) echo "http://127.0.0.1:${RECIPE16_CONTROLLER_PORT:-18085}" ;;
+    publisher)  echo "http://127.0.0.1:${RECIPE16_PUBLISHER_PORT:-18090}" ;;
   esac
+}
+
+# legacy_stack_check : refuse to start this checkout's project while containers of the LEGACY project
+# (`dnsid-recipe16`, used by every checkout before per-checkout names) are running: they hold the same host
+# ports. Never stops, modifies or removes them; it says how to manage them explicitly. Read-only.
+legacy_stack_check() {
+  local running
+  [ "$PROJECT" = "$LEGACY_PROJECT" ] && return 0
+  running=$(docker ps -q --filter "label=com.docker.compose.project=$LEGACY_PROJECT") \
+    || { printf '  could not list containers of the legacy project %s\n' "$LEGACY_PROJECT" >&2; return 1; }
+  [ -z "$running" ] && return 0
+  printf '  %s container(s) of the legacy Compose project %s are running and hold the same host ports.\n' \
+    "$(printf '%s\n' "$running" | grep -c .)" "$LEGACY_PROJECT" >&2
+  printf '  This checkout now uses its own project, %s. Manage the legacy stack explicitly, for example:\n' "$PROJECT" >&2
+  printf '    RECIPE16_COMPOSE_PROJECT=%s make stop      (non-destructive; keeps its volumes and state)\n' "$LEGACY_PROJECT" >&2
+  return 1
 }
 
 # dnsid_local_network : print "NETWORK IP" for the in-network resolver of THIS recipe's local registry.

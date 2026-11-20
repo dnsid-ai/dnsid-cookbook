@@ -23,16 +23,46 @@ ifneq ($(STATE),$(RECIPE_LOCAL_STATE))
 $(error refusing STATE=$(STATE): this recipe only operates on its own $(RECIPE_LOCAL_STATE))
 endif
 
+# Compose project: one per checkout, derived from the canonical recipe path (scripts/paths.py), so two
+# checkouts never share containers, volumes, networks or image tags. An explicit RECIPE16_COMPOSE_PROJECT
+# (environment or command line) selects another validated name, for example the legacy `dnsid-recipe16`
+# project of an older checkout: RECIPE16_COMPOSE_PROJECT=dnsid-recipe16 make stop.
+# Any other custom name also needs RECIPE16_ALLOW_CUSTOM_PROJECT=<the same name>; another checkout's derived
+# name is always refused. `guard` then checks that the project's existing resources belong to this checkout.
+PROJECT := $(shell python3 -I $(CURDIR)/scripts/paths.py project '$(subst ','',$(RECIPE16_COMPOSE_PROJECT))' '$(subst ','',$(RECIPE16_ALLOW_CUSTOM_PROJECT))')
+ifeq ($(PROJECT),)
+$(error could not determine a valid Compose project name (see the message above))
+endif
+export RECIPE16_COMPOSE_PROJECT := $(PROJECT)
+export RECIPE16_ALLOW_CUSTOM_PROJECT := $(RECIPE16_ALLOW_CUSTOM_PROJECT)
+
+# Host ports for the demo services (127.0.0.1 only). Override any of them, e.g. make bootstrap
+# PURCHASING_PORT=28080. Port 443 is NOT configurable: see PROXY_PORT above.
+PURCHASING_PORT ?= 18080
+INVENTORY_PORT ?= 18081
+SUPPLIER_PORT ?= 18082
+CONTROLLER_PORT ?= 18085
+PUBLISHER_PORT ?= 18090
+BUNDLE_ENDPOINT_PORT ?= 18443
+export RECIPE16_PURCHASING_PORT := $(PURCHASING_PORT)
+export RECIPE16_INVENTORY_PORT := $(INVENTORY_PORT)
+export RECIPE16_SUPPLIER_PORT := $(SUPPLIER_PORT)
+export RECIPE16_CONTROLLER_PORT := $(CONTROLLER_PORT)
+export RECIPE16_PUBLISHER_PORT := $(PUBLISHER_PORT)
+export RECIPE16_BUNDLE_ENDPOINT_PORT := $(BUNDLE_ENDPOINT_PORT)
+
 export DNSID_LOCAL_STATE := $(STATE)
 export DNSID_LOCAL_REGISTRY_PORT := $(REGISTRY_PORT)
 export DNSID_LOCAL_DNS_PORT := $(DNS_PORT)
 export DNSID_LOCAL_PROXY_PORT := $(PROXY_PORT)
-COMPOSE := docker compose -p dnsid-recipe16 --project-directory $(CURDIR) -f $(CURDIR)/compose.yaml
+COMPOSE := docker compose -p $(PROJECT) --project-directory $(CURDIR) -f $(CURDIR)/compose.yaml
 COMPOSE_ENV = $(if $(wildcard $(CURDIR)/.state/compose.env),--env-file $(CURDIR)/.state/compose.env)
 
 # Runtime check (canonical path, recipe directory not reached through a symlink, state not a symlink).
 guard:
 	@python3 -I scripts/paths.py check-state "$(STATE)"
+	@python3 -I scripts/paths.py check-ports
+	@python3 -I scripts/paths.py check-owner "$(PROJECT)"
 
 $(STATE)/config.yml: | guard
 	@mkdir -p $(STATE)
@@ -92,5 +122,6 @@ checkpoints-reset: guard
 # Destructive and deliberate: lists exactly what it removes; refuses to delete checkpoint history without
 # CONFIRM=delete-checkpoint-history; archives that history to .archive/ first. See scripts/cleanup.py.
 clean: export CONFIRM := $(CONFIRM)
+clean: export CONFIRM_LEGACY_PROJECT := $(CONFIRM_LEGACY_PROJECT)
 clean: guard
 	python3 -I scripts/cleanup.py --state "$(STATE)"

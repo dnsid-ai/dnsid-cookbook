@@ -188,14 +188,24 @@ def test_make_refuses_to_run_from_another_directory():
 
 # ------------------------------------------------------------------ cleanup.py
 class Runner:
-    def __init__(self):
+    """Fake docker/dnsid. `docker ps` lists one container of the queried project; legacy-project queries
+    return nothing unless `legacy` names containers (a legacy stack from this checkout)."""
+
+    def __init__(self, legacy=(), root=None):
         self.calls = []
+        self.legacy = list(legacy)
+        self.root = root
 
     def __call__(self, cmd):
         self.calls.append(cmd)
         out = ""
         if cmd[:2] == ["docker", "ps"]:
-            out = "dnsid-recipe16-acme-server-1\n"
+            if f"label=com.docker.compose.project={paths.LEGACY_PROJECT}" in cmd:
+                out = "".join(f"{n}\n" for n in self.legacy)
+            else:
+                proj = next((c.split("project=", 1)[1] for c in cmd if c.startswith("label=com.docker.compose.project=")), "x")
+                labelled = any("working_dir" in c for c in cmd if c.startswith("{{"))
+                out = f"{proj}-acme-server-1" + (f"\t{self.root}" if labelled else "") + "\n"
         return types.SimpleNamespace(returncode=0, stdout=out, stderr="")
 
     def destructive(self):
@@ -218,26 +228,26 @@ def seed_history(root):
 
 def test_clean_refuses_without_confirmation_and_changes_nothing(root, capsys):
     files = seed_history(root)
-    run = Runner()
+    run = Runner(root=root)
     rc = cleanup.clean(str(root / ".dnsid-local"), "", run=run, root=root, now=NOW)
     assert rc == 2 and run.destructive() == []
     assert not (root / ".archive").exists()
     assert all((root / ".state/controller/data" / n).read_bytes() == b for n, b in files.items())
     out = capsys.readouterr()
     assert "CHECKPOINT HISTORY" in out.out and "CONFIRM=delete-checkpoint-history" in out.err
-    assert "dnsid-recipe16-acme-server-1" in out.out and str(root / ".state") in out.out
+    assert f"{paths.derived_project(root)}-acme-server-1" in out.out and str(root / ".state") in out.out
 
 
 def test_clean_rejects_wrong_confirmation_word(root):
     seed_history(root)
-    run = Runner()
+    run = Runner(root=root)
     assert cleanup.clean(str(root / ".dnsid-local"), "yes", run=run, root=root, now=NOW) == 2
     assert run.destructive() == []
 
 
 def test_clean_with_confirmation_archives_then_removes_only_recipe_resources(root):
     files = seed_history(root)
-    run = Runner()
+    run = Runner(root=root)
     rc = cleanup.clean(str(root / ".dnsid-local"), "delete-checkpoint-history", run=run, root=root, now=NOW)
     assert rc == 0
     arch = root / ".archive" / "checkpoints-20261119T120000Z"
@@ -246,14 +256,15 @@ def test_clean_with_confirmation_archives_then_removes_only_recipe_resources(roo
     manifest = json.loads((arch / "MANIFEST.json").read_text())
     assert {f["name"]: f["sha256"] for f in manifest["files"]} == {n: hashlib.sha256(b).hexdigest() for n, b in files.items()}
     down, reset = run.destructive()
-    assert down[:4] == ["docker", "compose", "-p", "dnsid-recipe16"] and down[-3:] == ["down", "-v", "--remove-orphans"]
+    assert down[:4] == ["docker", "compose", "-p", paths.derived_project(root)]
+    assert down[-3:] == ["down", "-v", "--remove-orphans"]
     assert reset == ["dnsid", "local", "reset", "--hard", "--state", str(root / ".dnsid-local")]
     assert not (root / ".state").exists() and arch.exists()            # archive survives the cleanup
 
 
 def test_clean_without_history_needs_no_confirmation(root):
     (root / ".state").mkdir()
-    run = Runner()
+    run = Runner(root=root)
     assert cleanup.clean(str(root / ".dnsid-local"), "", run=run, root=root, now=NOW) == 0
     assert len(run.destructive()) == 2 and not (root / ".state").exists()
 
@@ -262,13 +273,13 @@ def test_archive_failure_aborts_before_anything_is_removed(root, tmp_path):
     seed_history(root)
     (tmp_path / "elsewhere").mkdir()
     (root / ".archive").symlink_to(tmp_path / "elsewhere")             # unsafe archive destination
-    run = Runner()
+    run = Runner(root=root)
     rc = cleanup.clean(str(root / ".dnsid-local"), "delete-checkpoint-history", run=run, root=root, now=NOW)
     assert rc == 1 and run.destructive() == [] and (root / ".state").exists()
 
 
 def test_clean_refuses_unsafe_state_before_any_command(root):
-    run = Runner()
+    run = Runner(root=root)
     for bad in (os.path.expanduser("~/.dnsid-local"), f"{root}/.dnsid-local/../x", f"{root}/.dnsid-local/"):
         assert cleanup.clean(bad, "delete-checkpoint-history", run=run, root=root, now=NOW) == 2
     assert run.calls == []
@@ -276,6 +287,6 @@ def test_clean_refuses_unsafe_state_before_any_command(root):
 
 def test_dry_run_removes_nothing(root):
     seed_history(root)
-    run = Runner()
+    run = Runner(root=root)
     assert cleanup.clean(str(root / ".dnsid-local"), "", dry_run=True, run=run, root=root, now=NOW) == 0
     assert run.destructive() == [] and (root / ".state").exists()

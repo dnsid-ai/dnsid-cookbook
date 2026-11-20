@@ -33,7 +33,7 @@ After this recipe, revoking one DNSid identity withdraws a cross-organization tr
 - `make`, `curl`, `dig`
 - [`uv`](https://docs.astral.sh/uv/) (Python 3.11+)
 - The `dnsid` CLI — `brew install dnsid-ai/tap/dnsid`, or download a binary per the [installation docs](https://docs.dnsid.ai/cli-installation) and put it on `PATH`
-- Host port **443** free: the DNSid local registry's TLS proxy must listen on 443 (see [What goes wrong](#what-goes-wrong)). Host ports 7963, 7965 and 18080–18090, 18443 are also used (all bound to 127.0.0.1).
+- Host port **443** free: the DNSid local registry's TLS proxy must listen on 443 (see [What goes wrong](#what-goes-wrong)). Host ports 7963, 7965 and 18080–18090, 18443 are also used (all bound to 127.0.0.1). All of them except 443 can be changed with `make` variables (`REGISTRY_PORT`, `DNS_PORT`, `PURCHASING_PORT`, `INVENTORY_PORT`, `SUPPLIER_PORT`, `CONTROLLER_PORT`, `PUBLISHER_PORT`, `BUNDLE_ENDPOINT_PORT`), for example `make bootstrap PURCHASING_PORT=28080`.
 
 ## Concepts
 
@@ -59,7 +59,7 @@ After this recipe, revoking one DNSid identity withdraws a cross-organization tr
 | `acme-dnsid-controller` | Compose; status `127.0.0.1:18085` | Acme's DNSid federation controller (the only writer of Acme's `rackloria.test` bundle) |
 | `rackloria-publisher` | Compose; status `127.0.0.1:18090` (Act 2 onwards) | Signs and serves Rackloria's federation binding |
 
-The local registry containers are CLI-managed. `compose.yaml` contains only SPIRE, the workloads, the publisher and the controller; the last two join the local registry's Docker network as clients.
+The local registry containers are CLI-managed. `compose.yaml` contains only SPIRE, the workloads, the publisher and the controller; the last two join the local registry's Docker network as clients. Each checkout runs as its own Compose project, `dnsid-recipe16-<hash of the checkout path>` (`python3 -I scripts/paths.py project` prints it), so two checkouts never share containers, volumes, networks or image tags. Before any target touches Docker, it checks that the project's containers, running or stopped, all belong to this checkout, and stops if they don't. Another checkout's project name is always refused; any other custom `RECIPE16_COMPOSE_PROJECT` also needs `RECIPE16_ALLOW_CUSTOM_PROJECT=<the same name>`.
 
 ## Step 1 — Bring up the local registry and two SPIRE trust domains
 
@@ -200,6 +200,9 @@ Runs the offline unit tests, then `make bootstrap`, then all three acts with eve
 
 ## What goes wrong
 
+- **Only one full stack per host.** Every checkout has its own Compose project, local registry and state, but each local registry needs host port 443, so stop one stack (`make stop`) before bootstrapping another.
+- **A checkout from before per-checkout project names.** Older versions of this recipe ran every checkout as the Compose project `dnsid-recipe16`. That legacy stack is never stopped, changed or deleted automatically. `make bootstrap` refuses to start while any of its containers are running, and `make clean` refuses while any of them use this checkout's state. Manage it explicitly: `RECIPE16_COMPOSE_PROJECT=dnsid-recipe16 make stop` is non-destructive. Removing it with `make clean` also needs `CONFIRM_LEGACY_PROJECT=dnsid-recipe16`.
+- **SPIRE agents cannot re-attest.** The agents attest with SPIRE join tokens, which are single-use. An agent that loses its valid local credentials keeps retrying with the spent token and logs `join token does not exist or has already been used`; its workloads then get no SVIDs. `make bootstrap` mints a new token for any agent that is not healthy and recreates that agent with it. This recovery path has not yet been demonstrated against that failure; if it does not recover, check the agent logs before changing anything else.
 - **Port 443 is in use.** The local registry's TLS proxy must listen on 443: a non-default proxy port is written into every published URL and into the transparency log's origin, and the containers reach the proxy on 443 inside its network. Stop whatever holds 443 (often another local registry) before `make bootstrap`.
 - **The controller is stopped.** An orderly stop (`make stop`, `docker stop`) withdraws only the federation trust the controller can prove it installed, and leaves everything else untouched. A crash, SIGKILL or host failure withdraws nothing: the last installed bundle stays in place until the controller runs again and re-verifies. `GET :18085/healthz` returns 503 once cycles stall. Treat the controller like any other enforcement point and alert on it. See `architecture.md`, "Operational limits".
 - **Stopping vs. cleaning.** `make stop` keeps all state; `make bootstrap` resumes it with the same signer, the same entity-key pin and the same checkpoint history. Nothing is reissued or re-pinned on restart. `make clean` removes this recipe's containers, volumes, local registry and `.state/`. It refuses to delete the checkpoint history unless you pass `CONFIRM=delete-checkpoint-history`, and archives that history to `.archive/` first.
@@ -218,7 +221,7 @@ Runs the offline unit tests, then `make bootstrap`, then all three acts with eve
 ## What to try next
 
 - Rotate Rackloria's SPIRE CA (`spire-server localauthority x509 prepare|activate`). The publisher re-signs whenever the set of X.509 authorities in Rackloria's bundle changes, so the controller should update Acme's copy to match. `make verify` does not cover this; check the controller's decisions and `bundle list` yourself.
-- Stop the publisher (`docker compose -p dnsid-recipe16 stop rackloria-publisher`) and watch the controller HOLD, then withdraw after the 30 s grace period.
+- Stop the publisher (`docker compose -p "$(python3 -I scripts/paths.py project)" stop rackloria-publisher`) and watch the controller HOLD, then withdraw after the 30 s grace period.
 - Change `entity_key_thumbprints` in `.state/controller/policy.toml` and restart the controller: it DENYs with `GOVERNANCE_NOT_APPROVED`.
 - `make clean CONFIRM=delete-checkpoint-history && make verify` — watch the full first-install path, including checkpoint store initialization.
 

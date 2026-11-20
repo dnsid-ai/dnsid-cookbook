@@ -9,7 +9,7 @@
 #
 # Hardening (all services): non-root uid, cap_drop ALL, no-new-privileges, read-only root FS,
 # no Docker socket, no host PID namespace, host ports bound to 127.0.0.1 only.
-name: dnsid-recipe16
+name: ${RECIPE16_COMPOSE_PROJECT:?run through make (per-checkout project, scripts/paths.py)}
 
 x-hardening: &hardening
   read_only: true
@@ -31,7 +31,7 @@ x-health: &health
 
 x-server: &server
   <<: *hardening
-  image: dnsid-recipe16/spire-server:1.15.5
+  image: ${RECIPE16_COMPOSE_PROJECT:?run through make}/spire-server:1.15.5
   command: ["-config", "/opt/spire/conf/server/server.conf"]
   healthcheck:
     <<: *health
@@ -39,7 +39,7 @@ x-server: &server
 
 x-agent: &agent
   <<: *hardening
-  image: dnsid-recipe16/spire-agent:1.15.5
+  image: ${RECIPE16_COMPOSE_PROJECT:?run through make}/spire-agent:1.15.5
   command: ["-config", "/opt/spire/conf/agent/agent.conf", "-expandEnv"]
   healthcheck:
     <<: *health
@@ -47,7 +47,7 @@ x-agent: &agent
 
 x-workload: &workload
   <<: *hardening
-  image: dnsid-recipe16/workload:dev
+  image: ${RECIPE16_COMPOSE_PROJECT:?run through make}/workload:dev
   healthcheck:
     <<: *health
     test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
@@ -57,7 +57,7 @@ x-workload: &workload
 # (group-readable, never world-readable) on Linux hosts as well as Docker Desktop.
 x-dnsidfed: &dnsidfed
   <<: *hardening
-  image: dnsid-recipe16/dnsidfed:dev
+  image: ${RECIPE16_COMPOSE_PROJECT:?run through make}/dnsidfed:dev
   user: "1000:1000"
   group_add: ["${HOST_GID:-0}"]
   healthcheck:
@@ -98,7 +98,7 @@ services:
       ROLE: inventory
       ALLOW_IDS: spiffe://acme.test/purchasing
       SPIFFE_ENDPOINT_SOCKET: unix:///run/spire/agent/public/api.sock
-    ports: ["127.0.0.1:18081:8080"]
+    ports: ["127.0.0.1:${RECIPE16_INVENTORY_PORT:-18081}:8080"]
     volumes: [acme-agent-sock:/run/spire/agent/public:ro]
 
   acme-purchasing:
@@ -116,13 +116,13 @@ services:
         inventory|https://acme-inventory:8443/v1/stock?sku=USB-C-CABLE-1M|spiffe://acme.test/inventory,
         supplier|https://rackloria-supplier-api:8443/v1/quote?sku=USB-C-CABLE-1M&qty=10|spiffe://rackloria.test/supplier-api
       SPIFFE_ENDPOINT_SOCKET: unix:///run/spire/agent/public/api.sock
-    ports: ["127.0.0.1:18080:8080"]
+    ports: ["127.0.0.1:${RECIPE16_PURCHASING_PORT:-18080}:8080"]
     volumes: [acme-agent-sock:/run/spire/agent/public:ro]
 
   # ------------------------------------------------------------------ Rackloria (rackloria.test)
   rackloria-server:
     <<: *server
-    ports: ["127.0.0.1:18443:8443"]   # Rackloria's SPIFFE bundle endpoint
+    ports: ["127.0.0.1:${RECIPE16_BUNDLE_ENDPOINT_PORT:-18443}:8443"]   # Rackloria's SPIFFE bundle endpoint
     volumes:
       - ./spire/rackloria/server.conf:/opt/spire/conf/server/server.conf:ro
       - rackloria-server-data:/opt/spire/data/server
@@ -150,7 +150,7 @@ services:
       ROLE: supplier-api
       ALLOW_IDS: spiffe://acme.test/purchasing
       SPIFFE_ENDPOINT_SOCKET: unix:///run/spire/agent/public/api.sock
-    ports: ["127.0.0.1:18082:8080"]
+    ports: ["127.0.0.1:${RECIPE16_SUPPLIER_PORT:-18082}:8080"]
     volumes: [rackloria-agent-sock:/run/spire/agent/public:ro]
 
   # ------------------------------------------------------------------ DNSid layer
@@ -177,7 +177,7 @@ services:
       - ./.state/dnsid/signer:/dnsid/agent:ro          # copy of ONLY the current signer's key directory
       - "${DNSID_ROOT_CA:-/dev/null}:/dnsid/root-ca.pem:ro"
     networks: [default, dnsid-local]
-    ports: ["127.0.0.1:18090:8080"]
+    ports: ["127.0.0.1:${RECIPE16_PUBLISHER_PORT:-18090}:8080"]
 
   # Acme's DNSid federation controller: the ONLY writer of Acme's rackloria.test bundle.
   acme-dnsid-controller:
@@ -197,7 +197,7 @@ services:
       - ./.state/controller/data:/var/lib/dnsidfed     # state.json, trusted checkpoints + journal, audit.jsonl
       - "${DNSID_ROOT_CA:-/dev/null}:/dnsid/root-ca.pem:ro"
     networks: [default, dnsid-local]
-    ports: ["127.0.0.1:18085:8080"]
+    ports: ["127.0.0.1:${RECIPE16_CONTROLLER_PORT:-18085}:8080"]
 
 volumes:
   acme-server-data: {}
