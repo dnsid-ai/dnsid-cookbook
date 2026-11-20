@@ -15,7 +15,7 @@ DNSid is a thin layer easily composable with existing standards. Recipes name th
 | Standard | Role in DNSid | Recipes |
 |---|---|---|
 | **RFC 9421** — HTTP Message Signatures | Wire format for signed HTTP requests | 6, 6b, 9, 10, 12, 31, 32 |
-| **RFC 7515** — JWS | Signature envelope | 1 |
+| **RFC 7515** — JWS | Signature envelope | 1, 16 |
 | **RFC 7517** — JWK / JWKS | Public key publication at `/.well-known/jwks.json`; OIDC verification keys | 1, 4, 6b, 29, 32 |
 | **RFC 9530** — Digest Fields | Signed request-body integrity | 6b, 32 |
 | **RFC 8037** — Ed25519 in JOSE | Algorithm binding | 1 |
@@ -25,7 +25,7 @@ DNSid is a thin layer easily composable with existing standards. Recipes name th
 | **Cedar / AWS Verified Permissions** | Authorization policy for DNSid principals and room resources | 29 |
 | **W3C Verifiable Credentials** | Capability assertions | 14 |
 | **W3C DID** | Comparable identifier model (interop / contrast) | A6 |
-| **SPIFFE / SPIRE** | Trust-domain federation bootstrap | 16 |
+| **SPIFFE / SPIRE** | Trust-domain federation gated on a DNSid-verified binding | 16 |
 | **Sigstore / cosign** | Artifact signing chain | 19 |
 | **DKIM (RFC 6376)** | Per-agent provenance for AI-generated email; prior art for DNS-anchored signing | 27 |
 | **Envoy / Istio / Linkerd** | Service mesh sidecar WASM filter for ingress-edge identity | 26 |
@@ -148,8 +148,8 @@ Run a WASM filter in the Envoy sidecar (Istio, Linkerd, standalone Envoy) that v
 ### 28. GitHub code review bot on Amazon Bedrock AgentCore
 A Strands agent deployed to AgentCore Runtime that reviews GitHub PRs. The agent uses `dnsid-py` and its server-side operational key to mint a DNSid OIDC token when calling the `ReviewGateway` audit tool; Gateway validates that identity before invoking the audit Lambda. Runtime caller identity is outside this recipe's scope. See [recipes/28-bedrock-agentcore-github-review/](recipes/28-bedrock-agentcore-github-review/). **Status:** deploy-only.
 
-### 16. SPIFFE trust-domain federation anchored in DNSid
-SPIFFE federation lets one trust domain accept SVIDs from another, but each side has to bootstrap trust in the other's bundle endpoint somehow — usually a manually-configured URL + key. Compose with DNSid by publishing the SPIFFE bundle's verification key as a DNSid binding on the trust domain's parent domain. Federating side fetches `_dnsid.<trust-domain>`, resolves the JWKS, and uses it to verify the SPIFFE bundle. **Result:** trust-domain federation between two organizations becomes a DNS publication step, not a manual key-exchange ceremony coordinated over email. Inside each cluster nothing changes; SPIFFE/SPIRE keep operating exactly as today.
+### 16. DNSid-verified SPIFFE/SPIRE federation
+SPIFFE federation lets one trust domain accept another's workload identities, but each side still has to decide which bundle endpoint, and which organization behind it, to trust. Here Acme's federation controller installs Rackloria's SPIFFE bundle only after verifying a DNSid-signed federation binding: the signer's DNSid identity and live status, Rackloria's pinned governance domain and entity key, coverage of every served CA key, and fresh C2SP transparency-log lifecycle evidence. When Rackloria's federation signer identity (not its organization) is revoked, the controller withdraws the bundle on its own and new cross-domain handshakes fail; established TLS sessions are not terminated. DNSid provides accountable identity and lifecycle evidence, SPIFFE authenticates workloads, and each application authorizes its callers. Runs two SPIRE trust domains in Docker Compose against the DNSid local registry. See [recipes/16-spiffe-federation/](recipes/16-spiffe-federation/).
 
 ---
 

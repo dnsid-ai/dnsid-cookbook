@@ -72,6 +72,18 @@ ALLOWED_NESTED_EXAMPLE_HOSTS = {
 # the point: researchlab's researchers live under the lab's own domain.
 ALLOWED_NESTED_SUFFIXES_BY_DIR = {
     ("examples", "researchlab"): ".researchlab.test",
+    # Recipe 16: per-run federation signer identities live under Rackloria's governance domain; the
+    # nesting is what the federation policy checks (signer must be beneath the pinned organization).
+    ("recipes", "16-spiffe-federation"): ".rackloria.test",
+}
+
+# Exact nested hosts allowed only in one file: negative-test fixtures that must keep a lookalike shape.
+# Never a suffix, so the lookalike domain stays flagged everywhere else, including elsewhere in the recipe.
+ALLOWED_NESTED_HOSTS_BY_FILE = {
+    ("recipes", "16-spiffe-federation", "tests", "test_policy.py"): {
+        # A signer under a lookalike governance domain must be rejected. Split so this file stays clean.
+        "spire-fed-abc" + ".rackl0ria.test",
+    },
 }
 
 DENYLISTED_IDENTITY_PARTS = {
@@ -160,6 +172,8 @@ def findings_for(path: Path, text: str) -> list[str]:
             continue
         allowed_suffix = ALLOWED_NESTED_SUFFIXES_BY_DIR.get(rel.parts[:2])
         if allowed_suffix and host.endswith(allowed_suffix):
+            continue
+        if host in ALLOWED_NESTED_HOSTS_BY_FILE.get(rel.parts, ()):
             continue
         findings.append(
             f"{rel}:{line_number(text, match.start())}: "

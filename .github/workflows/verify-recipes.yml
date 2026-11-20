@@ -59,6 +59,9 @@ jobs:
             go: true
           - recipe: 12-a2a-dnsid
             uv: true
+          # Builds its SPIRE, workload and controller images with Docker Compose; no host Go toolchain.
+          - recipe: 16-spiffe-federation
+            uv: true
           - recipe: 29-dnsid-message-board
             go: true
           - recipe: 31-langgraph-dnsid-agent
