@@ -1,6 +1,3 @@
-<!-- DRAFT: technical draft pending editorial review. Wording, tagline and narrative sections are not final.
-     Transcript blocks marked "to be captured" must be replaced with output from a real run before merge. -->
-
 # Recipe 16 — DNSid-verified SPIFFE/SPIRE federation
 
 > Gate cross-organization SPIFFE federation on a DNSid-signed federation binding: the signer's live DNSid identity under a pinned governance domain, plus fresh transparency-log evidence. Revoking the signer withdraws federation trust for new connections automatically.
@@ -18,7 +15,6 @@ Two organizations, Acme (`acme.test`) and Rackloria (`rackloria.test`), each run
 
 ## Why this matters
 
-<!-- DRAFT: narrative pending editorial review -->
 SPIFFE federation already standardizes *how* one trust domain accepts another's workload identities: fetch the other side's trust bundle from its bundle endpoint. What it leaves to each operator is *whether* to trust that endpoint and the organization behind it, and for how long. In practice that is a URL and a key exchanged by email and then left in place indefinitely. This recipe makes that decision explicit and continuously re-checked:
 
 - **DNSid** provides accountable identity and lifecycle evidence: who signed the binding, which organization governs that signer, and whether the signer is still active according to an append-only, witnessed transparency log.
@@ -42,7 +38,7 @@ After this recipe, revoking one DNSid identity withdraws a cross-organization tr
 - **Governance ID and entity key** — every DNSid identity names the organization accountable for it (its governance ID, here `rackloria.test`). That organization signs its identities' records with its *entity key*. Acme's policy pins both, so a valid identity from a different organization, or a different key claiming to be Rackloria, is rejected.
 - **Federation signer** — a disposable DNSid identity *beneath* Rackloria's governance domain (`spire-fed-<time>-<hex>.rackloria.test`) that signs the federation binding. It is not Rackloria's organizational identity. Act 3 revokes the signer; Rackloria's governance ID and entity key are unchanged. A revoked signer is never reused, and it is not replaced automatically.
 - **Federation binding** — a JWS (a signed JSON payload) from the signer stating which trust domain, bundle endpoint, and CA keys (by SPKI SHA-256) it vouches for, with a sequence number and a short lifetime.
-- **C2SP transparency log** — an append-only log of every DNSid identity's lifecycle events (issuance, revocation, …). Independent witnesses cosign its *checkpoints*. The controller requires a fresh, witness-cosigned checkpoint showing the signer is still ACTIVE.
+- **C2SP transparency log** — an append-only log of every DNSid identity's lifecycle events (issuance, revocation, …). Witnesses cosign its *checkpoints* to confirm they saw the same log; in the local registry there is a single witness, run by the registry itself. The controller requires a fresh, witness-cosigned checkpoint showing the signer is still ACTIVE before it allows anything.
 
 ## Running system
 
@@ -88,7 +84,12 @@ The signer serves nothing through the local TLS proxy, so its `--upstream` is a 
 
 Every later `make bootstrap` reuses that same signer, and only after the registry positively reports it ACTIVE. It never issues a second one: if the signer is revoked, retired, missing, or its status cannot be confirmed (for example, the registry times out), bootstrap stops and says why. Issuing is allowed only on a first install, with no earlier signer, pin or checkpoint store present.
 
-<!-- Transcript to be captured from a real run: `dig @127.0.0.1 -p 7963 _dnsid.<signer> TXT +short` -->
+The signer's public `_dnsid` record, from a real run (macOS on Apple silicon, Docker Desktop, `linux/amd64` images under emulation, `dnsid` CLI `2026.10.29-537b773`). The record is one value split into 255-byte TXT strings; `ek=` locates Rackloria's entity key, `gi=` names its governance domain, and `sg=` is the record signature:
+
+```
+$ dig @127.0.0.1 -p 7963 _dnsid.spire-fed-20261120133600-4fd7.rackloria.test TXT +short
+"v=dnsid-draft-01;ek=https://dnsid.rackloria.test/.well-known/dnsid-ek.json;gi=rackloria.test;ku=https://spire-fed-20261120133600-4fd7.rackloria.test/.well-known/jwks.json;lr=c2sp-tlog:testnet:https://registry.test#ag-38d7b70ea62a5c02f130c84" "6;sg=UTkIFJ3R2s3JvSYaf1cSyHAepMcZ3t-ccIbFOs4PsP3WgDRqgUBahf5A3oHKNgbNlBdVhsrYyGbWIePLb_JWBg;su=https://registry.test/v1/status/spire-fed-20261120133600-4fd7.rackloria.test"
+```
 
 ## Step 3 — Write Acme's federation policy
 
@@ -153,7 +154,9 @@ Building a fresh verifier every cycle would also forget which transparency-log c
 - If the store disappears, is corrupted, or changes behind the controller's back, the controller fails closed: it DENYs and withdraws until an operator recovers it (see [What goes wrong](#what-goes-wrong)).
 - A checkpoint that does not extend the trusted one (rollback or fork) is a definitive DENY (`LOG_INCONSISTENT`).
 
-The store has limits. Anyone who can write the controller's state directory can delete it together with its journal, which looks like a fresh install, or swap in an older copy while the controller is stopped. The first checkpoint per log is trusted on first use. Rollback detection against **real** signed checkpoints from a live log has not yet been demonstrated: the offline tests cover the store and how its errors are handled, not the SDK's Merkle consistency check. See `architecture.md`, "Trusted checkpoint store" and "Validation status".
+Rollback detection was demonstrated live in a disposable checkout. The controller had accepted checkpoint size 2. The local registry was then restored to an older log state, and it served the validly signed size-1 checkpoint. On its first cycle afterwards, the controller recorded `DENY WITHDRAWN LOG_INCONSISTENT` (`tree size regressed (1 < trusted 2)`) and withdrew the bundle. Its store kept size 2, new cross-domain handshakes failed, and internal mTLS kept working. A fork (same size, different root) has not been demonstrated live.
+
+The store has limits. Anyone who can write the controller's state directory can delete it together with its journal, which looks like a fresh install, or swap in an older copy while the controller is stopped. The first checkpoint per log is trusted on first use. See `architecture.md`, "Trusted checkpoint store" and "Validation status".
 
 ## Run it
 
@@ -193,9 +196,54 @@ Runs the offline unit tests, then `make bootstrap`, then all three acts with eve
 
 `make verify` runs the full lifecycle **once per environment**: Act 3 revokes the signer, and a revoked signer is not replaced automatically, so a second run in the same checkout stops at bootstrap with `SIGNER UNUSABLE`. To repeat the lifecycle, use a new isolated environment (a fresh clone). There is no signer rotation command yet.
 
-<!-- Expected output to be captured from a real run. The check lines are emitted by verify/verify.sh: -->
+Excerpt from a passing `make verify` on a fresh clone (macOS on Apple silicon, Docker Desktop, `linux/amd64` images under emulation, `dnsid` CLI `2026.10.29-537b773`). It is not the complete log: the bootstrap output, Docker Compose progress lines and the CLI port `NOTE` (see [What goes wrong](#what-goes-wrong)) are left out, and every line shown is unchanged. Signer names, key hashes and timings differ on every run.
+
 ```
-(to be captured from the first passing live run)
+646 passed in 4.71s
+[…bootstrap output…]
+Act 1 - SPIFFE works inside Acme; Rackloria is not trusted yet
+------------------------------------------------------------------------------
+  PASS Acme internal mTLS: purchasing -> inventory succeeds (SPIFFE authentication within acme.test)
+  controller decision: HOLD NONE BINDING_UNAVAILABLE
+  PASS controller does not ALLOW before Rackloria publishes
+  PASS Acme's SPIRE holds no rackloria.test bundle (cross-domain federation unavailable)
+  PASS new cross-domain connection purchasing -> supplier fails at the SPIFFE layer (handshake)
+Act 2 - Rackloria publishes signed federation evidence; Acme verifies it and federates
+------------------------------------------------------------------------------
+  binding signed by: spire-fed-20261120133600-4fd7.rackloria.test
+  covers X.509 CA key(s): Q5-upoxxCfK_Jx7jNdoKAEWmAjvNCEkaGc7BXrG8MLA
+  PASS Rackloria publishes a binding signed by this run's signer
+  waiting for Acme's controller to verify on its own (polls every 5 s; usually 10-40 s)
+  controller decision: ALLOW INSTALLED OK
+  PASS controller ALLOWs and installs the bundle (its own background cycle)
+  PASS [DNSid] signer identity verified and allowed by policy (spire-fed-*.rackloria.test)
+  PASS [DNSid] governance ID is the pinned organization rackloria.test
+  PASS [DNSid] record-signing entity key matches Acme's pin
+  PASS [DNSid] registry status ACTIVE (checked live this cycle)
+  PASS [C2SP] lifecycle log shows ACTIVE
+  PASS [C2SP] witness-cosigned checkpoint is fresh (age <= 300 s, not in the future beyond skew)
+  PASS [coverage] every served CA key is in the signed set
+  PASS Acme's SPIRE now holds the rackloria.test bundle
+  PASS new cross-domain connection purchasing -> supplier succeeds
+  PASS [AuthZ] evaluated separately: supplier's own allow-list admitted spiffe://acme.test/purchasing
+  PASS a long-lived TLS connection to the supplier is open and reused
+Act 3 - Rackloria's federation signer is revoked; Acme withdraws trust on its own
+------------------------------------------------------------------------------
+  revoked federation signer spire-fed-20261120133600-4fd7.rackloria.test after 0.1 s (Rackloria's organization and entity key are unchanged)
+  PASS registry reports the signer REVOKED
+  controller decision: DENY WITHDRAWN IDENTITY_NOT_ACTIVE (after 3.5 s)
+  PASS controller detects the lifecycle change and WITHDRAWS (DENY, IDENTITY_NOT_ACTIVE)
+  PASS Acme's SPIRE no longer holds the rackloria.test bundle
+  PASS new cross-domain connection fails at the SPIFFE layer
+  PASS Acme internal mTLS still succeeds
+  The TLS connection opened in Act 2, before the withdrawal (observed for 12 s):
+  PASS (1) TLS: the established connection REMAINS ESTABLISHED (single dial, reused on all 11 probes)
+  PASS (2) application messages CONTINUE over it (HTTP 200 on all 11 requests)
+  PASS (3) [AuthZ] the supplier still authorizes each request on it, against the identity presented at handshake
+      Withdrawal stops NEW handshakes. Acme's trust decision about Rackloria is made at handshake time;
+      DNSid does not terminate established TLS sessions. Ending them is the application's connection policy.
+  PASS control: once that connection is closed, reconnecting fails at the SPIFFE layer
+All checks passed.
 ```
 
 ## What goes wrong
@@ -204,10 +252,10 @@ Runs the offline unit tests, then `make bootstrap`, then all three acts with eve
 - **A checkout from before per-checkout project names.** Older versions of this recipe ran every checkout as the Compose project `dnsid-recipe16`. That legacy stack is never stopped, changed or deleted automatically. `make bootstrap` refuses to start while any of its containers are running, and `make clean` refuses while any of them use this checkout's state. Manage it explicitly: `RECIPE16_COMPOSE_PROJECT=dnsid-recipe16 make stop` is non-destructive. Removing it with `make clean` also needs `CONFIRM_LEGACY_PROJECT=dnsid-recipe16`.
 - **SPIRE agents cannot re-attest.** The agents attest with SPIRE join tokens, which are single-use. An agent that loses its valid local credentials keeps retrying with the spent token and logs `join token does not exist or has already been used`; its workloads then get no SVIDs. `make bootstrap` mints a new token for any agent that is not healthy and recreates that agent with it. This recovery path has not yet been demonstrated against that failure; if it does not recover, check the agent logs before changing anything else.
 - **Port 443 is in use.** The local registry's TLS proxy must listen on 443: a non-default proxy port is written into every published URL and into the transparency log's origin, and the containers reach the proxy on 443 inside its network. Stop whatever holds 443 (often another local registry) before `make bootstrap`.
-- **The controller is stopped.** An orderly stop (`make stop`, `docker stop`) withdraws only the federation trust the controller can prove it installed, and leaves everything else untouched. A crash, SIGKILL or host failure withdraws nothing: the last installed bundle stays in place until the controller runs again and re-verifies. `GET :18085/healthz` returns 503 once cycles stall. Treat the controller like any other enforcement point and alert on it. See `architecture.md`, "Operational limits".
-- **Stopping vs. cleaning.** `make stop` keeps all state; `make bootstrap` resumes it with the same signer, the same entity-key pin and the same checkpoint history. Nothing is reissued or re-pinned on restart. `make clean` removes this recipe's containers, volumes, local registry and `.state/`. It refuses to delete the checkpoint history unless you pass `CONFIRM=delete-checkpoint-history`, and archives that history to `.archive/` first.
+- **The controller is stopped.** An orderly stop (`make stop`, `docker stop`) withdraws only the federation trust the controller can prove it installed, and leaves everything else untouched. A crash, SIGKILL or host failure withdraws nothing: the last installed bundle stays in place until the controller runs again and re-verifies. `GET http://127.0.0.1:18085/healthz` (the default `CONTROLLER_PORT`) returns 503 once cycles stall. Treat the controller like any other enforcement point and alert on it. See `architecture.md`, "Operational limits".
+- **Stopping vs. cleaning.** `make stop` keeps all state; `make bootstrap` resumes it with the same signer, the same entity-key pin and the same checkpoint history. Nothing is reissued or re-pinned on restart. `make clean` removes this recipe's containers, volumes, local registry and `.state/`. It refuses to delete the checkpoint history unless you pass `CONFIRM=delete-checkpoint-history`, and archives that history to `.archive/` first. It does not remove the built images, which are tagged `<project>/…` (remove them with `docker image rm $(docker images -q --filter "reference=$(python3 -I scripts/paths.py project)/*")`). A fresh clone at another path is a separate environment with its own project, local registry and state.
 - **Bootstrap stops with a named reason.** Restart checks fail closed and say which kind of problem they hit: `RESOLVER` (this recipe's own DNS server could not be confirmed), `REGISTRY UNCERTAIN` (no definite answer from the local registry; nothing was created or replaced), `SIGNER UNUSABLE`, `MALFORMED RECORD`, `GOVERNANCE MISMATCH`, `ENTITY-KEY MISMATCH`, `CHECKPOINT STORE`, or `SPIRE REGISTRATION` (an existing registration entry differs from the expected one; it is never overwritten or deleted).
-- **Known compatibility issue: the CLI reports the wrong DNS port.** After a restart, `dnsid local env` (CLI `2026.10.29-537b773`) can report `DNSID_DNS_SERVER=127.0.0.1:7753`, the CLI's default, although this recipe's local registry serves DNS on `127.0.0.1:7963`. Port 7753 may belong to a different local registry. The recipe never uses that value: it takes the port from its own `.dnsid-local/config.yml`, confirms that this instance's DNS container publishes it and answers, and prints a `NOTE` when the CLI disagrees. Use port 7963 for `dig` while following this recipe.
+- **Known compatibility issue: the CLI reports the wrong DNS port.** When `dnsid local up` runs again on an existing instance (after a restart, or the second bootstrap inside `make verify`), `dnsid local env` (CLI `2026.10.29-537b773`) can report `DNSID_DNS_SERVER=127.0.0.1:7753`, the CLI's default, although this recipe's local registry serves DNS on `127.0.0.1:7963`. Port 7753 may belong to a different local registry. The recipe never uses that value: it takes the port from its own `.dnsid-local/config.yml`, confirms that this instance's DNS container publishes it and answers, and prints a `NOTE` when the CLI disagrees. Use port 7963 for `dig` while following this recipe.
 - **Established sessions survive revocation.** See Act 3. If your threat model requires it, add connection lifetimes or re-authentication in the application.
 - **Recovering the checkpoint store.** If the controller reports `CHECKPOINT_STORE_FAILED`, it is denying on purpose. Find out why the store is missing or changed (`make checkpoints-status`), then either restore it from a known-good copy, or explicitly accept a new baseline:
   `make checkpoints-reset REASON="…"`.
@@ -216,7 +264,7 @@ Runs the offline unit tests, then `make bootstrap`, then all three acts with eve
   - Pins and the log policy are captured from the local registry on first bootstrap (trust on first use). In production, confirm the entity-key thumbprint with the partner and obtain log trust anchors out of band.
   - The first fetch of Rackloria's bundle uses an unauthenticated channel. Its keys are accepted only if the DNSid-signed binding covers them; later fetches must be authenticated by the CA set approved before.
   - The local transparency log has a single witness, and the local DNS zone is not DNSSEC-signed (the controller records `dnssec: UNKNOWN`). The signer's status URL is served by the registry rather than by `rackloria.test` itself, which the controller notes as delegated status.
-- **What this recipe does not show.** Only Acme's acceptance of Rackloria is DNSid-gated; the reverse direction is standard SPIFFE federation. The controller manages the bundle directly (`bundle set` / `bundle delete`) rather than through SPIRE's `federation` API. The local transparency log has a single witness.
+- **What this recipe does not show.** Only Acme's acceptance of Rackloria is DNSid-gated; the reverse direction is standard SPIFFE federation. The controller manages the bundle directly (`bundle set` / `bundle delete`) rather than through SPIRE's `federation` API.
 
 ## What to try next
 

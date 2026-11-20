@@ -1,5 +1,3 @@
-<!-- DRAFT: technical draft pending editorial review. -->
-
 # Recipe 16 — Architecture
 
 Three layers, kept separate in the code and in every result the recipe prints:
@@ -100,7 +98,7 @@ Design rules:
 
 | Situation | Behavior |
 |---|---|
-| First install | `make bootstrap` runs `python -m dnsidfed.checkpoints init` once; the journal records `initialized` |
+| First install | `make bootstrap` runs `python -m dnsidfed.checkpoints ensure-initialized`, which initializes the store only when it has never existed; the journal records `initialized` |
 | Controller restart | The same file is loaded; history is not reset |
 | File missing at start, journal shows initialization | Fail closed (loss, not first start); `init` refuses |
 | File missing or changed while running | Fail closed; never written back as a new baseline |
@@ -116,8 +114,6 @@ Fail closed means the store raises `C2spCheckpointStoreError`. The SDK reports i
 Revoking the federation signer causes the next cycle to DENY. The trigger is the identity's status, its JWKS answering 410, or the log showing the revocation. Any one is enough. In the live run the live status came first, then the JWKS 410; the local log recorded the revocation about a minute later. Because the cycle stops at the first failure, the trusted checkpoint store does not advance on a revocation. The controller deletes the bundle, and the SPIRE agent removes it from Acme's workloads, so new handshakes to Rackloria fail. TLS sessions established earlier are not re-authenticated. Acme verified Rackloria's certificate once, at handshake time. Those sessions keep carrying requests, and the supplier keeps authorizing each request against the client identity presented at handshake, until the application closes them.
 
 ## Operational limits
-
-<!-- DRAFT: pending editorial review -->
 
 **Orderly shutdown withdraws only trust the controller can prove it installed.** On SIGTERM or SIGINT (`docker stop`, `make stop`) the controller does the following:
 
@@ -148,7 +144,7 @@ Every outcome writes a `CONTROLLER_SHUTDOWN` audit event. Trust anchors (for aut
 
 ## Validation status
 
-- **Offline unit tests** (`make test`, no Docker; 573 tests on Python 3.11, 3.13 and 3.14): binding validation, governance and entity-key pinning, SPKI coverage, lifecycle and evidence handling, structured SDK error mapping, fail-closed reconcile decisions, checkpoint store persistence, loss and tampering detection and audited reset, and orderly shutdown. Restart safety is covered too: resolver isolation from the CLI's `DNSID_DNS_SERVER`, signer preservation (an uncertain status never issues a replacement), named bootstrap failure categories, verified-idempotent SPIRE registrations, and recreating a stopped controller whose DNSid Local network was recreated. The shell paths run in bash 3.2 against stubbed `docker`. The SDK's own store enforces the fork rule in these tests.
+- **Offline unit tests** (`make test`, no Docker; 646 tests on Python 3.11, 3.13 and 3.14): binding validation, governance and entity-key pinning, SPKI coverage, lifecycle and evidence handling, structured SDK error mapping, fail-closed reconcile decisions, checkpoint store persistence, loss and tampering detection and audited reset, and orderly shutdown. Restart safety is covered too: resolver isolation from the CLI's `DNSID_DNS_SERVER`, signer preservation (an uncertain status never issues a replacement), named bootstrap failure categories, verified-idempotent SPIRE registrations, recreating a stopped controller whose DNSid Local network was recreated, and per-checkout Compose isolation with ownership checks. The shell paths run in bash 3.2 against stubbed `docker`. The SDK's own store enforces the fork rule in these tests.
 - **Live run, 2026-11-19/20 (development checkout on macOS, Docker Desktop, not a clean clone).** All three acts were driven step by step, following `verify/verify.sh`. A `make stop` / `make bootstrap` resume was exercised before Act 2.
   - Act 1: Acme's internal mTLS worked. Purchasing's handshake to the supplier failed at the SPIFFE layer, with no `rackloria.test` bundle in Acme's SPIRE. The controller held (`HOLD BINDING_UNAVAILABLE`).
   - Act 2: about 3 s after the binding was signed, the controller's own cycle decided `ALLOW INSTALLED`.
@@ -160,6 +156,19 @@ Every outcome writes a `CONTROLLER_SHUTDOWN` audit event. Trust anchors (for aut
     - Timings from the revoke call: registry REVOKED +0.19 s; DENY +3.9 s; bundle absent +4.4 s; first failing new handshake +8.3 s. The gap is the SPIRE agent delivering the change.
     - The trigger was live status (`STATUS_NOT_ACTIVE`); later cycles failed on the JWKS 410. The C2SP log recorded the revocation about 60 s later, so the withdrawal did not depend on the log.
     - The Act 2 connection stayed established, kept returning HTTP 200, and the supplier kept authorizing each request. After it was closed, reconnecting failed at the SPIFFE layer. Internal mTLS was unaffected throughout.
+- **Clean clone, 2026-11-20 (commit `7374621`; macOS on Apple silicon, Docker Desktop, `linux/amd64` images under emulation, `dnsid` CLI `2026.10.29-537b773`).** A fresh checkout ran as its own Compose project and local registry instance, with a new signer, pin and checkpoint store each time:
+  - `make bootstrap` (51 s, with images largely from the build cache), then `make verify`: 646 offline tests and every live check passed (44 s).
+  - `make clean CONFIRM=delete-checkpoint-history`, then `make run`, a new first install: every check passed (64 s).
+  - A final `make clean` removed only that checkout's containers, volumes, networks, local registry and state, and kept the archives. The development stack and its volumes were untouched.
+  - In both runs the controller decided `DENY WITHDRAWN IDENTITY_NOT_ACTIVE` 3.5 s after revocation, triggered by live status.
+- **Live checkpoint rollback, 2026-11-20 (commit `7374621`, disposable checkout).**
+  - The controller allowed, then accepted a newer checkpoint (size 2) after the log grew.
+  - The disposable local registry was then restored to its older log state, and served the validly signed size-1 checkpoint.
+  - On its first cycle afterwards the controller recorded `DENY WITHDRAWN LOG_INCONSISTENT` (`C2SP checkpoint tree size regressed (1 < trusted 2): rollback or fork`). Every later cycle was the same, and it never re-allowed.
+  - The trusted store kept size 2 with the same root. The bundle was withdrawn, new cross-domain handshakes failed at the SPIFFE layer, and internal mTLS kept working. The signer stayed ACTIVE throughout, so the denial was the rollback, not a revocation.
+  - This exercised the SDK's tree-size regression check.
 - **Not yet demonstrated:**
-  - `make bootstrap` / `make run` / `make verify` / `make clean` end to end on a clean clone. This includes `make verify` itself; the live run above was not `make verify`.
-  - Rollback or fork detection by the SDK's log reader against **real signed checkpoints** served by a live log. The offline tests show the store is shared and persisted and that the SDK's consistency errors fail closed. They do not exercise the reader's Merkle consistency check. A live integration test is planned separately. Until it passes, do not read this recipe as a demonstration of rollback protection.
+  - A fork (same tree size, different root) or a log that grows inconsistently with the trusted one, served by a live log. The SDK's prefix-root recomputation for those cases is covered only by the offline tests.
+  - The CI run on Linux (the workflow for this pull request awaits maintainer approval).
+  - Re-attesting a SPIRE agent that lost its credentials, through `make bootstrap`.
+  - CA rotation, DNSid key rotation, gating both directions, several peers, hosted DNSid, Kubernetes, and HA.
