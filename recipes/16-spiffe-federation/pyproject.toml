@@ -1,0 +1,30 @@
+[project]
+authors = [{ name = "Known Systems AI, Inc." }]
+name = "recipe-16-spiffe-federation"
+version = "0.1.0"
+description = "DNSid cookbook recipe 16 — DNSid-verified SPIFFE/SPIRE federation"
+requires-python = ">=3.11"
+# Versions below are the ones this recipe was actually tested against
+# (Python 3.14, 2026-11). Later versions probably work; these are known to.
+dependencies = [
+    "dnsid",
+    "cryptography==50.0.2",
+]
+
+[dependency-groups]
+dev = ["pytest==9.2.0"]
+# Build backend for the dnsid SDK when the controller image installs it from source (see
+# images/dnsidfed/Dockerfile). Locked here so the image build fetches nothing unpinned.
+image-build = ["hatchling==1.33.0"]
+
+[tool.uv]
+package = false
+default-groups = ["dev"]
+
+[tool.uv.sources]
+dnsid = { git = "https://github.com/dnsid-ai/dnsid-py", tag = "v0.36.0" }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src", "scripts"]
+addopts = "-ra --strict-markers"

@@ -1,0 +1,4 @@
+# Build context for images/dnsidfed/Dockerfile (context = this directory). Allowlist only what it copies.
+**
+!src/dnsidfed/*.py
+!.state/build/requirements.txt

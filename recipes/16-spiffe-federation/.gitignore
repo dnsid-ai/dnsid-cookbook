@@ -1,0 +1,8 @@
+.venv/
+.dnsid-local/
+.state/
+__pycache__/
+.pytest_cache/
+.archive/
+.ruff_cache/
+.mypy_cache/

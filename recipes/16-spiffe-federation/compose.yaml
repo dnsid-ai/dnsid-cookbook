@@ -1,0 +1,218 @@
+# Recipe 16: two independent SPIFFE trust domains (SPIRE), their workloads, Rackloria's binding publisher
+# and Acme's DNSid federation controller.
+#
+# The DNSid local registry (DNS, registry, transparency log, TLS proxy) is NOT defined here: the `dnsid`
+# CLI owns it (`dnsid local up`). The publisher and controller only join its Docker network as clients.
+#
+# Driven by the Makefile (bootstrap / run / verify / clean). Don't `docker compose up` directly: bootstrap
+# mints join tokens, writes agent trust bundles and renders the controller policy first.
+#
+# Hardening (all services): non-root uid, cap_drop ALL, no-new-privileges, read-only root FS,
+# no Docker socket, no host PID namespace, host ports bound to 127.0.0.1 only.
+name: ${RECIPE16_COMPOSE_PROJECT:?run through make (per-checkout project, scripts/paths.py)}
+
+x-hardening: &hardening
+  read_only: true
+  cap_drop: [ALL]
+  security_opt: ["no-new-privileges:true"]
+  tmpfs: ["/tmp"]
+  restart: unless-stopped
+  platform: linux/amd64
+  logging:
+    driver: json-file
+    options: {max-size: "1m", max-file: "3"}
+
+x-health: &health
+  interval: 30s
+  start_period: 120s
+  start_interval: 2s
+  timeout: 5s
+  retries: 40
+
+x-server: &server
+  <<: *hardening
+  image: ${RECIPE16_COMPOSE_PROJECT:?run through make}/spire-server:dev
+  command: ["-config", "/opt/spire/conf/server/server.conf"]
+  healthcheck:
+    <<: *health
+    test: ["CMD", "/opt/spire/bin/spire-server", "healthcheck", "-socketPath", "/run/spire/server/api.sock"]
+
+x-agent: &agent
+  <<: *hardening
+  image: ${RECIPE16_COMPOSE_PROJECT:?run through make}/spire-agent:dev
+  command: ["-config", "/opt/spire/conf/agent/agent.conf", "-expandEnv"]
+  healthcheck:
+    <<: *health
+    test: ["CMD", "/opt/spire/bin/spire-agent", "healthcheck", "-socketPath", "/run/spire/agent/public/api.sock"]
+
+x-workload: &workload
+  <<: *hardening
+  image: ${RECIPE16_COMPOSE_PROJECT:?run through make}/workload:dev
+  healthcheck:
+    <<: *health
+    test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/healthz"]
+
+# The publisher and controller run as uid 1000 (the same user as the SPIRE servers whose admin sockets
+# they use) and join the host user's group, so they can read the files bootstrap writes into .state/
+# (group-readable, never world-readable) on Linux hosts as well as Docker Desktop.
+x-dnsidfed: &dnsidfed
+  <<: *hardening
+  image: ${RECIPE16_COMPOSE_PROJECT:?run through make}/dnsidfed:dev
+  user: "1000:1000"
+  group_add: ["${HOST_GID:-0}"]
+  healthcheck:
+    <<: *health
+    test: ["CMD", "python", "-c", "import urllib.request as u; u.urlopen('http://127.0.0.1:8080/healthz', timeout=2)"]
+
+services:
+  # ------------------------------------------------------------------ Acme (acme.test)
+  acme-server:
+    <<: *server
+    build: ./images/spire-server
+    volumes:
+      - ./spire/acme/server.conf:/opt/spire/conf/server/server.conf:ro
+      - acme-server-data:/opt/spire/data/server
+      - acme-server-admin:/run/spire/server     # admin API socket, shared with the DNSid controller
+
+  acme-agent:
+    <<: *agent
+    build: ./images/spire-agent
+    environment:
+      JOIN_TOKEN: "${ACME_JOIN_TOKEN:-}"
+    depends_on:
+      acme-server: {condition: service_healthy}
+    volumes:
+      - ./spire/acme/agent.conf:/opt/spire/conf/agent/agent.conf:ro
+      - ./.state/acme/bootstrap:/opt/spire/conf/bootstrap:ro
+      - acme-agent-data:/opt/spire/data/agent
+      - acme-agent-sock:/run/spire/agent/public
+
+  acme-inventory:
+    <<: *workload
+    build: ./workloads
+    user: "10002:10002"              # selected by unix:uid:10002 -> spiffe://acme.test/inventory
+    pid: "service:acme-agent"        # shares ONLY the Acme agent's PID namespace
+    depends_on:
+      acme-agent: {condition: service_healthy}
+    environment:
+      ROLE: inventory
+      ALLOW_IDS: spiffe://acme.test/purchasing
+      SPIFFE_ENDPOINT_SOCKET: unix:///run/spire/agent/public/api.sock
+    ports: ["127.0.0.1:${RECIPE16_INVENTORY_PORT:-18081}:8080"]
+    volumes: [acme-agent-sock:/run/spire/agent/public:ro]
+
+  acme-purchasing:
+    <<: *workload
+    user: "10001:10001"              # selected by unix:uid:10001 -> spiffe://acme.test/purchasing
+    pid: "service:acme-agent"
+    depends_on:
+      acme-agent: {condition: service_healthy}
+      acme-inventory: {condition: service_healthy}
+      rackloria-supplier-api: {condition: service_healthy}
+    environment:
+      ROLE: purchasing
+      INTERVAL: 2s
+      TARGETS: >-
+        inventory|https://acme-inventory:8443/v1/stock?sku=USB-C-CABLE-1M|spiffe://acme.test/inventory,
+        supplier|https://rackloria-supplier-api:8443/v1/quote?sku=USB-C-CABLE-1M&qty=10|spiffe://rackloria.test/supplier-api
+      SPIFFE_ENDPOINT_SOCKET: unix:///run/spire/agent/public/api.sock
+    ports: ["127.0.0.1:${RECIPE16_PURCHASING_PORT:-18080}:8080"]
+    volumes: [acme-agent-sock:/run/spire/agent/public:ro]
+
+  # ------------------------------------------------------------------ Rackloria (rackloria.test)
+  rackloria-server:
+    <<: *server
+    ports: ["127.0.0.1:${RECIPE16_BUNDLE_ENDPOINT_PORT:-18443}:8443"]   # Rackloria's SPIFFE bundle endpoint
+    volumes:
+      - ./spire/rackloria/server.conf:/opt/spire/conf/server/server.conf:ro
+      - rackloria-server-data:/opt/spire/data/server
+      - rackloria-server-admin:/run/spire/server   # admin API socket, shared with the binding publisher
+
+  rackloria-agent:
+    <<: *agent
+    environment:
+      JOIN_TOKEN: "${RACKLORIA_JOIN_TOKEN:-}"
+    depends_on:
+      rackloria-server: {condition: service_healthy}
+    volumes:
+      - ./spire/rackloria/agent.conf:/opt/spire/conf/agent/agent.conf:ro
+      - ./.state/rackloria/bootstrap:/opt/spire/conf/bootstrap:ro
+      - rackloria-agent-data:/opt/spire/data/agent
+      - rackloria-agent-sock:/run/spire/agent/public
+
+  rackloria-supplier-api:
+    <<: *workload
+    user: "10003:10003"              # selected by unix:uid:10003 -> spiffe://rackloria.test/supplier-api
+    pid: "service:rackloria-agent"
+    depends_on:
+      rackloria-agent: {condition: service_healthy}
+    environment:
+      ROLE: supplier-api
+      ALLOW_IDS: spiffe://acme.test/purchasing
+      SPIFFE_ENDPOINT_SOCKET: unix:///run/spire/agent/public/api.sock
+    ports: ["127.0.0.1:${RECIPE16_SUPPLIER_PORT:-18082}:8080"]
+    volumes: [rackloria-agent-sock:/run/spire/agent/public:ro]
+
+  # ------------------------------------------------------------------ DNSid layer
+  # Rackloria signs a DNSid binding for its CURRENT CA authorities and serves it (the content is signed).
+  rackloria-publisher:
+    <<: *dnsidfed
+    build: {context: ., dockerfile: images/dnsidfed/Dockerfile}
+    command: ["dnsidfed.publisher"]
+    env_file:
+      - path: ./.state/dnsid/publisher.env     # the signer identity's CLI-derived DNSID_* (no API key)
+        required: false
+    environment:                               # container-side paths and resolver override the CLI's host values
+      DNSID_CONFIG_DIR: /dnsid/agent
+      DNSID_CA_BUNDLE: /dnsid/root-ca.pem
+      DNSID_DNS_SERVER: "${DNSID_COMPOSE_DNS:-}"
+      SPIRE_ADMIN_SOCKET: /run/spire/server/api.sock
+      BINDING_TRUST_DOMAIN: rackloria.test
+      BINDING_ENDPOINT_URL: https://rackloria-server:8443
+      BINDING_ENDPOINT_SPIFFE_ID: spiffe://rackloria.test/spire/server
+    depends_on:
+      rackloria-server: {condition: service_healthy}
+    volumes:
+      - rackloria-server-admin:/run/spire/server
+      - ./.state/dnsid/signer:/dnsid/agent:ro          # copy of ONLY the current signer's key directory
+      - "${DNSID_ROOT_CA:-/dev/null}:/dnsid/root-ca.pem:ro"
+    networks: [default, dnsid-local]
+    ports: ["127.0.0.1:${RECIPE16_PUBLISHER_PORT:-18090}:8080"]
+
+  # Acme's DNSid federation controller: the ONLY writer of Acme's rackloria.test bundle.
+  acme-dnsid-controller:
+    <<: *dnsidfed
+    # Orderly shutdown first lets a cycle in progress finish, then withdraws controller-managed trust through
+    # spire-server CLI calls, each with a 20 s timeout: bundle list, entry show + entry update per federated
+    # entry, then bundle delete (4 calls for this recipe's one federated entry). 120 s leaves room for that when
+    # SPIRE is slow; it is not a guaranteed bound. Docker SIGKILLs after this period; a SIGKILL withdraws nothing.
+    stop_grace_period: 120s
+    command: ["dnsidfed.controller", "--policy", "/etc/dnsidfed/policy.toml",
+              "--admin-token-file", "/etc/dnsidfed/admin-token"]
+    depends_on:
+      acme-server: {condition: service_healthy}
+    volumes:
+      - acme-server-admin:/run/spire/server
+      - ./.state/controller/policy.toml:/etc/dnsidfed/policy.toml:ro
+      - ./.state/dnsid/log-policy.txt:/etc/dnsidfed/log-policy.txt:ro
+      - ./.state/controller/admin-token:/etc/dnsidfed/admin-token:ro
+      - ./.state/controller/data:/var/lib/dnsidfed     # state.json, trusted checkpoints + journal, audit.jsonl
+      - "${DNSID_ROOT_CA:-/dev/null}:/dnsid/root-ca.pem:ro"
+    networks: [default, dnsid-local]
+    ports: ["127.0.0.1:${RECIPE16_CONTROLLER_PORT:-18085}:8080"]
+
+volumes:
+  acme-server-data: {}
+  acme-server-admin: {}
+  acme-agent-data: {}
+  acme-agent-sock: {}
+  rackloria-server-data: {}
+  rackloria-server-admin: {}
+  rackloria-agent-data: {}
+  rackloria-agent-sock: {}
+
+networks:
+  default: {}
+  dnsid-local:              # the CLI-managed local registry's network, joined as a client only
+    external: true
+    name: ${DNSID_LOCAL_NETWORK:-dnsid-local-not-found}
