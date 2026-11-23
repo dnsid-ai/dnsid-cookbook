@@ -60,6 +60,39 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+  - package-ecosystem: pip
+    directory: /recipes/16-spiffe-federation
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+  - package-ecosystem: gomod
+    directory: /recipes/16-spiffe-federation/workloads
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+  - package-ecosystem: docker
+    directory: /recipes/16-spiffe-federation/workloads
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+  # Recipe 16 pins ghcr.io/spiffe/spire-server in BOTH images/dnsidfed (the controller's spire-server CLI) and
+  # images/spire-server (the server it drives). One entry over all three image directories, grouped by
+  # dependency name, bumps each SPIRE image in every directory in a single PR. spire-server and spire-agent are
+  # separate dependencies, so a SPIRE release can arrive as two PRs; tests/test_spire_versions.py fails each until
+  # both carry the same version. Maintainers coordinate them (combine the bumps) before merging either one.
+  - package-ecosystem: docker
+    directories:
+      - /recipes/16-spiffe-federation/images/dnsidfed
+      - /recipes/16-spiffe-federation/images/spire-server
+      - /recipes/16-spiffe-federation/images/spire-agent
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      spire:
+        patterns:
+          - "*spiffe/spire-*"
+        group-by: dependency-name
   - package-ecosystem: github-actions
     directory: /
     schedule:
